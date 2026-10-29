@@ -96,7 +96,7 @@ function addAndroidExportAdapter(html,key){
    +'document.addEventListener("change",function(e){if(e.target&&["joint","fileInput","speed"].includes(e.target.id))nyraScheduleAnimationDraft();},true);'
    +'document.addEventListener("click",function(e){if(e.target&&e.target.closest&&e.target.closest("button"))nyraScheduleAnimationDraft();},true);'
    +'viewport.addEventListener("pointerup",nyraScheduleAnimationDraft,true);';
-  html=html.replace(/<\/script>\s*<\/body>/i,persistence+'</script></body>');
+  html=html.replace(/<\/script>\s*<\/body>/i,persistence+'<'+'/script></body>');
  }
 
  const bridgeScript = '<script>(function(){'
