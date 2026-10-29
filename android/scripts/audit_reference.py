@@ -99,6 +99,30 @@ for needle in (
     if needle not in text:
         errors.append(f"missing local runtime adapter: {needle}")
 
+
+# Regression guards for Android adaptations and persistence that must not replace editor logic.
+for needle in (
+    "nyra.items.draft.v1",
+    "nyra.character.draft.v1",
+    "nyra.character.draft.mode.v1",
+    "nyra3d-robotv-project",
+    "Reimporte o arquivo .bbmodel",
+    "function addAndroidExportAdapter",
+    "beginExport", "appendExportChunk", "finishExport",
+):
+    if needle not in text:
+        errors.append(f"missing Android adapter/persistence marker: {needle}")
+
+java_path = Path(__file__).resolve().parents[1] / "app/src/main/java/com/nyra/studio/MainActivity.java"
+java = java_path.read_text(encoding="utf-8")
+for needle in ("onShowFileChooser", "FILE_CHOOSER_REQUEST", "ACTION_OPEN_DOCUMENT",
+               "CREATE_DOCUMENT_REQUEST", "WebViewAssetLoader", "MAX_EXPORT_BYTES"):
+    if needle not in java:
+        errors.append(f"missing Android native file support: {needle}")
+
+if len(re.findall(r"</script>", text, flags=re.IGNORECASE)) != 1:
+    errors.append("outer HTML must contain exactly one literal closing script tag; nested scripts must be escaped")
+
 if errors:
     print("FAIL: regression audit detected issues:", file=sys.stderr)
     for error in errors:
