@@ -41,11 +41,64 @@ function decodePage(encoded){
  const bytes=Uint8Array.from(binary,ch=>ch.charCodeAt(0));
  return new TextDecoder('utf-8').decode(bytes);
 }
-function addAndroidExportAdapter(html){
+function addAndroidExportAdapter(html,key){
  html=html
   .replaceAll('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js','/assets/www/vendor/jszip/jszip.min.js')
   .replaceAll('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js','/assets/www/vendor/three/build/three.module.js')
   .replaceAll('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/','/assets/www/vendor/three/examples/jsm/');
+
+ if(key==='items'){
+  const persistence = '<script>(function(){'
+   +'const key="nyra.items.draft.v1";'
+   +'function saveDraft(){try{const snapshot={designs:designs,palettes:palettes,current:current,showGrid:showGrid,itemId:document.getElementById("itemId")?.value||"",paintColor:document.getElementById("paintColor")?.value||"#35e5ff"};localStorage.setItem(key,JSON.stringify(snapshot));}catch(e){}}'
+   +'try{const raw=localStorage.getItem(key);if(raw){const saved=JSON.parse(raw);'
+   +'if(saved&&saved.designs&&typeof saved.designs==="object"){for(const k of Object.keys(designs)){const rows=saved.designs[k];if(Array.isArray(rows)&&rows.every(r=>typeof r==="string"))designs[k]=rows.slice();}}'
+   +'if(saved&&saved.palettes&&typeof saved.palettes==="object"){for(const k of Object.keys(palettes)){const palette=saved.palettes[k];if(palette&&typeof palette==="object")for(const ch of Object.keys(palette)){if(typeof palette[ch]==="string")palettes[k][ch]=palette[ch];}}}'
+   +'if(saved&&Object.prototype.hasOwnProperty.call(designs,saved.current))current=saved.current;'
+   +'if(saved&&typeof saved.showGrid==="boolean")showGrid=saved.showGrid;'
+   +'if(saved&&saved.itemId)document.getElementById("itemId").value=saved.itemId;'
+   +'if(saved&&saved.paintColor)document.getElementById("paintColor").value=saved.paintColor;'
+   +'document.getElementById("toggleGrid").textContent=showGrid?"Ocultar grade":"Mostrar grade";render();'
+   +'}}catch(e){}'
+   +'const originalRender=render;render=function(){const result=originalRender.apply(this,arguments);saveDraft();return result;};'
+   +'let timer;function schedule(){clearTimeout(timer);timer=setTimeout(saveDraft,250);}'
+   +'document.addEventListener("input",function(e){if(e.target&&["itemId","paintColor"].includes(e.target.id))schedule();},true);'
+   +'document.addEventListener("change",schedule,true);document.addEventListener("pointerup",schedule,true);'
+   +'document.addEventListener("click",function(e){if(e.target&&e.target.closest&&e.target.closest("button"))schedule();},true);'
+   +'} )();'+'<'+'/script>';
+  html=html.replace(/<\/body>/i,persistence+'</body>');
+ }
+
+ if(key==='character'){
+  const marker='resetToEmptyProject(); function resize(){';
+  const persistence = [
+   "const nyraCharacterDraftKey='nyra.character.draft.v1';",
+   "const nyraCharacterDraftModeKey='nyra.character.draft.mode.v1';",
+   "let nyraCharacterDraftTimer=null;",
+   "function nyraSaveCharacterDraft(){try{if(bbmodelState){localStorage.setItem(nyraCharacterDraftModeKey,'bbmodel');return;}localStorage.setItem(nyraCharacterDraftKey,JSON.stringify(project()));localStorage.setItem(nyraCharacterDraftModeKey,'json');}catch(e){}}",
+   "function nyraScheduleCharacterDraft(){if(nyraCharacterDraftTimer)clearTimeout(nyraCharacterDraftTimer);nyraCharacterDraftTimer=setTimeout(nyraSaveCharacterDraft,350);}",
+   "try{const mode=localStorage.getItem(nyraCharacterDraftModeKey);if(mode==='bbmodel'){document.querySelector('#status').textContent='Um arquivo .bbmodel estava ativo na sessão anterior. Reimporte o arquivo .bbmodel para recuperar textura e metadados completos.';}else{const raw=localStorage.getItem(nyraCharacterDraftKey);if(raw){apply(JSON.parse(raw));document.querySelector('#status').textContent='Rascunho JSON local restaurado automaticamente.';}}}catch(e){console.warn('Nyra: rascunho local não pôde ser restaurado',e);}",
+   "const nyraApplyBeforeAutosave=apply;apply=function(data){const result=nyraApplyBeforeAutosave(data);nyraScheduleCharacterDraft();return result;};",
+   "const nyraImportBBModelBeforeAutosave=importBBModelFile;importBBModelFile=async function(file){const result=await nyraImportBBModelBeforeAutosave(file);if(bbmodelState)localStorage.setItem(nyraCharacterDraftModeKey,'bbmodel');return result;};",
+   "document.addEventListener('input',function(e){if(e.target&&['partColor','hue','sat','lum','dimX','dimY','dimZ','posX','posY','posZ','name'].includes(e.target.id))nyraScheduleCharacterDraft();},true);",
+   "document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('button'))nyraScheduleCharacterDraft();},true);",
+   "root.addEventListener('pointerup',nyraScheduleCharacterDraft,true);document.addEventListener('keyup',function(e){if(e.ctrlKey&&String(e.key).toLowerCase()==='z')nyraScheduleCharacterDraft();},true);"
+  ].join('\\n');
+  if(html.includes(marker))html=html.replace(marker,'resetToEmptyProject(); '+persistence+' function resize(){');
+ }
+
+ if(key==='animation'){
+  const persistence = '\n/* Nyra Android: automatic local draft, preserving the existing project JSON format. */\n'
+   +'const nyraAnimationDraftKey="nyra3d-robotv-project";let nyraAnimationDraftTimer=null;'
+   +'function nyraSaveAnimationDraft(){try{localStorage.setItem(nyraAnimationDraftKey,JSON.stringify(projectData()));}catch(e){status("Não foi possível salvar o rascunho automaticamente. Use Exportar JSON.");}}'
+   +'function nyraScheduleAnimationDraft(){if(nyraAnimationDraftTimer)clearTimeout(nyraAnimationDraftTimer);nyraAnimationDraftTimer=setTimeout(nyraSaveAnimationDraft,300);}'
+   +'document.addEventListener("input",function(e){if(e.target&&["rx","ry","rz","speed","joint"].includes(e.target.id))nyraScheduleAnimationDraft();},true);'
+   +'document.addEventListener("change",function(e){if(e.target&&["joint","fileInput","speed"].includes(e.target.id))nyraScheduleAnimationDraft();},true);'
+   +'document.addEventListener("click",function(e){if(e.target&&e.target.closest&&e.target.closest("button"))nyraScheduleAnimationDraft();},true);'
+   +'viewport.addEventListener("pointerup",nyraScheduleAnimationDraft,true);';
+  html=html.replace(/<\/script>\s*<\/body>/i,persistence+'</script></body>');
+ }
+
  const bridgeScript = '<script>(function(){'
   +'const bridge=window.NyraAndroid||window.parent.NyraAndroid;'
   +'if(!bridge)return;'
@@ -68,8 +121,8 @@ function addAndroidExportAdapter(html){
   +'})().catch(function(err){alert("Falha na exportação: "+(err&&err.message?err.message:String(err)))})'
   +'},true);'
   +'})();'+'<'+'/script>';
- if(/</body>/i.test(html)) return html.replace(/</body>/i,bridgeScript+'</body>');
- return html.replace(/</html>/i,bridgeScript+'</html>');
+ if(/<\/body>/i.test(html)) return html.replace(/<\/body>/i,bridgeScript+'</body>');
+ return html.replace(/<\/html>/i,bridgeScript+'</html>');
 }
 function ensureEditor(key){
  if(editorFrames[key])return editorFrames[key];
@@ -78,7 +131,7 @@ function ensureEditor(key){
  frame.setAttribute('allow','clipboard-read; clipboard-write');
  frame.dataset.editor=key;
  frame.style.cssText='display:none;width:100%;height:100%;min-height:450px;border:0;background:var(--bg)';
- frame.srcdoc=addAndroidExportAdapter(decodePage(pages[key]));
+ frame.srcdoc=addAndroidExportAdapter(decodePage(pages[key]),key);
  host.appendChild(frame);
  editorFrames[key]=frame;
  return frame;
