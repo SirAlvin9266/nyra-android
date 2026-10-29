@@ -140,14 +140,14 @@ def node_syntax_check(label: str, source: str) -> None:
     if result.returncode:
         errors.append(f"JavaScript syntax error in {label}: {result.stderr.strip() or result.stdout.strip()}")
 
-outer_scripts = re.findall(r"<script\\b[^>]*>([\\s\\S]*?)</script>", text, flags=re.IGNORECASE)
+outer_scripts = re.findall(r"<script\b[^>]*>([\s\S]*?)</script>", text, flags=re.IGNORECASE)
 if len(outer_scripts) != 1:
     errors.append(f"expected one outer inline script, found {len(outer_scripts)}")
 for i, script in enumerate(outer_scripts, 1):
     node_syntax_check(f"outer app script #{i}", script)
 
 for key, page in pages.items():
-    blocks = re.findall(r"<script\\b([^>]*)>([\\s\\S]*?)</script>", page, flags=re.IGNORECASE)
+    blocks = re.findall(r"<script\b([^>]*)>([\s\S]*?)</script>", page, flags=re.IGNORECASE)
     checked = 0
     for attrs, script in blocks:
         if "importmap" in attrs.lower() or not script.strip():
