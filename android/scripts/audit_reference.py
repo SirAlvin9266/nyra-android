@@ -44,7 +44,7 @@ required = {
             "project", "apply", "importBBModelFile", "buildBBModel", "resetToEmptyProject",
             "pushUndo", "undoLast", "addVoxel", "setVoxelMode", "selectVoxel",
         },
-        "strings": {"THREE.WebGLRenderer", "OrbitControls", "TransformControls", "GLTFLoader"},
+        "strings": {"THREE.WebGLRenderer", "OrbitControls", "TransformControls", "GLTF"},
     },
     "animation": {
         "ids": {
