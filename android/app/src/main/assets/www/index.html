@@ -47,6 +47,9 @@ function addAndroidExportAdapter(html,key){
   .replaceAll('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js','/assets/www/vendor/three/build/three.module.js')
   .replaceAll('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/','/assets/www/vendor/three/examples/jsm/');
 
+ // Three.js r186 addons import the bare specifier `three`; resolve it locally as well.
+ html=html.replace('"three/addons/":"/assets/www/vendor/three/examples/jsm/"','"three":"/assets/www/vendor/three/build/three.module.js","three/addons/":"/assets/www/vendor/three/examples/jsm/"');
+
  if(key==='items'){
   const persistence = '<script>(function(){'
    +'const key="nyra.items.draft.v1";'
