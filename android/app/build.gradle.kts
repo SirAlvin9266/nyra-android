@@ -29,7 +29,7 @@ val prepareNyraVendor by tasks.registering(Exec::class) {
         "bash", "-lc",
         """
         set -euo pipefail
-        WWW="${'$'}PWD/app/src/main/assets/www"
+        WWW="${'$'}PWD/src/main/assets/www"
         TMP="${'$'}{TMPDIR:-/tmp}/nyra-deps-${'$'}${'$'}"
         mkdir -p "${'$'}TMP/three" "${'$'}TMP/jszip" "${'$'}WWW/vendor/three/build" "${'$'}WWW/vendor/three/examples/jsm/controls" "${'$'}WWW/vendor/jszip"
         cleanup() { rm -rf "${'$'}TMP"; }
