@@ -60,6 +60,11 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --no-daemon assembleDebug
 
+      - name: Verify offline assets inside APK
+        if: success() && steps.project.outputs.project_dir != 'missing'
+        run: |
+          python3 android/scripts/audit_apk.py android/app/build/outputs/apk/debug/app-debug.apk
+
       - name: Explain missing Android project
         if: steps.project.outputs.project_dir == 'missing'
         run: |
