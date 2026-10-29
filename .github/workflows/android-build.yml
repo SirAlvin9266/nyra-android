@@ -37,6 +37,9 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
+      - name: Audit reference editor features
+        run: python3 android/scripts/audit_reference.py
+
       - name: Locate Gradle wrapper
         id: project
         shell: bash
