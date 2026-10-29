@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import re
 import sys
+import subprocess
 from pathlib import Path
 
 HTML = Path(__file__).resolve().parents[1] / "app/src/main/assets/www/index.html"
@@ -94,7 +95,7 @@ for needle in (
     "/assets/www/vendor/jszip/jszip.min.js",
     "/assets/www/vendor/three/build/three.module.js",
     "/assets/www/vendor/three/examples/jsm/",
-    "beginExport", "appendExportChunk", "finishExport",
+    "beginExport", "appendExportChunk", "finishExport", "HTMLAnchorElement.prototype.click",
 ):
     if needle not in text:
         errors.append(f"missing local runtime adapter: {needle}")
@@ -122,6 +123,37 @@ for needle in ("onShowFileChooser", "FILE_CHOOSER_REQUEST", "ACTION_OPEN_DOCUMEN
 
 if len(re.findall(r"</script>", text, flags=re.IGNORECASE)) != 1:
     errors.append("outer HTML must contain exactly one literal closing script tag; nested scripts must be escaped")
+
+
+# Parse the outer app script and each original inline editor script with Node's JS parser.
+# This is a syntax check only; WebGL/runtime behavior still requires a real Android device.
+def node_syntax_check(label: str, source: str) -> None:
+    if not source.strip():
+        return
+    result = subprocess.run(
+        ["node", "--check", "--input-type=module"],
+        input=source,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        errors.append(f"JavaScript syntax error in {label}: {result.stderr.strip() or result.stdout.strip()}")
+
+outer_scripts = re.findall(r"<script\\b[^>]*>([\\s\\S]*?)</script>", text, flags=re.IGNORECASE)
+if len(outer_scripts) != 1:
+    errors.append(f"expected one outer inline script, found {len(outer_scripts)}")
+for i, script in enumerate(outer_scripts, 1):
+    node_syntax_check(f"outer app script #{i}", script)
+
+for key, page in pages.items():
+    blocks = re.findall(r"<script\\b([^>]*)>([\\s\\S]*?)</script>", page, flags=re.IGNORECASE)
+    checked = 0
+    for attrs, script in blocks:
+        if "importmap" in attrs.lower() or not script.strip():
+            continue
+        checked += 1
+        node_syntax_check(f"{key} inline script #{checked}", script)
 
 if errors:
     print("FAIL: regression audit detected issues:", file=sys.stderr)
