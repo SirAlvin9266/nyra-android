@@ -40,6 +40,9 @@ jobs:
       - name: Audit reference editor features
         run: python3 android/scripts/audit_reference.py
 
+      - name: Audit generated editor adapters
+        run: node android/scripts/audit_generated_adapters.cjs
+
       - name: Locate Gradle wrapper
         id: project
         shell: bash
