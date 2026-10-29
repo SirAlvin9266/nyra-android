@@ -4,13 +4,12 @@ import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.OpenableColumns;
 import android.util.Base64;
 import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
@@ -29,6 +28,8 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
@@ -36,10 +37,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MainActivity extends Activity {
     private static final int CREATE_DOCUMENT_REQUEST = 4207;
+    private static final int FILE_CHOOSER_REQUEST = 4208;
     private static final long MAX_EXPORT_BYTES = 64L * 1024L * 1024L;
 
     private WebView webView;
     private WebViewAssetLoader assetLoader;
+    private ValueCallback<Uri[]> pendingFileChooser;
+    private boolean pendingFileChooserMultiple;
     private final Map<String, ExportTransfer> transfers = new ConcurrentHashMap<>();
     private final Queue<ExportTransfer> completedExports = new ArrayDeque<>();
     private ExportTransfer pendingDocument;
@@ -89,7 +93,37 @@ public class MainActivity extends Activity {
                 return assetLoader.shouldInterceptRequest(Uri.parse(url));
             }
         });
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(
+                WebView view,
+                ValueCallback<Uri[]> filePathCallback,
+                FileChooserParams fileChooserParams
+            ) {
+                if (pendingFileChooser != null) {
+                    pendingFileChooser.onReceiveValue(null);
+                    pendingFileChooser = null;
+                }
+                pendingFileChooser = filePathCallback;
+                pendingFileChooserMultiple = fileChooserParams != null
+                    && fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE;
+                try {
+                    Intent intent = fileChooserParams != null
+                        ? fileChooserParams.createIntent()
+                        : new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    if (intent.getType() == null) intent.setType("*/*");
+                    startActivityForResult(intent, FILE_CHOOSER_REQUEST);
+                    return true;
+                } catch (Exception ex) {
+                    pendingFileChooser = null;
+                    pendingFileChooserMultiple = false;
+                    filePathCallback.onReceiveValue(null);
+                    Toast.makeText(MainActivity.this, "Não foi possível abrir o seletor de arquivos.", Toast.LENGTH_LONG).show();
+                    return false;
+                }
+            }
+        });
         webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
             if (url == null || !(url.startsWith("https://") || url.startsWith("http://"))) {
                 Toast.makeText(this, "Esse tipo de arquivo precisa ser exportado pelo botão do editor.", Toast.LENGTH_LONG).show();
@@ -217,6 +251,33 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == FILE_CHOOSER_REQUEST) {
+            ValueCallback<Uri[]> callback = pendingFileChooser;
+            boolean allowMultiple = pendingFileChooserMultiple;
+            pendingFileChooser = null;
+            pendingFileChooserMultiple = false;
+
+            if (callback != null) {
+                Uri[] result = null;
+                if (resultCode == RESULT_OK && data != null) {
+                    if (allowMultiple && data.getClipData() != null) {
+                        int count = data.getClipData().getItemCount();
+                        List<Uri> uris = new ArrayList<>();
+                        for (int i = 0; i < count; i++) {
+                            Uri uri = data.getClipData().getItemAt(i).getUri();
+                            if (uri != null) uris.add(uri);
+                        }
+                        if (!uris.isEmpty()) result = uris.toArray(new Uri[0]);
+                    } else if (data.getData() != null) {
+                        result = new Uri[] { data.getData() };
+                    }
+                }
+                callback.onReceiveValue(result);
+            }
+            return;
+        }
+
         if (requestCode != CREATE_DOCUMENT_REQUEST) return;
 
         ExportTransfer transfer = pendingDocument;
@@ -265,6 +326,10 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (pendingFileChooser != null) {
+            pendingFileChooser.onReceiveValue(null);
+            pendingFileChooser = null;
+        }
         for (ExportTransfer transfer : transfers.values()) transfer.file.delete();
         transfers.clear();
         synchronized (completedExports) {
