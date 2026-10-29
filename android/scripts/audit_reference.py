@@ -38,13 +38,13 @@ required = {
             "view", "partColor", "hue", "sat", "lum", "shapeType", "addShape",
             "dimX", "dimY", "dimZ", "posX", "posY", "posZ", "moveTool",
             "rotateTool", "scaleTool", "deleteSelected", "file", "save",
-            "saveBBModel", "load", "undoLast", "restorePart",
+            "saveBBModel", "load", "restorePart",
         },
         "functions": {
             "project", "apply", "importBBModelFile", "buildBBModel", "resetToEmptyProject",
             "pushUndo", "undoLast", "addVoxel", "setVoxelMode", "selectVoxel",
         },
-        "strings": {"THREE.WebGLRenderer", "OrbitControls", "TransformControls", "GLTF"},
+        "strings": {"THREE.WebGLRenderer", "OrbitControls", "TransformControls", "GLTFLoader"},
     },
     "animation": {
         "ids": {
