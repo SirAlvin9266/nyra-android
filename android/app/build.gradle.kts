@@ -16,13 +16,12 @@ android {
 }
 
 dependencies {
-    // Stable local asset origin, needed for ES module imports in embedded editor pages.
     implementation("androidx.webkit:webkit:1.12.1")
 }
 
-// Build-time packaging only: the libraries are copied into the APK and are not fetched at runtime.
-// Versions and file hashes are checked against the supplied three.js-master.zip / reference HTML.
 val prepareNyraVendor by tasks.registering(Exec::class) {
+    inputs.property("threeVersion", "0.186.1")
+    inputs.property("jszipVersion", "3.10.1")
     val vendorStamp = layout.projectDirectory.file("src/main/assets/www/vendor/.vendor-ready")
     outputs.file(vendorStamp)
 
@@ -39,7 +38,12 @@ val prepareNyraVendor by tasks.registering(Exec::class) {
         cd "${'$'}TMP/three"
         npm pack three@0.186.1 --silent
         tar -xzf three-0.186.1.tgz
-        printf '%s  %s\n' '9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea' package/build/three.module.js '9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6' package/build/three.core.js '3d79d07ecb686b4e5d93232eedab255331c1beef711e13164eaa1f68655a5f2b' package/examples/jsm/controls/OrbitControls.js '151befe25bb0d68626f9a6b033625b7b0cf6848e39ba71623b7bed8e3df565d6' package/examples/jsm/controls/TransformControls.js | sha256sum -c -
+        printf '%s  %s\n' \
+          '9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea' package/build/three.module.js \
+          '9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6' package/build/three.core.js \
+          '3d79d07ecb686b4e5d93232eedab255331c1beef711e13164eaa1f68655a5f2b' package/examples/jsm/controls/OrbitControls.js \
+          '151befe25bb0d68626f9a6b033625b7b0cf6848e39ba71623b7bed8e3df565d6' package/examples/jsm/controls/TransformControls.js \
+          | sha256sum -c -
         cp package/build/three.module.js "${'$'}WWW/vendor/three/build/"
         cp package/build/three.core.js "${'$'}WWW/vendor/three/build/"
         cp package/examples/jsm/controls/OrbitControls.js "${'$'}WWW/vendor/three/examples/jsm/controls/"
