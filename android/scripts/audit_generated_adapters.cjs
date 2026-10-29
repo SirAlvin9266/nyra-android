@@ -88,6 +88,18 @@ for (const [name, page] of Object.entries(generated)) {
     process.exitCode = 1;
     continue;
   }
+  const editorSpecificMarkers = {
+    items: ['nyra.items.draft.v1'],
+    character: ['nyra.character.draft.v1', 'nyra.character.draft.mode.v1', 'Rascunho JSON local restaurado automaticamente.'],
+    animation: ['nyra3d-robotv-project'],
+  };
+  for (const marker of editorSpecificMarkers[name] || []) {
+    if (!page.includes(marker)) {
+      console.error('FAIL: generated ' + name + ' editor lacks persistence marker ' + marker);
+      process.exitCode = 1;
+    }
+  }
+
   for (const marker of expectedMarkers) {
     // Items-only and editor-specific persistence markers are verified globally in
     // the wrapper, while dependency and export markers must exist in each generated page.
