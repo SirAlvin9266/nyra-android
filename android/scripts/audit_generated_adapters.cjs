@@ -71,13 +71,11 @@ const generated = vm.runInContext(`({
 
 const requiredByEditor = {
   items: ['/assets/www/vendor/jszip/jszip.min.js'],
-  character: ['/assets/www/vendor/three/build/three.module.js', '/assets/www/vendor/three/examples/jsm/', '/assets/www/vendor/three/examples/jsm/loaders/GLTFLoader.js', '/assets/www/vendor/three/examples/jsm/loaders/FBXLoader.js', '/assets/www/vendor/three/examples/jsm/exporters/GLTFExporter.js'],
+  character: ['/assets/www/vendor/three/build/three.module.js', 'three/addons/controls/OrbitControls.js', 'three/addons/loaders/GLTFLoader.js', 'three/addons/loaders/OBJLoader.js', 'three/addons/loaders/FBXLoader.js', 'three/addons/loaders/STLLoader.js', 'three/addons/exporters/GLTFExporter.js', 'three/addons/exporters/OBJExporter.js', 'three/addons/exporters/STLExporter.js'],
   animation: ['/assets/www/vendor/three/build/three.module.js', '/assets/www/vendor/three/examples/jsm/'],
 };
 const requiredExportMarkers = [
   'HTMLAnchorElement.prototype.click',
-  'NyraModelIO',
-  'Importar modelo 3D',
   'beginExport',
   'appendExportChunk',
   'finishExport',
@@ -100,7 +98,7 @@ for (const [name, page] of Object.entries(generated)) {
     }
   }
 
-  for (const marker of [...(requiredByEditor[name] || []), ...requiredExportMarkers]) {
+  for (const marker of [...(requiredByEditor[name] || []), ...requiredExportMarkers, ...(name === 'character' ? ['NyraModelIO', 'Importar modelo 3D'] : [])]) {
     if (!page.includes(marker)) {
       console.error('FAIL: generated ' + name + ' document is missing ' + marker);
       process.exitCode = 1;
