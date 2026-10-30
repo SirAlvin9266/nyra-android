@@ -71,7 +71,7 @@ const generated = vm.runInContext(`({
 
 const requiredByEditor = {
   items: ['/assets/www/vendor/jszip/jszip.min.js'],
-  character: ['/assets/www/vendor/three/build/three.module.js', '/assets/www/vendor/three/examples/jsm/'],
+  character: ['/assets/www/vendor/three/build/three.module.js', 'three/addons/controls/OrbitControls.js', 'three/addons/loaders/GLTFLoader.js', 'three/addons/loaders/OBJLoader.js', 'three/addons/loaders/FBXLoader.js', 'three/addons/loaders/STLLoader.js', 'three/addons/exporters/GLTFExporter.js', 'three/addons/exporters/OBJExporter.js', 'three/addons/exporters/STLExporter.js'],
   animation: ['/assets/www/vendor/three/build/three.module.js', '/assets/www/vendor/three/examples/jsm/'],
 };
 const requiredExportMarkers = [
@@ -98,12 +98,21 @@ for (const [name, page] of Object.entries(generated)) {
     }
   }
 
-  for (const marker of [...(requiredByEditor[name] || []), ...requiredExportMarkers]) {
+  for (const marker of [...(requiredByEditor[name] || []), ...requiredExportMarkers, ...(name === 'character' ? ['NyraModelIO', 'Importar modelo 3D', 'selectModel(importedModel)', 'animations:importedAnimations'] : [])]) {
     if (!page.includes(marker)) {
       console.error('FAIL: generated ' + name + ' document is missing ' + marker);
       process.exitCode = 1;
     }
   }
+  if (name === 'character') {
+    const panelIndex = page.indexOf('id="nyraModelIO"');
+    const mainEndIndex = page.indexOf('</main>');
+    if (panelIndex < 0 || mainEndIndex < 0 || panelIndex > mainEndIndex) {
+      console.error('FAIL: model I/O panel must be inside the main Character Editor layout');
+      process.exitCode = 1;
+    }
+  }
+
   if (/cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com/i.test(page)) {
     console.error('FAIL: generated ' + name + ' document still contains a runtime CDN dependency');
     process.exitCode = 1;

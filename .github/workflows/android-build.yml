@@ -2,8 +2,19 @@ name: Nyra Android Cloud Build
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'app/**'
+      - 'gradle/**'
+      - '*.gradle'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'settings.gradle*'
+      - 'build.gradle*'
+      - '.github/workflows/android-build.yml'
   push:
-    branches: [main]
+    branches: [main, work/nyra-integrated-offline-loaders]
     paths:
       - 'android/**'
       - 'app/**'
