@@ -99,9 +99,9 @@ function addAndroidExportAdapter(html,key){
   );
   const panelEnd = '</div></section></main>';
   if (html.toLowerCase().includes(panelEnd)) {
-    html = html.replace(/<\/div><\/section><\/main>/i, modelTools + '</div></section></main>');
+    html = html.replace(panelEnd, modelTools + panelEnd);
   } else {
-    html = html.replace(/<\/body>/i, modelTools + '</body>');
+    html = html.replace('</body>', modelTools + '</body>');
   }
  }
 
