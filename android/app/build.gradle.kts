@@ -19,8 +19,8 @@ dependencies {
     implementation("androidx.webkit:webkit:1.12.1")
 }
 
-// Build-time vendoring is pinned and SHA-256 verified. The resulting APK is
-// self-contained: no CDN requests are required while the app is being used.
+// All runtime dependencies are packaged in the APK. Network is used only by
+// this pinned, hash-verified preparation task, never by the app at runtime.
 val prepareNyraVendor by tasks.registering(Exec::class) {
     inputs.property("threeVersion", "0.186.1")
     inputs.property("jszipVersion", "3.10.1")
@@ -32,21 +32,21 @@ val prepareNyraVendor by tasks.registering(Exec::class) {
         "bash", "-lc",
         """
         set -euo pipefail
-        WWW="${PWD/src/main/assets/www"
-        TMP="${{TMPDIR:-/tmp}/nyra-deps-${${"
-        mkdir -p "${TMP/three" "${TMP/jszip" \
-          "${WWW/vendor/three/build" \
-          "${WWW/vendor/three/examples/jsm/controls" \
-          "${WWW/vendor/three/examples/jsm/loaders" \
-          "${WWW/vendor/three/examples/jsm/exporters" \
-          "${WWW/vendor/three/examples/jsm/utils" \
-          "${WWW/vendor/three/examples/jsm/libs" \
-          "${WWW/vendor/three/examples/jsm/curves" \
-          "${WWW/vendor/jszip"
-        cleanup() { rm -rf "${TMP"; }
+        WWW="${'$'}PWD/src/main/assets/www"
+        TMP="${'$'}{TMPDIR:-/tmp}/nyra-deps-${'$'}${'$'}"
+        mkdir -p "${'$'}TMP/three" "${'$'}TMP/jszip" \
+          "${'$'}WWW/vendor/three/build" \
+          "${'$'}WWW/vendor/three/examples/jsm/controls" \
+          "${'$'}WWW/vendor/three/examples/jsm/loaders" \
+          "${'$'}WWW/vendor/three/examples/jsm/exporters" \
+          "${'$'}WWW/vendor/three/examples/jsm/utils" \
+          "${'$'}WWW/vendor/three/examples/jsm/libs" \
+          "${'$'}WWW/vendor/three/examples/jsm/curves" \
+          "${'$'}WWW/vendor/jszip"
+        cleanup() { rm -rf "${'$'}TMP"; }
         trap cleanup EXIT
 
-        cd "${TMP/three"
+        cd "${'$'}TMP/three"
         npm pack three@0.186.1 --silent
         tar -xzf three-0.186.1.tgz
 
@@ -70,39 +70,39 @@ c6bd7c4137d585098923f189687898ea3e8762ea3ecbe255d749a56353894379  package/exampl
 HASHES
         sha256sum -c three.sha256
 
-        cp package/build/three.module.js "${WWW/vendor/three/build/"
-        cp package/build/three.core.js "${WWW/vendor/three/build/"
-        cp package/LICENSE "${WWW/vendor/three/LICENSE"
+        cp package/build/three.module.js "${'$'}WWW/vendor/three/build/"
+        cp package/build/three.core.js "${'$'}WWW/vendor/three/build/"
+        cp package/LICENSE "${'$'}WWW/vendor/three/LICENSE"
         for file in OrbitControls TransformControls; do
-          cp "package/examples/jsm/controls/${file.js" "${WWW/vendor/three/examples/jsm/controls/"
+          cp "package/examples/jsm/controls/${'$'}file.js" "${'$'}WWW/vendor/three/examples/jsm/controls/"
         done
         for file in GLTFLoader OBJLoader FBXLoader STLLoader; do
-          cp "package/examples/jsm/loaders/${file.js" "${WWW/vendor/three/examples/jsm/loaders/"
+          cp "package/examples/jsm/loaders/${'$'}file.js" "${'$'}WWW/vendor/three/examples/jsm/loaders/"
         done
         for file in GLTFExporter OBJExporter STLExporter; do
-          cp "package/examples/jsm/exporters/${file.js" "${WWW/vendor/three/examples/jsm/exporters/"
+          cp "package/examples/jsm/exporters/${'$'}file.js" "${'$'}WWW/vendor/three/examples/jsm/exporters/"
         done
-        cp package/examples/jsm/utils/BufferGeometryUtils.js "${WWW/vendor/three/examples/jsm/utils/"
-        cp package/examples/jsm/utils/SkeletonUtils.js "${WWW/vendor/three/examples/jsm/utils/"
-        cp package/examples/jsm/libs/fflate.module.js "${WWW/vendor/three/examples/jsm/libs/"
-        cp package/examples/jsm/curves/NURBSCurve.js "${WWW/vendor/three/examples/jsm/curves/"
-        cp package/examples/jsm/curves/NURBSUtils.js "${WWW/vendor/three/examples/jsm/curves/"
+        cp package/examples/jsm/utils/BufferGeometryUtils.js "${'$'}WWW/vendor/three/examples/jsm/utils/"
+        cp package/examples/jsm/utils/SkeletonUtils.js "${'$'}WWW/vendor/three/examples/jsm/utils/"
+        cp package/examples/jsm/libs/fflate.module.js "${'$'}WWW/vendor/three/examples/jsm/libs/"
+        cp package/examples/jsm/curves/NURBSCurve.js "${'$'}WWW/vendor/three/examples/jsm/curves/"
+        cp package/examples/jsm/curves/NURBSUtils.js "${'$'}WWW/vendor/three/examples/jsm/curves/"
 
-        cd "${TMP/jszip"
+        cd "${'$'}TMP/jszip"
         npm pack jszip@3.10.1 --silent
         tar -xzf jszip-3.10.1.tgz
-        cp package/dist/jszip.min.js "${WWW/vendor/jszip/"
-        cp package/LICENSE.markdown "${WWW/vendor/jszip/LICENSE.markdown"
+        cp package/dist/jszip.min.js "${'$'}WWW/vendor/jszip/"
+        cp package/LICENSE.markdown "${'$'}WWW/vendor/jszip/LICENSE.markdown"
 
-        printf 'three=0.186.1\njszip=3.10.1\nvendor=model-io-r1\n' > "${WWW/vendor/.vendor-ready"
-        test -s "${WWW/vendor/three/examples/jsm/loaders/GLTFLoader.js"
-        test -s "${WWW/vendor/three/examples/jsm/loaders/OBJLoader.js"
-        test -s "${WWW/vendor/three/examples/jsm/loaders/FBXLoader.js"
-        test -s "${WWW/vendor/three/examples/jsm/loaders/STLLoader.js"
-        test -s "${WWW/vendor/three/examples/jsm/exporters/GLTFExporter.js"
-        test -s "${WWW/vendor/three/examples/jsm/exporters/OBJExporter.js"
-        test -s "${WWW/vendor/three/examples/jsm/exporters/STLExporter.js"
-        test -s "${WWW/vendor/jszip/jszip.min.js"
+        printf 'three=0.186.1\\njszip=3.10.1\\nvendor=model-io-r1\\n' > "${'$'}WWW/vendor/.vendor-ready"
+        test -s "${'$'}WWW/vendor/three/examples/jsm/loaders/GLTFLoader.js"
+        test -s "${'$'}WWW/vendor/three/examples/jsm/loaders/OBJLoader.js"
+        test -s "${'$'}WWW/vendor/three/examples/jsm/loaders/FBXLoader.js"
+        test -s "${'$'}WWW/vendor/three/examples/jsm/loaders/STLLoader.js"
+        test -s "${'$'}WWW/vendor/three/examples/jsm/exporters/GLTFExporter.js"
+        test -s "${'$'}WWW/vendor/three/examples/jsm/exporters/OBJExporter.js"
+        test -s "${'$'}WWW/vendor/three/examples/jsm/exporters/STLExporter.js"
+        test -s "${'$'}WWW/vendor/jszip/jszip.min.js"
         """.trimIndent()
     )
 }
