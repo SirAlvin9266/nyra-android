@@ -104,6 +104,15 @@ for (const [name, page] of Object.entries(generated)) {
       process.exitCode = 1;
     }
   }
+  if (name === 'character') {
+    const panelIndex = page.indexOf('id="nyraModelIO"');
+    const mainEndIndex = page.indexOf('</main>');
+    if (panelIndex < 0 || mainEndIndex < 0 || panelIndex > mainEndIndex) {
+      console.error('FAIL: model I/O panel must be inside the main Character Editor layout');
+      process.exitCode = 1;
+    }
+  }
+
   if (/cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com/i.test(page)) {
     console.error('FAIL: generated ' + name + ' document still contains a runtime CDN dependency');
     process.exitCode = 1;
