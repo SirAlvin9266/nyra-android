@@ -58,7 +58,6 @@ with zipfile.ZipFile(apk) as z:
             "three/addons/loaders/FBXLoader.js",
             "three/addons/exporters/GLTFExporter.js",
             "NyraModelIO",
-            "NyraModelIO",
             "function addAndroidExportAdapter",
         ):
             if marker not in html:
