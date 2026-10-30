@@ -14,7 +14,7 @@ on:
       - 'build.gradle*'
       - '.github/workflows/android-build.yml'
   push:
-    branches: [main]
+    branches: [main, work/nyra-integrated-offline-loaders]
     paths:
       - 'android/**'
       - 'app/**'
