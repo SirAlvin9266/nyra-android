@@ -54,8 +54,10 @@ with zipfile.ZipFile(apk) as z:
             "/assets/www/vendor/jszip/jszip.min.js",
             "/assets/www/vendor/three/build/three.module.js",
             "/assets/www/vendor/three/examples/jsm/",
-            "/assets/www/vendor/three/examples/jsm/loaders/GLTFLoader.js",
-            "/assets/www/vendor/three/examples/jsm/loaders/FBXLoader.js",
+            "three/addons/loaders/GLTFLoader.js",
+            "three/addons/loaders/FBXLoader.js",
+            "three/addons/exporters/GLTFExporter.js",
+            "NyraModelIO",
             "NyraModelIO",
             "function addAndroidExportAdapter",
         ):
