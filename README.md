@@ -14,6 +14,8 @@ Versão Android em desenvolvimento do **Nyra 3D Studio**, baseada exclusivamente
 - O Android WebView usa um endereço de assets local compatível com módulos ES.
 - O seletor de arquivos do Android é ligado aos campos de importação dos editores.
 - Os downloads gerados pelos editores são encaminhados para o seletor de salvamento do Android.
+- O Criador de Personagens permite navegar pela hierarquia de modelos importados, selecionar peças individualmente, excluí-las e restaurar a última exclusão.
+- O Criador de Personagens inclui um gerador matemático JSON (DSL v1), com hierarquia, pivôs, validação e formas poligonais editáveis; as instruções podem ser escritas manualmente ou geradas por uma IA externa.
 - Há rascunhos locais automáticos para a Oficina de Itens, para projetos JSON do Criador de Personagens e para a animação RoboTV.
 - Os imports de `.bbmodel` têm uma ressalva intencional: para evitar perder textura/metadados que o rascunho JSON não representa, o app não sobrescreve esse estado com JSON incompleto. Ao reabrir, é necessário reimportar o arquivo `.bbmodel`.
 - A compilação cloud roda auditoria estática de controles/funções essenciais, verificação sintática dos scripts JS e auditoria dos arquivos locais dentro do APK.
@@ -31,6 +33,10 @@ O workflow **Nyra Android Cloud Build** compilou com sucesso e o teste de conte�
 ## Baixar o APK de depuração
 
 Abra [GitHub Actions](https://github.com/SirAlvin9266/nyra-android/actions), selecione a execução bem-sucedida mais recente, e baixe o artefato `nyra-android-debug-apk`. O ZIP contém `app-debug.apk`. O artefato de depuração não é uma versão de lançamento assinada para distribuição pública.
+
+## Instruções de modelos matemáticos
+
+Consulte [NYRA_MODEL_DSL.md](NYRA_MODEL_DSL.md) para o formato JSON, exemplos, hierarquia, pivôs, validações e limitações atuais.
 
 ## Arquivos de apoio
 
