@@ -13,7 +13,7 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 // The Character Editor module script is nested inside a JS string. HTML still
 // terminates the outer script on a literal </script>, even inside that string.
 // Extract only the final closing tag that is part of the outer document.
-const scriptTag = html.match(/<script\\b[^>]*>/i);
+const scriptTag = html.match(/<script\b[^>]*>/i);
 const scriptOpen = scriptTag ? scriptTag.index + scriptTag[0].length : -1;
 const scriptEnd = scriptOpen >= 0 ? html.lastIndexOf('</script>') : -1;
 const literalCloseCount = html.split('</script>').length - 1;
