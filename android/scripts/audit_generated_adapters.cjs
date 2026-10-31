@@ -127,6 +127,7 @@ for (const [name, page] of Object.entries(generated)) {
     process.exitCode = 1;
   }
 
+  let checked = 0;
   // The generated document is built by string adapters that contain inline
   // script templates. Parsing those templates out of the source HTML can split
   // JavaScript strings and create false positives. Validate the assembled module
