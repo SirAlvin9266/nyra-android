@@ -26,19 +26,18 @@ if (!outerSource || literalCloseCount !== 1) {
 // neutralized. The generated Character Editor below verifies its real output.
 const modelStart = outerSource.indexOf('const modelTools = ');
 if (modelStart >= 0) {
-  // The injected template is a single escaped string statement. Its end marker
-  // is exact and precedes the branch's layout insertion logic.
-  const statementEnd = outerSource.indexOf('";', modelStart);
-  const panelEnd = outerSource.indexOf("\n  const panelEnd", modelStart);
-  const followingBranch = outerSource.indexOf("\n if(key==='animation')", modelStart);
-  if (statementEnd < 0 || panelEnd < 0 || followingBranch < 0 || statementEnd > panelEnd) {
-    console.error('FAIL: cannot isolate model I/O template statement');
+  // Replace the entire modelTools assignment with an empty string while
+  // retaining the closing brace of the surrounding character adapter branch.
+  const assignmentStart = modelStart;
+  const assignmentEnd = outerSource.indexOf('";', assignmentStart);
+  const panelMarker = outerSource.indexOf("\n  const panelEnd", assignmentStart);
+  const branchEnd = outerSource.indexOf("\n }\n\n if(key==='animation')", assignmentStart);
+  if (assignmentEnd < 0 || panelMarker < 0 || branchEnd < 0 || assignmentEnd > panelMarker) {
+    console.error('FAIL: cannot isolate model I/O string within adapter');
     process.exit(1);
   }
-  outerSource = outerSource.slice(0, modelStart) + 'const modelTools = "";'
-    + outerSource.slice(statementEnd + 2, followingBranch)
-    + "\n }\n"
-    + outerSource.slice(followingBranch);
+  outerSource = outerSource.slice(0, assignmentStart) + 'const modelTools = "";'
+    + outerSource.slice(branchEnd);
 }
 const outerMatch = [null, outerSource];
 
