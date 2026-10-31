@@ -13,17 +13,28 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 // The Character Editor module script is nested inside a JS string. HTML still
 // terminates the outer script on a literal </script>, even inside that string.
 // Extract only the final closing tag that is part of the outer document.
-const scriptTag = html.match(/<script\b[^>]*>/i);
+const scriptTag = html.match(/<script\\b[^>]*>/i);
 const scriptOpen = scriptTag ? scriptTag.index + scriptTag[0].length : -1;
 const scriptEnd = scriptOpen >= 0 ? html.lastIndexOf('</script>') : -1;
-const outerMatch = scriptEnd > scriptOpen
-  ? [null, html.slice(scriptOpen, scriptEnd)]
-  : null;
 const literalCloseCount = html.split('</script>').length - 1;
-if (!outerMatch || literalCloseCount !== 1) {
+let outerSource = scriptEnd > scriptOpen ? html.slice(scriptOpen, scriptEnd) : '';
+if (!outerSource || literalCloseCount !== 1) {
   console.error('FAIL: expected exactly one literal script closing tag in outer HTML');
   process.exit(1);
 }
+// Remove the injected model I/O template before parsing the outer bootstrap.
+// The generated module is parsed from the final document below.
+const modelStart = outerSource.indexOf('const modelTools = ');
+if (modelStart >= 0) {
+  const statementEnd = outerSource.indexOf('";', modelStart);
+  const panelMarker = outerSource.indexOf('const panelEnd', modelStart);
+  if (statementEnd < 0 || panelMarker < 0 || statementEnd > panelMarker) {
+    console.error('FAIL: cannot isolate model I/O template in outer bootstrap');
+    process.exit(1);
+  }
+  outerSource = outerSource.slice(0, modelStart) + 'const modelTools = "";' + outerSource.slice(statementEnd + 2);
+}
+const outerMatch = [null, outerSource];
 
 const frames = [];
 const host = { appendChild(frame) { frames.push(frame); frame.parentNode = host; } };
