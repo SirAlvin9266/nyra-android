@@ -166,7 +166,7 @@ else:
                 if escaped:
                     escaped = False
                     continue
-                if char == "\\\\":
+                if char == "\\":
                     escaped = True
                     continue
                 if char == '"':
