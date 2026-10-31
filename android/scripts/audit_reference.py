@@ -143,8 +143,9 @@ def node_syntax_check(label: str, source: str) -> None:
     if result.returncode:
         errors.append(f"JavaScript syntax error in {label}: {result.stderr.strip() or result.stdout.strip()}")
 
-# Split the outer bootstrap from the model I/O template with a small
-# quote-aware scanner. This avoids regex assumptions about nested escaped HTML.
+# Validate the outer page by parsing it after replacing its injected HTML
+# module string with an empty literal. The editor module is independently checked
+# from the fully assembled Character Editor document by audit_generated_adapters.cjs.
 script_open = text.lower().find("<script")
 script_open_end = text.find(">", script_open) if script_open >= 0 else -1
 script_close = text.lower().rfind("</script>")
@@ -155,27 +156,13 @@ else:
     marker = "const modelTools = "
     model_start = outer_source.find(marker)
     if model_start >= 0:
-        quote_start = model_start + len(marker)
-        if quote_start >= len(outer_source) or outer_source[quote_start] != '"':
-            errors.append("model I/O template is not a quoted JavaScript string")
+        # Find the exact statement terminator rather than counting escape sequences.
+        statement_end = outer_source.find('";', model_start)
+        following = outer_source.find("const panelEnd", model_start)
+        if statement_end < 0 or following < 0 or statement_end > following:
+            errors.append("could not isolate the model I/O template statement")
         else:
-            escaped = False
-            quote_end = -1
-            for index in range(quote_start + 1, len(outer_source)):
-                char = outer_source[index]
-                if escaped:
-                    escaped = False
-                    continue
-                if char == "\\":
-                    escaped = True
-                    continue
-                if char == '"':
-                    quote_end = index
-                    break
-            if quote_end < 0:
-                errors.append("unterminated model I/O template string")
-            else:
-                outer_source = outer_source[:model_start] + 'const modelTools = "";' + outer_source[quote_end + 1:]
+            outer_source = outer_source[:model_start] + 'const modelTools = "";' + outer_source[statement_end + 2:]
     node_syntax_check("outer app bootstrap", outer_source)
 
 # Decode and parse each original editor's own scripts independently.
