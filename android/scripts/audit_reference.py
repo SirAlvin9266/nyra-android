@@ -143,9 +143,7 @@ def node_syntax_check(label: str, source: str) -> None:
     if result.returncode:
         errors.append(f"JavaScript syntax error in {label}: {result.stderr.strip() or result.stdout.strip()}")
 
-# Validate the outer page by parsing it after replacing its injected HTML
-# module string with an empty literal. The editor module is independently checked
-# from the fully assembled Character Editor document by audit_generated_adapters.cjs.
+# Validate the complete outer bootstrap, including the escaped model I/O template.
 script_open = text.lower().find("<script")
 script_open_end = text.find(">", script_open) if script_open >= 0 else -1
 script_close = text.lower().rfind("</script>")
@@ -153,16 +151,6 @@ if script_open < 0 or script_open_end < 0 or script_close <= script_open_end:
     errors.append("could not isolate the outer app bootstrap script")
 else:
     outer_source = text[script_open_end + 1:script_close]
-    marker = "const modelTools = "
-    model_start = outer_source.find(marker)
-    if model_start >= 0:
-        # Find the exact statement terminator rather than counting escape sequences.
-        statement_end = outer_source.find('";', model_start)
-        following = outer_source.find("const panelEnd", model_start)
-        if statement_end < 0 or following < 0 or statement_end > following:
-            errors.append("could not isolate the model I/O template statement")
-        else:
-            outer_source = outer_source[:model_start] + 'const modelTools = "";' + outer_source[statement_end + 2:]
     node_syntax_check("outer app bootstrap", outer_source)
 
 # Decode and parse each original editor's own scripts independently.
