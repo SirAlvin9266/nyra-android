@@ -86,6 +86,17 @@ const sanitizedOuter = outerSourceForExecution.slice(0, modelToolsStart)
   + outerSourceForExecution.slice(modelToolsEnd + 2);
 checkJs('outer app bootstrap', sanitizedOuter);
 vm.runInContext(sanitizedOuter, context, { filename: 'nyra-outer-bootstrap.js' });
+const modelToolsMarker = 'const modelTools = ';
+const embeddedModelTools = outerSourceForExecution.slice(
+  outerSourceForExecution.indexOf(modelToolsMarker),
+  outerSourceForExecution.indexOf('const panelEnd', outerSourceForExecution.indexOf(modelToolsMarker))
+);
+if (!embeddedModelTools || !embeddedModelTools.includes('NyraModelIO')) {
+  console.error('FAIL: model I/O template is missing from the host adapter source');
+  process.exit(1);
+}
+const decodedModelTools = vm.runInContext('(' + embeddedModelTools.slice(embeddedModelTools.indexOf('"') , embeddedModelTools.lastIndexOf(';')) .trim().replace(/;$/, '') + ')', context);
+
 
 const generated = vm.runInContext(`({
   items: addAndroidExportAdapter(decodePage(pages.items), 'items'),
