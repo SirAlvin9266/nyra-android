@@ -9,7 +9,7 @@ const cp = require('node:child_process');
 const path = require('node:path');
 
 
-const hostUiMarkers = ['nyraDesktopCanvasToggle', 'nyra_desktop_canvas', 'nyra_ui_zoom', 'applyEditorZoom', 'min(100,zoom)'];
+const hostUiMarkers = ['nyraDesktopModeToggle', 'nyra_desktop_mode', 'nyra_ui_zoom', 'applyEditorZoom', 'nyra-desktop-mode', 'nyra-desktop-scale', 'window.innerWidth/1280', 'width:1280px'];
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 // The Character Editor module script is nested inside a JS string. HTML still
