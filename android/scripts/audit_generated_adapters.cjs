@@ -69,7 +69,7 @@ const document = {
   addEventListener() {},
 };
 const localStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
-const window = { innerWidth: 390, addEventListener() {} };
+const window = { innerWidth: 390, innerHeight: 844, addEventListener() {} };
 window.parent = window;
 const context = vm.createContext({
   document, window, localStorage,
