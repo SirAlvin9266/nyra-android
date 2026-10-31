@@ -121,8 +121,8 @@ for needle in ("onShowFileChooser", "FILE_CHOOSER_REQUEST", "ACTION_OPEN_DOCUMEN
     if needle not in java:
         errors.append(f"missing Android native file support: {needle}")
 
-if len(re.findall(r"</script>", text, flags=re.IGNORECASE)) != 2 or len(re.findall(r"<\\/script>", text, flags=re.IGNORECASE)) != 1:
-    errors.append("outer HTML must contain one outer script close and one escaped nested module close")
+if len(re.findall(r"</script>", text, flags=re.IGNORECASE)) != 1 or len(re.findall(r"<\\/script>", text, flags=re.IGNORECASE)) != 1:
+    errors.append("outer HTML must contain exactly one literal close and one escaped nested module close")
 
 
 # Parse the outer bootstrap safely: the embedded Character Editor module's
