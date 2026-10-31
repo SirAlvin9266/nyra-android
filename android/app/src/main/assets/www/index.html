@@ -196,6 +196,7 @@ function applyEditorZoom(value){
 const desktopToggle=document.createElement('button');
 desktopToggle.id='nyraDesktopCanvasToggle';
 desktopToggle.type='button';
+const desktopMode=(()=>{try{return localStorage.getItem('nyra_desktop_canvas')==='1'}catch(_){return false}})();
 desktopToggle.setAttribute('aria-pressed',desktopMode?'true':'false');
 desktopToggle.textContent=desktopMode?'Canvas desktop: ligado':'Canvas desktop: desligado';
 desktopToggle.style.marginLeft='auto';
