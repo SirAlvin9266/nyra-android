@@ -20,7 +20,7 @@ const outerMatch = scriptEnd > scriptOpen
   ? [null, html.slice(scriptOpen, scriptEnd)]
   : null;
 if (!outerMatch || (html.match(/<\\/script>/gi) || []).length !== 1) {
-  console.error('FAIL: expected one literal outer closing tag and a safely escaped nested module tag');
+  console.error('FAIL: expected exactly one literal script closing tag in the outer HTML');
   process.exit(1);
 }
 
