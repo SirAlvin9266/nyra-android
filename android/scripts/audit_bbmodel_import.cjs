@@ -145,7 +145,7 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
 
   // External texture fixture mirrors real-world .bbmodel files that reference an image by path.
   const externalTextureFile={name:'shield.png',type:'image/png'};
-  const externalTextureModel={...meshData,textures:[{uuid:'external-uuid',id:'0',name:'shield.png',path:'textures/shield.png'}]};
+  const externalTextureModel={...meshData,textures:[{uuid:'texture-uuid',id:'0',name:'shield.png',path:'textures/shield.png'}]};
   const externalModelFile=fileFor(externalTextureModel,'shield.bbmodel');
   const externalResult=await parseBBModel(externalModelFile,[externalModelFile,externalTextureFile]);
   let texturedMesh=null;
