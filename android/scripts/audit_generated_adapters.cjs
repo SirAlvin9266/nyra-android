@@ -10,9 +10,17 @@ const path = require('node:path');
 
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
-const outerMatch = html.match(/<script\b[^>]*>([\s\S]*?)<\/script>/i);
-if (!outerMatch) {
-  console.error('FAIL: outer app script was not found');
+// The Character Editor module script is nested inside a JS string. HTML still
+// terminates the outer script on a literal </script>, even inside that string.
+// Extract only the final closing tag that is part of the outer document.
+const scriptTag = html.match(/<script\\b[^>]*>/i);
+const scriptOpen = scriptTag ? scriptTag.index + scriptTag[0].length : -1;
+const scriptEnd = scriptOpen >= 0 ? html.lastIndexOf('</script>') : -1;
+const outerMatch = scriptEnd > scriptOpen
+  ? [null, html.slice(scriptOpen, scriptEnd)]
+  : null;
+if (!outerMatch || (html.match(/<\\/script>/gi) || []).length !== 2) {
+  console.error('FAIL: expected an outer script and one string-escaped nested module closing tag');
   process.exit(1);
 }
 
