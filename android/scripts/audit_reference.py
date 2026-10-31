@@ -109,6 +109,7 @@ for needle in (
     "nyra3d-robotv-project",
     "Reimporte o arquivo .bbmodel",
     "function addAndroidExportAdapter",
+    "getSelected:()=>selectedObject",
     "beginExport", "appendExportChunk", "finishExport",
 ):
     if needle not in text:
