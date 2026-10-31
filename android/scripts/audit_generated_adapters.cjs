@@ -71,8 +71,8 @@ function checkJs(label, source) {
   }
 }
 
-checkJs('outer app bootstrap', outerMatch[1]);
-vm.runInContext(outerMatch[1], context, { filename: 'nyra-outer-bootstrap.js' });
+checkJs('outer app bootstrap', outerSourceForExecution);
+vm.runInContext(outerSourceForExecution, context, { filename: 'nyra-outer-bootstrap.js' });
 
 const generated = vm.runInContext(`({
   items: addAndroidExportAdapter(decodePage(pages.items), 'items'),
