@@ -95,7 +95,7 @@ const generated = vm.runInContext(`({
 
 const requiredByEditor = {
   items: ['/assets/www/vendor/jszip/jszip.min.js'],
-  character: ['/assets/www/vendor/three/build/three.module.js', 'three/addons/controls/OrbitControls.js', 'three/addons/loaders/GLTFLoader.js', 'three/addons/loaders/OBJLoader.js', 'three/addons/loaders/FBXLoader.js', 'three/addons/loaders/STLLoader.js', 'three/addons/exporters/GLTFExporter.js', 'three/addons/exporters/OBJExporter.js', 'three/addons/exporters/STLExporter.js'],
+  character: ['/assets/www/vendor/three/build/three.module.js'],
   animation: ['/assets/www/vendor/three/build/three.module.js', '/assets/www/vendor/three/examples/jsm/'],
 };
 const requiredExportMarkers = [
