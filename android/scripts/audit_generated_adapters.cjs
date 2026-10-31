@@ -113,7 +113,7 @@ for (const [name, page] of Object.entries(generated)) {
     }
   }
 
-  for (const marker of [...(requiredByEditor[name] || []), ...requiredExportMarkers, ...(name === 'character' ? ['NyraModelIO', 'Importar modelo 3D', 'selectModel(importedModel)', 'animations:importedAnimations', 'function validateMathDocument()', 'function buildMathModel()', 'function geometryForMathComponent()', 'function generateMathModel()'] : [])]) {
+  for (const marker of [...(requiredByEditor[name] || []), ...requiredExportMarkers, ...(name === 'character' ? ['NyraModelIO', 'Importar modelo 3D', 'selectModel(importedModel)', 'animations:importedAnimations', 'function validateMathDocument(', 'function buildMathModel(', 'function geometryForMathComponent(', 'function generateMathModel('] : [])]) {
     if (!page.includes(marker)) {
       console.error('FAIL: generated ' + name + ' document is missing ' + marker);
       process.exitCode = 1;
