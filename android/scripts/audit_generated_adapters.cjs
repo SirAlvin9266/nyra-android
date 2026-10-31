@@ -8,6 +8,7 @@ const vm = require('node:vm');
 const cp = require('node:child_process');
 const path = require('node:path');
 
+const hostUiMarkers = ['nyraDesktopCanvasToggle', 'nyra_desktop_canvas', 'nyra_ui_zoom', 'applyEditorZoom', 'min(100,zoom)'];
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 // The Character Editor module script is nested inside a JS string. HTML still
@@ -96,7 +97,6 @@ const requiredByEditor = {
   character: ['/assets/www/vendor/three/build/three.module.js'],
   animation: ['/assets/www/vendor/three/build/three.module.js', '/assets/www/vendor/three/examples/jsm/'],
 };
-const hostUiMarkers = ['nyraDesktopCanvasToggle', 'nyra_desktop_canvas', 'nyra_ui_zoom', 'applyEditorZoom', 'min(100,zoom)'];
 const blockbenchMarkers = [
   'async function parseBBModel(file)',
   'function bbCoordinate(',
