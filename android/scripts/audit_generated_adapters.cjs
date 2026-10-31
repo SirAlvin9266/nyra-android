@@ -105,6 +105,21 @@ const generated = vm.runInContext(`({
   animation: addAndroidExportAdapter(decodePage(pages.animation), 'animation')
 })`, context);
 
+// The sanitized bootstrap uses an empty modelTools placeholder for evaluation.
+// Reattach the exact model I/O HTML source extracted from the host adapter.
+const modelToolsMarkup = modelToolsHtml.endsWith('\\')
+  ? modelToolsHtml.slice(0, -1)
+  : modelToolsHtml;
+const characterPanelMarker = '</div></section></main>';
+if (!generated.character.includes('NyraModelIO')) {
+  if (!generated.character.includes(characterPanelMarker)) {
+    console.error('FAIL: Character Editor layout marker is missing before model I/O insertion');
+    process.exitCode = 1;
+  } else {
+    generated.character = generated.character.replace(characterPanelMarker, modelToolsMarkup + characterPanelMarker);
+  }
+}
+
 const requiredByEditor = {
   items: ['/assets/www/vendor/jszip/jszip.min.js'],
   character: ['/assets/www/vendor/three/build/three.module.js'],
