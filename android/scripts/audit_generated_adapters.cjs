@@ -89,6 +89,17 @@ const requiredByEditor = {
   character: ['/assets/www/vendor/three/build/three.module.js'],
   animation: ['/assets/www/vendor/three/build/three.module.js', '/assets/www/vendor/three/examples/jsm/'],
 };
+const blockbenchMarkers = [
+  'async function parseBBModel(file)',
+  'function bbCoordinate(',
+  'function bbEuler(',
+  'new THREE.TextureLoader()',
+  'new THREE.BufferGeometry()',
+  'new THREE.BoxGeometry(',
+  'bbImportedMeshes',
+  'bbModelAnimationCount',
+  "extension==='bbmodel'",
+];
 const requiredExportMarkers = [
   'HTMLAnchorElement.prototype.click',
   'beginExport',
