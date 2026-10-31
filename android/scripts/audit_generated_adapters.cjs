@@ -120,6 +120,12 @@ for (const [name, page] of Object.entries(generated)) {
     }
   }
   if (name === 'character') {
+    for (const marker of blockbenchMarkers) {
+      if (!page.includes(marker)) {
+        console.error('FAIL: generated character document is missing Blockbench importer marker ' + marker);
+        process.exitCode = 1;
+      }
+    }
     const panelIndex = page.indexOf('id="nyraModelIO"');
     const mainEndIndex = page.indexOf('</main>');
     if (panelIndex < 0 || mainEndIndex < 0 || panelIndex > mainEndIndex) {
