@@ -24,20 +24,19 @@ if (!outerSource || literalCloseCount !== 1) {
 }
 // Execute a syntactically valid bootstrap with only the model I/O branch
 // neutralized. The generated Character Editor below verifies its real output.
+// Parse the outer app bootstrap without evaluating the injected editor fragment.
+// The fragment is static source code and is validated as part of generated editor
+// output; exclude its entire character-adapter branch from this isolated run.
 const modelStart = outerSource.indexOf('const modelTools = ');
 if (modelStart >= 0) {
-  // Replace the entire modelTools assignment with an empty string while
-  // retaining the closing brace of the surrounding character adapter branch.
-  const assignmentStart = modelStart;
-  const assignmentEnd = outerSource.indexOf('";', assignmentStart);
-  const panelMarker = outerSource.indexOf("\n  const panelEnd", assignmentStart);
-  const branchEnd = outerSource.indexOf("\n }\n\n if(key==='animation')", assignmentStart);
-  if (assignmentEnd < 0 || panelMarker < 0 || branchEnd < 0 || assignmentEnd > panelMarker) {
-    console.error('FAIL: cannot isolate model I/O string within adapter');
+  const characterBranch = outerSource.lastIndexOf("if(key==='character'){", modelStart);
+  const animationBranch = outerSource.indexOf("if(key==='animation')", modelStart);
+  if (characterBranch < 0 || animationBranch < 0) {
+    console.error('FAIL: cannot isolate Character Editor adapter branch');
     process.exit(1);
   }
-  outerSource = outerSource.slice(0, assignmentStart) + 'const modelTools = "";'
-    + outerSource.slice(branchEnd);
+  outerSource = outerSource.slice(0, characterBranch)
+    + outerSource.slice(animationBranch);
 }
 const outerMatch = [null, outerSource];
 
