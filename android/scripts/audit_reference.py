@@ -141,7 +141,7 @@ def node_syntax_check(label: str, source: str) -> None:
     if result.returncode:
         errors.append(f"JavaScript syntax error in {label}: {result.stderr.strip() or result.stdout.strip()}")
 
-script_open_match = re.search(r"<script\\b[^>]*>", text, flags=re.IGNORECASE)
+script_open_match = re.search(r"<script\b[^>]*>", text, flags=re.IGNORECASE)
 script_close = text.rfind("</script>")
 if script_open_match and script_close > script_open_match.end():
     node_syntax_check("outer app bootstrap", text[script_open_match.end():script_close])
@@ -150,7 +150,7 @@ else:
 
 # Decode and parse each original editor's own scripts independently.
 for key, page in pages.items():
-    blocks = re.findall(r"<script\\b([^>]*)>([\\s\\S]*?)</script>", page, flags=re.IGNORECASE)
+    blocks = re.findall(r"<script\b([^>]*)>([\s\S]*?)</script>", page, flags=re.IGNORECASE)
     checked = 0
     for attrs, script in blocks:
         if "importmap" in attrs.lower() or not script.strip():
