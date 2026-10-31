@@ -31,7 +31,7 @@ main{flex:1;min-height:0;padding:0}#editorHost{height:100%;min-height:450px}#edi
     <button data-app="animation">RoboTV / Animação</button>
   </nav>
 </header>
-<div id="zoomControls" aria-label="Zoom geral do editor"><span>Zoom da interface</span><button type="button" id="nyraZoomOut" aria-label="Diminuir zoom">−</button><input id="nyraZoomRange" type="range" min="40" max="100" step="5" value="100" aria-label="Zoom da interface de 40 a 100 por cento"><button type="button" id="nyraZoomIn" aria-label="Aumentar zoom">+</button><button type="button" id="nyraZoomReset">100%</button><strong id="nyraZoomValue">100%</strong></div>
+<div id="zoomControls" aria-label="Zoom geral do editor"><span>Zoom da interface</span><button type="button" id="nyraZoomOut" aria-label="Diminuir zoom">−</button><input id="nyraZoomRange" type="range" min="40" max="150" step="5" value="100" aria-label="Zoom da interface de 40 a 100 por cento"><button type="button" id="nyraZoomIn" aria-label="Aumentar zoom">+</button><button type="button" id="nyraZoomReset">100%</button><strong id="nyraZoomValue">100%</strong></div>
 <main id="editorHost" aria-live="polite"></main>
 <div id="message">Carregando editores incorporados…</div>
 <div id="setup">Os editores usam dependências empacotadas no próprio APK. A exportação de arquivos é encaminhada ao seletor de salvamento do Android.</div>
@@ -172,16 +172,18 @@ function ensureEditor(key){
  frame.dataset.editor=key;
  frame.style.cssText='display:none;width:100%;height:100%;min-height:450px;border:0;background:var(--bg)';
  frame.srcdoc=addAndroidExportAdapter(decodePage(pages[key]),key);
- applyEditorZoom(zoomRange.value);
  host.appendChild(frame);
  editorFrames[key]=frame;
+ applyEditorZoom(zoomRange.value);
  return frame;
 }
 
 const zoomRange=document.getElementById('nyraZoomRange');
 const zoomValue=document.getElementById('nyraZoomValue');
 function applyEditorZoom(value){
- const zoom=Math.max(40,Math.min(100,Number(value)||100));
+ // Wide logical iframe viewport + CSS zoom reproduces a desktop-sized editor
+ // while keeping the visible iframe inside the phone viewport.
+ const zoom=Math.max(40,Math.min(150,Number(value)||100));
  zoomRange.value=String(zoom);zoomValue.textContent=zoom+'%';
  Object.values(editorFrames).forEach(frame=>{
    frame.style.zoom=String(zoom/100);
