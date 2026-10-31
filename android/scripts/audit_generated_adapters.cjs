@@ -17,6 +17,7 @@ const scriptTag = html.match(/<script\b[^>]*>/i);
 const scriptOpen = scriptTag ? scriptTag.index + scriptTag[0].length : -1;
 const scriptEnd = scriptOpen >= 0 ? html.lastIndexOf('</script>') : -1;
 const literalCloseCount = html.split('</script>').length - 1;
+const outerMatch = [null, outerSource];
 let outerSource = scriptEnd > scriptOpen ? html.slice(scriptOpen, scriptEnd) : '';
 if (!outerSource || literalCloseCount !== 1) {
   console.error('FAIL: expected exactly one literal script closing tag in outer HTML');
