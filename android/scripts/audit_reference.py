@@ -143,24 +143,40 @@ def node_syntax_check(label: str, source: str) -> None:
     if result.returncode:
         errors.append(f"JavaScript syntax error in {label}: {result.stderr.strip() or result.stdout.strip()}")
 
-# The outer HTML uses a single classic bootstrap script. Avoid regex ambiguity:
-# find the opening tag, then the only literal closing tag (nested module closes
-# are escaped within the modelTools JS string).
+# Split the outer bootstrap from the model I/O template with a small
+# quote-aware scanner. This avoids regex assumptions about nested escaped HTML.
 script_open = text.lower().find("<script")
 script_open_end = text.find(">", script_open) if script_open >= 0 else -1
 script_close = text.lower().rfind("</script>")
-if script_open >= 0 and script_open_end >= 0 and script_close > script_open_end:
-    outer_source = text[script_open_end + 1:script_close]
-    model_tools_start = outer_source.find("const modelTools = ")
-    if model_tools_start >= 0:
-        model_tools_end = outer_source.find('";\\n  const panelEnd', model_tools_start)
-        if model_tools_end < 0:
-            errors.append("could not isolate the model I/O template string")
-        else:
-            outer_source = outer_source[:model_tools_start] + 'const modelTools = "";' + outer_source[model_tools_end + 2:]
-    node_syntax_check("outer app bootstrap", outer_source)
-else:
+if script_open < 0 or script_open_end < 0 or script_close <= script_open_end:
     errors.append("could not isolate the outer app bootstrap script")
+else:
+    outer_source = text[script_open_end + 1:script_close]
+    marker = "const modelTools = "
+    model_start = outer_source.find(marker)
+    if model_start >= 0:
+        quote_start = model_start + len(marker)
+        if quote_start >= len(outer_source) or outer_source[quote_start] != '"':
+            errors.append("model I/O template is not a quoted JavaScript string")
+        else:
+            escaped = False
+            quote_end = -1
+            for index in range(quote_start + 1, len(outer_source)):
+                char = outer_source[index]
+                if escaped:
+                    escaped = False
+                    continue
+                if char == "\\\\":
+                    escaped = True
+                    continue
+                if char == '"':
+                    quote_end = index
+                    break
+            if quote_end < 0:
+                errors.append("unterminated model I/O template string")
+            else:
+                outer_source = outer_source[:model_start] + 'const modelTools = "";' + outer_source[quote_end + 1:]
+    node_syntax_check("outer app bootstrap", outer_source)
 
 # Decode and parse each original editor's own scripts independently.
 for key, page in pages.items():
