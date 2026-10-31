@@ -143,12 +143,10 @@ def node_syntax_check(label: str, source: str) -> None:
     if result.returncode:
         errors.append(f"JavaScript syntax error in {label}: {result.stderr.strip() or result.stdout.strip()}")
 
-script_open_match = re.search(r"<script\b[^>]*>", text, flags=re.IGNORECASE)
+script_open_match = re.search(r"<script\\b[^>]*>", text, flags=re.IGNORECASE)
 script_close = text.rfind("</script>")
 if script_open_match and script_close > script_open_match.end():
     outer_source = text[script_open_match.end():script_close]
-    # The model I/O HTML/module is injected from a JS string. Check the outer
-    # bootstrap independently; the assembled generated module is checked below.
     model_tools_start = outer_source.find("const modelTools = ")
     if model_tools_start >= 0:
         model_tools_end = outer_source.find('";\\n  const panelEnd', model_tools_start)
