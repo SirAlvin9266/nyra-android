@@ -143,10 +143,14 @@ def node_syntax_check(label: str, source: str) -> None:
     if result.returncode:
         errors.append(f"JavaScript syntax error in {label}: {result.stderr.strip() or result.stdout.strip()}")
 
-script_open_match = re.search(r"<script\\b[^>]*>", text, flags=re.IGNORECASE)
-script_close = text.rfind("</script>")
-if script_open_match and script_close > script_open_match.end():
-    outer_source = text[script_open_match.end():script_close]
+# The outer HTML uses a single classic bootstrap script. Avoid regex ambiguity:
+# find the opening tag, then the only literal closing tag (nested module closes
+# are escaped within the modelTools JS string).
+script_open = text.lower().find("<script")
+script_open_end = text.find(">", script_open) if script_open >= 0 else -1
+script_close = text.lower().rfind("</script>")
+if script_open >= 0 and script_open_end >= 0 and script_close > script_open_end:
+    outer_source = text[script_open_end + 1:script_close]
     model_tools_start = outer_source.find("const modelTools = ")
     if model_tools_start >= 0:
         model_tools_end = outer_source.find('";\\n  const panelEnd', model_tools_start)
