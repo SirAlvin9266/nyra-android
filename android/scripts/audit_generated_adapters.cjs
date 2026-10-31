@@ -24,20 +24,18 @@ if (!outerSource || literalCloseCount !== 1) {
 }
 // Execute a syntactically valid bootstrap with only the model I/O branch
 // neutralized. The generated Character Editor below verifies its real output.
-// Parse the outer app bootstrap without evaluating the injected editor fragment.
-// The fragment is static source code and is validated as part of generated editor
-// output; exclude its entire character-adapter branch from this isolated run.
-const modelStart = outerSource.indexOf('const modelTools = ');
-if (modelStart >= 0) {
-  const characterBranch = outerSource.lastIndexOf("if(key==='character'){", modelStart);
-  const animationBranch = outerSource.indexOf("if(key==='animation')", modelStart);
-  if (characterBranch < 0 || animationBranch < 0) {
-    console.error('FAIL: cannot isolate Character Editor adapter branch');
-    process.exit(1);
-  }
-  outerSource = outerSource.slice(0, characterBranch)
-    + outerSource.slice(animationBranch);
+// Validate the actual generated character editor from the adapter's output.
+// The outer bootstrap is checked with the source-level audit; executing the
+// adapter requires a faithful iframe DOM and does not justify removing branches.
+const scriptTag = html.match(/<script\\b[^>]*>/i);
+const scriptOpen = scriptTag ? scriptTag.index + scriptTag[0].length : -1;
+const scriptEnd = scriptOpen >= 0 ? html.lastIndexOf('</script>') : -1;
+const literalCloseCount = html.split('</script>').length - 1;
+if (scriptOpen < 0 || scriptEnd <= scriptOpen || literalCloseCount !== 1) {
+  console.error('FAIL: expected one outer HTML script block');
+  process.exit(1);
 }
+const outerSource = html.slice(scriptOpen, scriptEnd);
 const outerMatch = [null, outerSource];
 
 const frames = [];
