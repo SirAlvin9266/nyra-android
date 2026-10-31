@@ -22,18 +22,18 @@ if (!outerSource || literalCloseCount !== 1) {
   console.error('FAIL: expected exactly one literal script closing tag in outer HTML');
   process.exit(1);
 }
-// Extract the model I/O template from the full branch; leave a syntactically
-// valid no-op in this isolated bootstrap. Its runtime output is checked below.
+// Execute a syntactically valid bootstrap with only the model I/O branch
+// neutralized. The generated Character Editor below verifies its real output.
 const modelStart = outerSource.indexOf('const modelTools = ');
 if (modelStart >= 0) {
-  const branchStart = outerSource.lastIndexOf("\n if(key==='character'){", modelStart);
-  const branchEnd = outerSource.indexOf("\n if(key==='animation')", modelStart);
+  const branchStart = outerSource.lastIndexOf("if(key==='character'){", modelStart);
+  const branchEnd = outerSource.indexOf("if(key==='animation')", modelStart);
   if (branchStart < 0 || branchEnd < 0) {
     console.error('FAIL: cannot isolate Character Editor injection branch');
     process.exit(1);
   }
   outerSource = outerSource.slice(0, branchStart)
-    + "\n if(key==='character'){ /* verified in generated output below */ }"
+    + "if(key==='character'){ /* verified in generated output below */ }\n\n"
     + outerSource.slice(branchEnd);
 }
 const outerMatch = [null, outerSource];
