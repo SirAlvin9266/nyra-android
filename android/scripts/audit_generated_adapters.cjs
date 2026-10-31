@@ -22,6 +22,7 @@ if (!outerSource || literalCloseCount !== 1) {
   console.error('FAIL: expected exactly one literal script closing tag in outer HTML');
   process.exit(1);
 }
+const outerMatch = [null, outerSource];
 // Execute a syntactically valid bootstrap with only the model I/O branch
 // neutralized. The generated Character Editor below verifies its real output.
 // Validate the actual generated character editor from the adapter's output.
