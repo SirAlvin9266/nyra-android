@@ -133,6 +133,10 @@ for (const [name, page] of Object.entries(generated)) {
   // JavaScript strings and create false positives. Validate the assembled module
   // script from the final generated document, plus the outer bootstrap above.
   const moduleIndex = page.indexOf('/* NyraModelIO:');
+  if (name === 'character' && moduleIndex < 0) {
+    console.error('FAIL: final Character Editor does not contain the model I/O module');
+    process.exitCode = 1;
+  }
   if (name === 'character' && moduleIndex >= 0) {
     const moduleStart = page.lastIndexOf('<script type="module">', moduleIndex);
     const moduleEnd = page.indexOf('</script>', moduleIndex);
