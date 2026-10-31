@@ -87,7 +87,7 @@ const THREE = {
   DoubleSide:2,SRGBColorSpace:'srgb',NearestFilter:'nearest',InterpolateDiscrete:'discrete',
   MathUtils:{degToRad:value=>value*Math.PI/180}
 };
-const context=vm.createContext({THREE,Map,Set,WeakMap,Number,String,Array,Object,Math,Promise,Error});
+const context=vm.createContext({THREE,Map,Set,WeakMap,Number,String,Array,Object,Math,Promise,Error,resourceUrls:[],URL:{createObjectURL:file=>'blob:'+file.name}});
 vm.runInContext(helperSource,context,{filename:'nyra-bbmodel-import.js'});
 const parseBBModel=context.parseBBModel;
 
@@ -143,10 +143,26 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   assert(hytaleResult.object.userData.bbModelFormat==='hytale_prop','Hytale model format metadata was lost.');
   assert(hytaleResult.object.userData.bbImportedCubes===1,'Hytale cube element was not imported.');
 
+  // External texture fixture mirrors real-world .bbmodel files that reference an image by path.
+  const externalTextureFile={name:'shield.png',type:'image/png'};
+  const externalTextureModel={...meshData,textures:[{uuid:'external-uuid',id:'0',name:'shield.png',path:'textures/shield.png'}]};
+  const externalModelFile=fileFor(externalTextureModel,'shield.bbmodel');
+  const externalResult=await parseBBModel(externalModelFile,[externalModelFile,externalTextureFile]);
+  let texturedMesh=null;
+  externalResult.object.traverse(node=>{if(node.isMesh)texturedMesh=node;});
+  assert(texturedMesh&&Array.isArray(texturedMesh.material),'External texture mesh/material was not created.');
+  assert(texturedMesh.material.some(material=>material.map),'Selected external image was not attached to the Blockbench material.');
+  assert(externalResult.object.userData.bbModelWarnings.length===0,'Resolved external texture should not emit a missing-texture warning.');
+
+  const missingTextureModel={...meshData};
+  delete missingTextureModel.textures;
+  const missingResult=await parseBBModel(fileFor(missingTextureModel,'missing-texture.bbmodel'),[]);
+  assert(missingResult.object.userData.bbModelWarnings.some(warning=>warning.includes('não estão incorporadas')),'Missing external texture should be reported clearly.');
+
   let invalidRejected=false;
   try{await parseBBModel(fileFor({meta:{},elements:[{uuid:'empty',type:'point'}],outliner:['empty']}));}
   catch(_){invalidRejected=true;}
   assert(invalidRejected,'Unsupported/empty Blockbench model must be rejected before replacing the current scene.');
 
-  console.log('PASS: Blockbench cube/UV import, free-mesh triangulation/material groups, Hytale cube geometry, and animation clip conversion.');
+  console.log('PASS: Blockbench cube/UV import, free-mesh triangulation/material groups, Hytale geometry, animation clips, external texture matching, and missing-texture warnings.');
 })().catch(error=>{console.error('FAIL: '+error.stack);process.exit(1);});
