@@ -121,12 +121,13 @@ for needle in ("onShowFileChooser", "FILE_CHOOSER_REQUEST", "ACTION_OPEN_DOCUMEN
     if needle not in java:
         errors.append(f"missing Android native file support: {needle}")
 
-if len(re.findall(r"</script>", text, flags=re.IGNORECASE)) != 1:
-    errors.append("outer HTML must contain exactly one literal closing script tag; nested scripts must be escaped")
+if len(re.findall(r"</script>", text, flags=re.IGNORECASE)) != 2 or len(re.findall(r"<\\/script>", text, flags=re.IGNORECASE)) != 1:
+    errors.append("outer HTML must contain one outer script close and one escaped nested module close")
 
 
-# Parse the outer app script and each original inline editor script with Node's JS parser.
-# This is a syntax check only; WebGL/runtime behavior still requires a real Android device.
+# Parse the outer bootstrap safely: the embedded Character Editor module's
+# closing tag is escaped as <\\/script> inside the JavaScript string.
+# This is syntax-only validation; WebGL still requires a real Android device.
 def node_syntax_check(label: str, source: str) -> None:
     if not source.strip():
         return
@@ -140,14 +141,16 @@ def node_syntax_check(label: str, source: str) -> None:
     if result.returncode:
         errors.append(f"JavaScript syntax error in {label}: {result.stderr.strip() or result.stdout.strip()}")
 
-outer_scripts = re.findall(r"<script\b[^>]*>([\s\S]*?)</script>", text, flags=re.IGNORECASE)
-if len(outer_scripts) != 1:
-    errors.append(f"expected one outer inline script, found {len(outer_scripts)}")
-for i, script in enumerate(outer_scripts, 1):
-    node_syntax_check(f"outer app script #{i}", script)
+script_open_match = re.search(r"<script\\b[^>]*>", text, flags=re.IGNORECASE)
+script_close = text.rfind("</script>")
+if script_open_match and script_close > script_open_match.end():
+    node_syntax_check("outer app bootstrap", text[script_open_match.end():script_close])
+else:
+    errors.append("could not isolate the outer app bootstrap script")
 
+# Decode and parse each original editor's own scripts independently.
 for key, page in pages.items():
-    blocks = re.findall(r"<script\b([^>]*)>([\s\S]*?)</script>", page, flags=re.IGNORECASE)
+    blocks = re.findall(r"<script\\b([^>]*)>([\\s\\S]*?)</script>", page, flags=re.IGNORECASE)
     checked = 0
     for attrs, script in blocks:
         if "importmap" in attrs.lower() or not script.strip():
