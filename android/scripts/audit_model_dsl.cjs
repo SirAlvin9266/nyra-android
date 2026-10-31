@@ -19,7 +19,10 @@ const modelToolsHtml = JSON.parse(html.slice(assignmentStart + assignment.length
 const moduleMarker = '/* NyraModelIO:';
 const moduleMarkerIndex = modelToolsHtml.indexOf(moduleMarker);
 const moduleStart = modelToolsHtml.lastIndexOf('<script type="module">', moduleMarkerIndex);
-const moduleEnd = modelToolsHtml.indexOf('</script>', moduleMarkerIndex);
+// The nested module close is escaped so it does not terminate the outer HTML script.
+const escapedModuleEnd = modelToolsHtml.indexOf('<\\/script>', moduleMarkerIndex);
+const literalModuleEnd = modelToolsHtml.indexOf('</script>', moduleMarkerIndex);
+const moduleEnd = escapedModuleEnd >= 0 ? escapedModuleEnd : literalModuleEnd;
 if (moduleMarkerIndex < 0 || moduleStart < 0 || moduleEnd < 0) {
   throw new Error('Could not extract the Character Editor model module.');
 }
