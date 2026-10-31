@@ -103,7 +103,7 @@ for (const [name, page] of Object.entries(generated)) {
   }
   const editorSpecificMarkers = {
     items: ['nyra.items.draft.v1'],
-    character: ['nyra.character.draft.v1', 'nyra.character.draft.mode.v1', 'Rascunho JSON local restaurado automaticamente.', 'NyraModelIO', 'id="nyraModelTree"', 'id="nyraDeleteNode"', 'id="nyraRestoreNode"', 'function refreshModelTree()', 'function deleteSelectedComponent()', 'function restoreLastDeleted()', 'getSelected:()=>selectedObject'],
+    character: ['nyra.character.draft.v1', 'nyra.character.draft.mode.v1', 'Rascunho JSON local restaurado automaticamente.', 'NyraModelIO', 'id="nyraModelTree"', 'id="nyraDeleteNode"', 'id="nyraRestoreNode"', 'function refreshModelTree()', 'function deleteSelectedComponent()', 'function restoreLastDeleted()', 'getSelected:()=>selectedObject', 'Gerar modelo por instruções matemáticas', 'id="nyraMathDslInput"', 'function validateMathDocument()', 'function buildMathModel()', 'function geometryForMathComponent()', 'function generateMathModel()', 'nyra.mathDsl.v1', 'nyraMathematicalModel', 'nyraDslId', 'nyraPivot'],
     animation: ['nyra3d-robotv-project'],
   };
   for (const marker of editorSpecificMarkers[name] || []) {
