@@ -78,6 +78,12 @@ public class MainActivity extends Activity {
         ));
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
+        // Enable native pinch zoom in addition to the Nyra editor zoom slider.
+        webView.getSettings().setSupportZoom(true);
+        webView.getSettings().setBuiltInZoomControls(true);
+        webView.getSettings().setDisplayZoomControls(false);
+        webView.getSettings().setUseWideViewPort(true);
+        webView.getSettings().setLoadWithOverviewMode(false);
         webView.getSettings().setAllowFileAccess(false);
         webView.getSettings().setAllowContentAccess(true);
         webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
