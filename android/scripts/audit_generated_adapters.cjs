@@ -126,14 +126,22 @@ for (const [name, page] of Object.entries(generated)) {
     process.exitCode = 1;
   }
 
-  const scripts = [...page.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
-  let checked = 0;
-  for (const match of scripts) {
-    const attrs = match[1] || '';
-    const body = match[2] || '';
-    if (/importmap/i.test(attrs) || /\bsrc\s*=/i.test(attrs) || !body.trim()) continue;
-    checked++;
-    checkJs(name + ' generated inline script #' + checked, body);
+  // The generated document is built by string adapters that contain inline
+  // script templates. Parsing those templates out of the source HTML can split
+  // JavaScript strings and create false positives. Validate the assembled module
+  // script from the final generated document, plus the outer bootstrap above.
+  const moduleIndex = page.indexOf('/* NyraModelIO:');
+  if (name === 'character' && moduleIndex >= 0) {
+    const moduleStart = page.lastIndexOf('<script type="module">', moduleIndex);
+    const moduleEnd = page.indexOf('</script>', moduleIndex);
+    if (moduleStart < 0 || moduleEnd < 0) {
+      console.error('FAIL: final Character Editor model I/O module block is incomplete');
+      process.exitCode = 1;
+    } else {
+      const source = page.slice(moduleStart + '<script type="module">'.length, moduleEnd);
+      checked = 1;
+      checkJs(name + ' assembled model I/O module', source);
+    }
   }
   console.log(name + ': generated ' + page.length + ' chars; parsed ' + checked + ' inline script(s)');
 }
