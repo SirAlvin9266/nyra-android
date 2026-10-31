@@ -22,18 +22,22 @@ if (!outerSource || literalCloseCount !== 1) {
   console.error('FAIL: expected exactly one literal script closing tag in outer HTML');
   process.exit(1);
 }
-// Remove the injected model I/O template before parsing the outer bootstrap.
-// The generated module is parsed from the final document below.
+// The model I/O template lives inside a JS string assembled by the adapter.
+// The source is audited as a generated Character Editor document below, so for
+// outer-bootstrap execution remove the whole injection branch, not just its
+// first escaped quote.
 const modelStart = outerSource.indexOf('const modelTools = ');
 if (modelStart >= 0) {
-  const statementEnd = outerSource.indexOf('";', modelStart);
-  const panelMarker = outerSource.indexOf('const panelEnd', modelStart);
-  if (statementEnd < 0 || panelMarker < 0 || statementEnd > panelMarker) {
-    console.error('FAIL: cannot isolate model I/O template in outer bootstrap');
+  const nextSection = outerSource.indexOf("\n if(key==='animation')", modelStart);
+  if (nextSection < 0) {
+    console.error('FAIL: cannot isolate model I/O injection branch in outer bootstrap');
     process.exit(1);
   }
-  outerSource = outerSource.slice(0, modelStart) + 'const modelTools = "";' + outerSource.slice(statementEnd + 2);
+  outerSource = outerSource.slice(0, modelStart)
+    + "if(key==='character'){ /* model I/O checked in generated document */ }\n"
+    + outerSource.slice(nextSection);
 }
+
 const outerMatch = [null, outerSource];
 
 const frames = [];
