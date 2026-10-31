@@ -75,10 +75,15 @@ function checkJs(label, source) {
 // JavaScript string. Its syntax is validated by audit_reference.py after
 // excluding that exact injected fragment. Execute that validated bootstrap
 // only after substituting the fragment with an empty string for the DOM shim.
-const sanitizedOuter = outerSourceForExecution.replace(
-  /const modelTools = "[\\s\\S]*?";(?=\\n  const panelEnd)/,
-  'const modelTools = "";'
-);
+const modelToolsStart = outerSourceForExecution.indexOf('const modelTools = ');
+const modelToolsEnd = outerSourceForExecution.indexOf('";', modelToolsStart);
+const panelEndMarker = outerSourceForExecution.indexOf('const panelEnd', modelToolsStart);
+if (modelToolsStart < 0 || modelToolsEnd < 0 || panelEndMarker < 0 || modelToolsEnd > panelEndMarker) {
+  throw new Error('Could not isolate embedded modelTools string for bootstrap simulation');
+}
+const sanitizedOuter = outerSourceForExecution.slice(0, modelToolsStart)
+  + 'const modelTools = "";'
+  + outerSourceForExecution.slice(modelToolsEnd + 2);
 checkJs('outer app bootstrap', sanitizedOuter);
 vm.runInContext(sanitizedOuter, context, { filename: 'nyra-outer-bootstrap.js' });
 
