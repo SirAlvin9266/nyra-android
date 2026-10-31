@@ -32,7 +32,24 @@ const outerSourceForExecution = outerSource;
 const frames = [];
 const host = { appendChild(frame) { frames.push(frame); frame.parentNode = host; } };
 const message = { textContent: '' };
+const htmlClasses = new Set();
+const htmlStyle = { setProperty(name, value) { this[name] = value; } };
+const bodyStyle = {
+  removeProperty(name) { delete this[name]; },
+};
 const document = {
+  documentElement: {
+    classList: {
+      toggle(name, force) {
+        const enabled = force === undefined ? !htmlClasses.has(name) : Boolean(force);
+        if (enabled) htmlClasses.add(name); else htmlClasses.delete(name);
+        return enabled;
+      },
+      contains(name) { return htmlClasses.has(name); },
+    },
+    style: htmlStyle,
+  },
+  body: { style: bodyStyle },
   getElementById(id) {
     if (id === 'editorHost') return host;
     if (id === 'message') return message;
@@ -52,7 +69,7 @@ const document = {
   addEventListener() {},
 };
 const localStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
-const window = { addEventListener() {} };
+const window = { innerWidth: 390, addEventListener() {} };
 window.parent = window;
 const context = vm.createContext({
   document, window, localStorage,
