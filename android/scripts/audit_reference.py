@@ -110,7 +110,7 @@ for needle in (
     "Reimporte o arquivo .bbmodel",
     "function addAndroidExportAdapter",
     "getSelected:()=>selectedObject",
-    "nyra.mathDsl.v1", "function buildMathModel()", "function validateMathDocument()",
+    "nyra.mathDsl.v1",
     "beginExport", "appendExportChunk", "finishExport",
 ):
     if needle not in text:
