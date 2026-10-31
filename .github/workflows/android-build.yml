@@ -57,6 +57,9 @@ jobs:
       - name: Test mathematical model DSL
         run: node android/scripts/audit_model_dsl.cjs
 
+      - name: Test Blockbench model importer
+        run: node android/scripts/audit_bbmodel_import.cjs
+
       - name: Locate Gradle wrapper
         id: project
         shell: bash
