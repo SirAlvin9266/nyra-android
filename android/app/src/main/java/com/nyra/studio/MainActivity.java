@@ -38,7 +38,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MainActivity extends Activity {
     private static final int CREATE_DOCUMENT_REQUEST = 4207;
     private static final int FILE_CHOOSER_REQUEST = 4208;
-    private static final long MAX_EXPORT_BYTES = 64L * 1024L * 1024L;
+    private static final long MAX_EXPORT_BYTES = 256L * 1024L * 1024L;
 
     private WebView webView;
     private WebViewAssetLoader assetLoader;
@@ -78,6 +78,12 @@ public class MainActivity extends Activity {
         ));
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
+        // Enable native pinch zoom in addition to the Nyra editor zoom slider.
+        webView.getSettings().setSupportZoom(true);
+        webView.getSettings().setBuiltInZoomControls(true);
+        webView.getSettings().setDisplayZoomControls(false);
+        webView.getSettings().setUseWideViewPort(true);
+        webView.getSettings().setLoadWithOverviewMode(false);
         webView.getSettings().setAllowFileAccess(false);
         webView.getSettings().setAllowContentAccess(true);
         webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
