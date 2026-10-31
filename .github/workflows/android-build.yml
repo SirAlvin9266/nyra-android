@@ -53,7 +53,7 @@ jobs:
 
       - name: Audit generated editor adapters
         run: node android/scripts/audit_generated_adapters.cjs
-
+\n      - name: Test mathematical model DSL\n        run: node android/scripts/audit_model_dsl.cjs\n
       - name: Locate Gradle wrapper
         id: project
         shell: bash
