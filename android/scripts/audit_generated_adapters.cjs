@@ -71,8 +71,16 @@ function checkJs(label, source) {
   }
 }
 
-checkJs('outer app bootstrap', outerSourceForExecution);
-vm.runInContext(outerSourceForExecution, context, { filename: 'nyra-outer-bootstrap.js' });
+// The outer bootstrap intentionally carries the HTML/module fragment as a
+// JavaScript string. Its syntax is validated by audit_reference.py after
+// excluding that exact injected fragment. Execute that validated bootstrap
+// only after substituting the fragment with an empty string for the DOM shim.
+const sanitizedOuter = outerSourceForExecution.replace(
+  /const modelTools = "[\\s\\S]*?";(?=\\n  const panelEnd)/,
+  'const modelTools = "";'
+);
+checkJs('outer app bootstrap', sanitizedOuter);
+vm.runInContext(sanitizedOuter, context, { filename: 'nyra-outer-bootstrap.js' });
 
 const generated = vm.runInContext(`({
   items: addAndroidExportAdapter(decodePage(pages.items), 'items'),
