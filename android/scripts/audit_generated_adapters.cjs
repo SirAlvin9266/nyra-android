@@ -71,6 +71,13 @@ function checkJs(label, source) {
   }
 }
 
+for (const marker of hostUiMarkers) {
+  if (!html.includes(marker)) {
+    console.error('FAIL: outer Android host is missing responsive UI marker ' + marker);
+    process.exitCode = 1;
+  }
+}
+
 // The modelTools literal is now escaped for the enclosing HTML script context,
 // so execute the real host bootstrap and inspect its actual generated editor pages.
 checkJs('outer app bootstrap', outerSourceForExecution);
@@ -89,6 +96,7 @@ const requiredByEditor = {
   character: ['/assets/www/vendor/three/build/three.module.js'],
   animation: ['/assets/www/vendor/three/build/three.module.js', '/assets/www/vendor/three/examples/jsm/'],
 };
+const hostUiMarkers = ['nyraDesktopCanvasToggle', 'nyra_desktop_canvas', 'nyra_ui_zoom', 'applyEditorZoom', 'min(100,zoom)'];
 const blockbenchMarkers = [
   'async function parseBBModel(file)',
   'function bbCoordinate(',
