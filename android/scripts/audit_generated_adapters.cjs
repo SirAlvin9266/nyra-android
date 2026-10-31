@@ -27,16 +27,6 @@ if (!outerSource || literalCloseCount !== 1) {
 // Validate the actual generated character editor from the adapter's output.
 // The outer bootstrap is checked with the source-level audit; executing the
 // adapter requires a faithful iframe DOM and does not justify removing branches.
-const scriptTag = html.match(/<script\\b[^>]*>/i);
-const scriptOpen = scriptTag ? scriptTag.index + scriptTag[0].length : -1;
-const scriptEnd = scriptOpen >= 0 ? html.lastIndexOf('</script>') : -1;
-const literalCloseCount = html.split('</script>').length - 1;
-if (scriptOpen < 0 || scriptEnd <= scriptOpen || literalCloseCount !== 1) {
-  console.error('FAIL: expected one outer HTML script block');
-  process.exit(1);
-}
-const outerSource = html.slice(scriptOpen, scriptEnd);
-const outerMatch = [null, outerSource];
 
 const frames = [];
 const host = { appendChild(frame) { frames.push(frame); frame.parentNode = host; } };
