@@ -8,6 +8,7 @@ const vm = require('node:vm');
 const cp = require('node:child_process');
 const path = require('node:path');
 
+
 const hostUiMarkers = ['nyraDesktopCanvasToggle', 'nyra_desktop_canvas', 'nyra_ui_zoom', 'applyEditorZoom', 'min(100,zoom)'];
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
