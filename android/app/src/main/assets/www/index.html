@@ -180,17 +180,33 @@ function ensureEditor(key){
 const zoomRange=document.getElementById('nyraZoomRange');
 const zoomValue=document.getElementById('nyraZoomValue');
 function applyEditorZoom(value){
- // Wide logical iframe viewport + CSS zoom reproduces a desktop-sized editor
- // while keeping the visible iframe inside the phone viewport.
+ // Wide logical iframe viewport + CSS zoom reproduces a desktop-sized editor.
+ // Desktop canvas preference is separate from the compact base scale.
+ const desktopMode=(()=>{try{return localStorage.getItem('nyra_desktop_canvas')==='1'}catch(_){return false}})();
  const zoom=Math.max(40,Math.min(150,Number(value)||100));
  zoomRange.value=String(zoom);zoomValue.textContent=zoom+'%';
  Object.values(editorFrames).forEach(frame=>{
-   frame.style.zoom=String(zoom/100);
-   frame.style.width=(10000/zoom)+'%';
-   frame.style.height=(10000/zoom)+'%';
+   const effectiveZoom=desktopMode?Math.min(100,zoom):zoom;
+   frame.style.zoom=String(effectiveZoom/100);
+   frame.style.width=(10000/effectiveZoom)+'%';
+   frame.style.height=(10000/effectiveZoom)+'%';
  });
  try{localStorage.setItem('nyra_ui_zoom',String(zoom))}catch(_){}
 }
+const desktopToggle=document.createElement('button');
+desktopToggle.id='nyraDesktopCanvasToggle';
+desktopToggle.type='button';
+desktopToggle.setAttribute('aria-pressed',desktopMode?'true':'false');
+desktopToggle.textContent=desktopMode?'Canvas desktop: ligado':'Canvas desktop: desligado';
+desktopToggle.style.marginLeft='auto';
+desktopToggle.addEventListener('click',()=>{
+ const enabled=desktopToggle.getAttribute('aria-pressed')!=='true';
+ desktopToggle.setAttribute('aria-pressed',enabled?'true':'false');
+ desktopToggle.textContent=enabled?'Canvas desktop: ligado':'Canvas desktop: desligado';
+ try{localStorage.setItem('nyra_desktop_canvas',enabled?'1':'0')}catch(_){}
+ applyEditorZoom(zoomRange.value);
+});
+document.getElementById('zoomControls').appendChild(desktopToggle);
 zoomRange.addEventListener('input',()=>applyEditorZoom(zoomRange.value));
 document.getElementById('nyraZoomOut').addEventListener('click',()=>applyEditorZoom(Number(zoomRange.value)-5));
 document.getElementById('nyraZoomIn').addEventListener('click',()=>applyEditorZoom(Number(zoomRange.value)+5));
