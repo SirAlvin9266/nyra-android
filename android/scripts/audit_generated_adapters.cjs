@@ -19,8 +19,8 @@ const scriptEnd = scriptOpen >= 0 ? html.lastIndexOf('</script>') : -1;
 const outerMatch = scriptEnd > scriptOpen
   ? [null, html.slice(scriptOpen, scriptEnd)]
   : null;
-if (!outerMatch || (html.match(/<\/script>/gi) || []).length !== 2) {
-  console.error('FAIL: expected an outer script and one string-escaped nested module closing tag');
+if (!outerMatch || (html.match(/<\\/script>/gi) || []).length !== 1) {
+  console.error('FAIL: expected one literal outer closing tag and a safely escaped nested module tag');
   process.exit(1);
 }
 
