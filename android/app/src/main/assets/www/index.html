@@ -267,7 +267,7 @@ const nyraGuideSteps=[
 ];
 let nyraGuideIndex=0,nyraGuideActiveTarget=null;
 const nyraGuideRoot=document.getElementById('nyraGuideRoot');
-function closeNyraGuide(){nyraGuideRoot.style.display='none';if(nyraGuideActiveTarget)nyraGuideActiveTarget.removeAttribute('id-guide-focus');nyraGuideActiveTarget=null;document.querySelectorAll('#nyraGuideHighlight').forEach(e=>e.removeAttribute('id'));}
+function closeNyraGuide(){nyraGuideRoot.style.display='none';if(nyraGuideActiveTarget){nyraGuideActiveTarget.removeAttribute('id');nyraGuideActiveTarget=null;}document.querySelectorAll('#nyraGuideHighlight').forEach(e=>e.removeAttribute('id'));}
 function renderNyraGuide(){
  const step=nyraGuideSteps[nyraGuideIndex];
  document.getElementById('nyraGuideTitle').textContent=step.title;
