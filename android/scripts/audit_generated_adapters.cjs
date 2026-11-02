@@ -15,13 +15,14 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 // The Character Editor module script is nested inside a JS string. HTML still
 // terminates the outer script on a literal </script>, even inside that string.
 // Extract only the final closing tag that is part of the outer document.
-const scriptTag = html.match(/<script\b[^>]*>/i);
-const scriptOpen = scriptTag ? scriptTag.index + scriptTag[0].length : -1;
+const pagesDeclaration = html.indexOf('const pages = {items:');
+const scriptOpenTag = pagesDeclaration >= 0 ? html.lastIndexOf('<script>', pagesDeclaration) : -1;
+const scriptOpen = scriptOpenTag >= 0 ? scriptOpenTag + '<script>'.length : -1;
 const scriptEnd = scriptOpen >= 0 ? html.lastIndexOf('</script>') : -1;
 const literalCloseCount = html.split('</script>').length - 1;
 let outerSource = scriptEnd > scriptOpen ? html.slice(scriptOpen, scriptEnd) : '';
-if (!outerSource || literalCloseCount !== 1) {
-  console.error('FAIL: expected exactly one literal script closing tag in outer HTML');
+if (!outerSource || literalCloseCount !== 1 || pagesDeclaration < scriptOpenTag) {
+  console.error('FAIL: could not isolate the single outer bootstrap script after embedded source pages');
   process.exit(1);
 }
 // The outer bootstrap is source-checked by audit_reference.py. To exercise
