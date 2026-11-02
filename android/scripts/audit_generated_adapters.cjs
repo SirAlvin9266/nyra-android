@@ -12,6 +12,19 @@ const path = require('node:path');
 const hostUiMarkers = ['nyraDesktopModeToggle', 'nyra_desktop_mode', 'nyra_ui_zoom', 'applyEditorZoom', 'nyra-desktop-mode', 'nyra-desktop-scale', 'window.innerWidth/1280', 'width:1280px'];
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
+
+const bindingCount = (needle) => html.split(needle).length - 1;
+for (const [needle, expected] of [
+  ["const host=document.getElementById('editorHost');", 1],
+  ["const message=document.getElementById('message');", 1],
+  ["const editorFrames={};", 1],
+]) {
+  if (bindingCount(needle) !== expected) {
+    console.error('FAIL: duplicate shell bootstrap binding ' + needle + ' count=' + bindingCount(needle));
+    process.exit(1);
+  }
+}
+
 // The Character Editor module script is nested inside a JS string. HTML still
 // terminates the outer script on a literal </script>, even inside that string.
 // Extract only the final closing tag that is part of the outer document.
