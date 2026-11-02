@@ -12,6 +12,8 @@ import android.util.Base64;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.ConsoleMessage;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -92,6 +94,31 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(new ExportBridge(), "NyraAndroid");
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                android.util.Log.i("NyraWebView", "Page started: " + url);
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                android.util.Log.i("NyraWebView", "Page finished: " + url);
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if (request.isForMainFrame()) {
+                    android.util.Log.e("NyraWebView", "Main frame error " + request.getUrl()
+                        + " code=" + error.getErrorCode() + " description=" + error.getDescription());
+                }
+            }
+
+            @Override
+            public void onReceivedHttpError(WebView view, WebResourceRequest request,
+                                            android.webkit.WebResourceResponse response) {
+                android.util.Log.e("NyraWebView", "HTTP " + response.getStatusCode()
+                    + " " + request.getUrl());
+            }
+
+            @Override
             public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return assetLoader.shouldInterceptRequest(request.getUrl());
             }
@@ -102,6 +129,14 @@ public class MainActivity extends Activity {
             }
         });
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+                android.util.Log.e("NyraWebView", consoleMessage.messageLevel() + " "
+                    + consoleMessage.message() + " -- " + consoleMessage.sourceId()
+                    + ":" + consoleMessage.lineNumber());
+                return true;
+            }
+
             @Override
             public boolean onShowFileChooser(
                 WebView view,
