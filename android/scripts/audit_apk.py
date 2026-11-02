@@ -13,10 +13,8 @@ if not apk.is_file():
 required = {
     "assets/www/index.html": None,
     "assets/www/nyra-guide-robot.webp": None,
-    "res/drawable-nodpi/nyra_adaptive_foreground.webp": None,
     "res/mipmap-anydpi-v26/ic_launcher.xml": None,
     "res/mipmap-anydpi-v26/ic_launcher_round.xml": None,
-    "res/values/nyra_launcher.xml": None,
     "assets/www/vendor/three/build/three.module.js": "9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea",
     "assets/www/vendor/three/build/three.core.js": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6",
     "assets/www/vendor/three/examples/jsm/controls/OrbitControls.js": "3d79d07ecb686b4e5d93232eedab255331c1beef711e13164eaa1f68655a5f2b",
@@ -53,18 +51,32 @@ with zipfile.ZipFile(apk) as z:
             if actual != expected_hash:
                 errors.append(f"hash mismatch {name}: {actual}")
         print(f"OK {name}: {len(data)} bytes")
+    # Android Gradle Plugin may transcode drawable WebP files into density-specific
+    # resources and merge values XML into resources.arsc, so validate the compiled
+    # manifest references and the presence of a compiled foreground drawable.
     if "assets/www/nyra-guide-robot.webp" in names:
-        data = z.read("assets/www/nyra-guide-robot.webp")
-        if len(data) < 100 or data[:4] != b"RIFF" or data[8:12] != b"WEBP":
+        guide = z.read("assets/www/nyra-guide-robot.webp")
+        if len(guide) < 100 or guide[:4] != b"RIFF" or guide[8:12] != b"WEBP":
             errors.append("invalid WebP guide image asset")
-    if "res/drawable-nodpi/nyra_adaptive_foreground.webp" in names:
-        data = z.read("res/drawable-nodpi/nyra_adaptive_foreground.webp")
-        if len(data) < 100 or data[:4] != b"RIFF" or data[8:12] != b"WEBP":
-            errors.append("invalid WebP launcher foreground")
+    icon_manifest = "res/mipmap-anydpi-v26/ic_launcher.xml" in names
+    round_manifest = "res/mipmap-anydpi-v26/ic_launcher_round.xml" in names
+    if not icon_manifest or not round_manifest:
+        errors.append("compiled adaptive launcher icon XML resources are missing")
+    foreground_candidates = [
+        name for name in names
+        if name.startswith("res/") and "nyra_adaptive_foreground" in name
+    ]
+    if not foreground_candidates:
+        errors.append("compiled launcher foreground drawable is missing")
+    for name in foreground_candidates:
+        data = z.read(name)
+        if not data:
+            errors.append(f"empty compiled launcher foreground: {name}")
     if "AndroidManifest.xml" in names:
         manifest = z.read("AndroidManifest.xml")
-        if b"ic_launcher" not in manifest or b"ic_launcher_round" not in manifest:
-            errors.append("AndroidManifest.xml does not reference both launcher icons")
+        for resource in (b"ic_launcher", b"ic_launcher_round"):
+            if resource not in manifest:
+                errors.append(f"compiled AndroidManifest.xml does not reference {resource.decode('ascii')}")
     if "assets/www/index.html" in names:
         html = z.read("assets/www/index.html").decode("utf-8")
         for marker in (
