@@ -166,13 +166,15 @@ const blockbenchMarkers = [
   "extension==='bbmodel'",
 ];
 const requiredExportMarkers = [
-  'nyraExportBBModel',
-  'async function buildBBModelExport()',
-  'window.__nyraImportedBBSource',
   'HTMLAnchorElement.prototype.click',
   'beginExport',
   'appendExportChunk',
   'finishExport',
+];
+const requiredCharacterExportMarkers = [
+  'nyraExportBBModel',
+  'async function buildBBModelExport()',
+  'window.__nyraImportedBBSource',
 ];
 for (const [name, page] of Object.entries(generated)) {
   if (!page || page.length < 10000) {
@@ -199,6 +201,12 @@ for (const [name, page] of Object.entries(generated)) {
     }
   }
   if (name === 'character') {
+    for (const marker of requiredCharacterExportMarkers) {
+      if (!page.includes(marker)) {
+        console.error('FAIL: generated character document is missing native Blockbench export marker ' + marker);
+        process.exitCode = 1;
+      }
+    }
     for (const marker of blockbenchMarkers) {
       if (!page.includes(marker)) {
         console.error('FAIL: generated character document is missing Blockbench importer marker ' + marker);
