@@ -175,7 +175,7 @@ public class MainActivity extends Activity {
             try {
                 String safe = safeFilename(filename, "nyra-export.bin");
                 String mime = (mimeType == null || mimeType.trim().isEmpty()) ? "application/octet-stream" : mimeType.trim();
-                if (mime.length() > 120 || mime.contains("\\r") || mime.contains("\\n")) mime = "application/octet-stream";
+                if (mime.length() > 120 || mime.contains("\r") || mime.contains("\n")) mime = "application/octet-stream";
                 File temp = File.createTempFile("nyra-export-", ".tmp", getCacheDir());
                 String token = UUID.randomUUID().toString();
                 transfers.put(token, new ExportTransfer(safe, mime, temp));
