@@ -117,6 +117,10 @@ const requiredByEditor = {
 };
 const blockbenchMarkers = [
   'async function parseBBModel(file,files=[])',
+  'async function inspectGLBFile(file){',
+  'previousModel=importedModel',
+  'A memória real depende do aparelho e do WebView',
+
   'function bbCoordinate(',
   'function bbEuler(',
   'new THREE.TextureLoader()',
