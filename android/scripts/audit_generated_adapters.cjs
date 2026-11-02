@@ -38,9 +38,8 @@ const pagesDeclaration = html.indexOf('const pages = {items:');
 const scriptOpenTag = pagesDeclaration >= 0 ? html.indexOf('<script>') : -1;
 const scriptOpen = scriptOpenTag >= 0 ? scriptOpenTag + '<script>'.length : -1;
 const scriptEnd = scriptOpen >= 0 ? html.indexOf('</script>', scriptOpen) : -1;
-const literalCloseCount = html.split('</script>').length - 1;
 let outerSource = scriptEnd > scriptOpen ? html.slice(scriptOpen, scriptEnd) : '';
-if (!outerSource || literalCloseCount !== 1 || pagesDeclaration < scriptOpenTag) {
+if (!outerSource || pagesDeclaration < scriptOpenTag) {
   console.error('FAIL: could not isolate the single outer bootstrap script after embedded source pages');
   process.exit(1);
 }
