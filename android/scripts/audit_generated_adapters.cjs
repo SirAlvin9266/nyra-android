@@ -13,6 +13,12 @@ const hostUiMarkers = ['nyraDesktopModeToggle', 'nyra_desktop_mode', 'nyra_ui_zo
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 
+const doctypeCount = (html.match(/<!doctype html>/gi) || []).length;
+const literalCloseCount = (html.match(/<\\/script>/gi) || []).length;
+if (doctypeCount !== 1 || literalCloseCount !== 1) {
+  console.error('FAIL: expected exactly one root document and one literal script close; found ' + doctypeCount + ' doctypes and ' + literalCloseCount + ' closes');
+  process.exit(1);
+}
 const bindingCount = (needle) => html.split(needle).length - 1;
 for (const [needle, expected] of [
   ["const host=document.getElementById('editorHost');", 1],
@@ -29,9 +35,9 @@ for (const [needle, expected] of [
 // terminates the outer script on a literal </script>, even inside that string.
 // Extract only the final closing tag that is part of the outer document.
 const pagesDeclaration = html.indexOf('const pages = {items:');
-const scriptOpenTag = pagesDeclaration >= 0 ? html.lastIndexOf('<script>', pagesDeclaration) : -1;
+const scriptOpenTag = pagesDeclaration >= 0 ? html.indexOf('<script>') : -1;
 const scriptOpen = scriptOpenTag >= 0 ? scriptOpenTag + '<script>'.length : -1;
-const scriptEnd = scriptOpen >= 0 ? html.lastIndexOf('</script>') : -1;
+const scriptEnd = scriptOpen >= 0 ? html.indexOf('</script>', scriptOpen) : -1;
 const literalCloseCount = html.split('</script>').length - 1;
 let outerSource = scriptEnd > scriptOpen ? html.slice(scriptOpen, scriptEnd) : '';
 if (!outerSource || literalCloseCount !== 1 || pagesDeclaration < scriptOpenTag) {

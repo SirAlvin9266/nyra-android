@@ -98,6 +98,10 @@ with zipfile.ZipFile(apk) as z:
                 errors.append(f"HTML missing local adapter marker: {marker}")
         if len(html) < 100_000:
             errors.append("integrated editor HTML is unexpectedly small")
+        if html.lower().count("<!doctype html>") != 1:
+            errors.append("packaged HTML must contain exactly one DOCTYPE")
+        if html.lower().count("</script>") != 1:
+            errors.append("packaged HTML must contain exactly one literal script close")
     if errors:
         print("FAIL: APK audit failed:", file=sys.stderr)
         for error in errors:

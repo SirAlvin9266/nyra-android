@@ -126,3 +126,8 @@ O PR permanece em rascunho. Mesmo com CI verde, a aprovação final depende da i
 - Resultado da run 207: todas as auditorias automatizadas passaram, o APK debug foi compilado, os assets offline foram auditados e o artefato `nyra-android-debug-apk` foi publicado.
 - Artefato da run 207: ID `13153750965`, SHA-256 `5f2e1f72b2a627df0d1ed094b74573b2b8cfeea3b7601825d0af8d27495c365a`, expira em 16/11/2026.
 - Execuções anteriores (runs 199–206) falharam em verificações intermediárias de extração/execução do bootstrap; a correção final foi validada na run 207.
+
+
+## Regressão crítica do shell — 02/11/2026
+
+A branch de integração acumulou documentos HTML completos dentro do script do shell (`index.html` continha oito `DOCTYPE`), fazendo o navegador interpretar conteúdo de páginas repetidas como parte do bootstrap. A restauração mantém um único documento raiz, os três payloads Base64 e o adaptador Android. A auditoria agora exige exatamente um `DOCTYPE` e um fechamento literal do script. Esta é uma correção estrutural estática; a renderização e interação ainda exigem validação WebView Android real.

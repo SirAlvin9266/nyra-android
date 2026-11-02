@@ -123,11 +123,12 @@ for needle in ("onShowFileChooser", "FILE_CHOOSER_REQUEST", "ACTION_OPEN_DOCUMEN
     if needle not in java:
         errors.append(f"missing Android native file support: {needle}")
 
-# The root shell and the three embedded templates are intentionally separate.
-# Only the root executable document closes with a literal script tag; nested
-# script closes in the templates must stay escaped while serialized in JS.
-if text.lower().count("</script>") != 1 or text.count("<\\/script>") < 1:
-    errors.append("outer HTML must have one literal closing tag and escaped nested module tags")
+# Keep exactly one top-level document and one executable shell terminator.
+# Inner editor HTML lives only in Base64 payloads, never as raw nested documents.
+if len(re.findall(r"<!doctype html>", text, flags=re.IGNORECASE)) != 1:
+    errors.append("root HTML must contain exactly one DOCTYPE")
+if len(re.findall(r"</script>", text, flags=re.IGNORECASE)) != 1:
+    errors.append("root HTML must contain exactly one literal script closing tag")
 
 # Parse the outer bootstrap safely: the embedded Character Editor module's
 # closing tag is escaped as <\\/script> inside the JavaScript string.
@@ -150,9 +151,9 @@ def node_syntax_check(label: str, source: str) -> None:
 # checked independently above; generated Android adapters have their own
 # dedicated audit, so avoid feeding serialized nested HTML to Node as a script.
 # Keep a structural guard for the actual outer script wrapper.
-script_open = text.lower().find("<script")
-script_open_end = text.find(">", script_open) if script_open >= 0 else -1
-script_close = text.lower().rfind("</script>")
+script_open = text.lower().find("<script>")
+script_open_end = script_open + len("<script>") if script_open >= 0 else -1
+script_close = text.lower().find("</script>", script_open_end) if script_open_end >= 0 else -1
 if script_open < 0 or script_open_end < 0 or script_close <= script_open_end:
     errors.append("could not isolate the outer app bootstrap script")
 else:
