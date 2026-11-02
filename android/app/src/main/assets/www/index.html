@@ -43,7 +43,7 @@ html.nyra-desktop-mode #editorHost,html.nyra-desktop-mode #editorHost iframe{min
 <main id="editorHost" aria-live="polite"></main><div id="nyraGuideRoot" aria-label="Guia interativo Nyra" style="position:fixed;inset:0;z-index:9998;background:rgba(3,7,13,.78);display:none;align-items:center;justify-content:center;padding:14px">
   <section style="width:min(920px,100%);max-height:90dvh;overflow:auto;display:grid;grid-template-columns:minmax(150px, .72fr) minmax(260px,1.28fr);gap:14px;background:#151d2b;border:1px solid #3b536d;border-radius:16px;padding:16px;box-shadow:0 20px 70px #000b">
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:250px;background:#0c1420;border-radius:12px;padding:12px">
-      <div id="nyraGuideRobotSlot" style="width:150px;height:190px;display:grid;place-items:center;border:1px dashed #58718b;border-radius:12px;color:#92a9c2;text-align:center;padding:12px">Espaço reservado para o robô-guia original do Nyra</div>
+      <img id="nyraGuideRobotSlot" src="nyra-guide-robot.webp" alt="Robô da identidade visual Nyra" style="display:block;width:160px;height:190px;object-fit:contain;filter:drop-shadow(0 10px 18px #050814aa)">
       <small style="color:#aabbd0">Guia do Nyra</small>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
@@ -262,8 +262,10 @@ const nyraGuideSteps=[
  {title:'Oficina de Itens',text:'Aqui você cria e edita itens em pixel art. As ferramentas de desenho e a área de trabalho ficam dentro deste editor.',app:'items',target:'body'},
  {title:'Criador de Personagens',text:'Aqui você trabalha nos modelos 3D. Também existe o Gerador Matemático, onde você pode colar instruções estruturadas para construir modelos com várias peças.',app:'character',target:'body'},
  {title:'Gerador Matemático',text:'Abra “Gerador Matemático”. Escreva ou cole as instruções à esquerda, valide e confira a prévia 3D à direita. Só confirme quando estiver satisfeito.',app:'character',target:'#nyraMathDslPanel'},
- {title:'RoboTV / Animação',text:'Esta área reúne as ferramentas de animação. O guia vai destacar os controles quando houver uma etapa específica disponível para explicar.',app:'animation',target:'body'},
- {title:'Ajuda quando precisar',text:'Você pode abrir este guia novamente pelo botão “Guia interativo”. As explicações são textos prontos; o Nyra não precisa de uma IA integrada para ensinar a usar suas ferramentas.',target:'#nyraGuideOpen'}
+ {title:'Importação e hierarquia',text:'No Criador de Personagens, importe GLB, glTF, OBJ, FBX, STL ou BBModel. Quando um modelo tiver várias peças, selecione-as na árvore para editar individualmente. Para BBModel com texturas externas, selecione o modelo e as imagens correspondentes na mesma janela.',app:'character',target:'#nyraModelFiles'},
+ {title:'RoboTV / Animação',text:'Esta área reúne as ferramentas de animação. As animações importadas são preservadas quando o formato e os canais são compatíveis; a transferência completa dos clips importados para a timeline ainda está em desenvolvimento.',app:'animation',target:'body'},
+ {title:'Como pedir ajuda a uma IA externa',text:'Descreva a forma desejada, a quantidade de peças, dimensões, cores, posições, rotações e quais partes devem ser filhas de outras. Peça à IA que devolva somente um JSON compatível com a DSL v1 do Nyra. Revise e valide o texto antes de confirmar a geração. A ideia e o modelo continuam sendo seus; a IA externa apenas ajuda a organizar as instruções.',app:'character',target:'#nyraMathDslPanel'},
+ {title:'Ajuda quando precisar',text:'Você pode abrir este guia novamente pelo botão “Guia interativo”. As explicações são textos prontos, o projeto fica no seu controle e o Nyra não precisa de uma IA integrada para ensinar a usar as ferramentas.',target:'#nyraGuideOpen'}
 ];
 let nyraGuideIndex=0,nyraGuideActiveTarget=null;
 const nyraGuideRoot=document.getElementById('nyraGuideRoot');
