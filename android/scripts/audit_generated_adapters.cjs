@@ -14,7 +14,7 @@ const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html'
 const html = fs.readFileSync(htmlPath, 'utf8');
 
 const doctypeCount = (html.match(/<!doctype html>/gi) || []).length;
-const literalCloseCount = (html.match(/<\\/script>/gi) || []).length;
+const literalCloseCount = html.split('</script>').length - 1;
 if (doctypeCount !== 1 || literalCloseCount !== 1) {
   console.error('FAIL: expected exactly one root document and one literal script close; found ' + doctypeCount + ' doctypes and ' + literalCloseCount + ' closes');
   process.exit(1);
