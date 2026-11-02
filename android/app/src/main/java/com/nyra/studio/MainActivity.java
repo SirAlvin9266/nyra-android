@@ -2,6 +2,7 @@ package com.nyra.studio;
 
 import android.app.Activity;
 import android.app.DownloadManager;
+import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -29,9 +30,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -78,7 +81,6 @@ public class MainActivity extends Activity {
         ));
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
-        // Enable native pinch zoom in addition to the Nyra editor zoom slider.
         webView.getSettings().setSupportZoom(true);
         webView.getSettings().setBuiltInZoomControls(true);
         webView.getSettings().setDisplayZoomControls(false);
@@ -173,7 +175,7 @@ public class MainActivity extends Activity {
             try {
                 String safe = safeFilename(filename, "nyra-export.bin");
                 String mime = (mimeType == null || mimeType.trim().isEmpty()) ? "application/octet-stream" : mimeType.trim();
-                if (mime.length() > 120 || mime.contains("\r") || mime.contains("\n")) mime = "application/octet-stream";
+                if (mime.length() > 120 || mime.contains("\\r") || mime.contains("\\n")) mime = "application/octet-stream";
                 File temp = File.createTempFile("nyra-export-", ".tmp", getCacheDir());
                 String token = UUID.randomUUID().toString();
                 transfers.put(token, new ExportTransfer(safe, mime, temp));
@@ -254,6 +256,29 @@ public class MainActivity extends Activity {
         }
     }
 
+    private static void addUniqueUri(Set<Uri> uris, Uri uri) {
+        if (uri != null) uris.add(uri);
+    }
+
+    private static Uri[] collectSelectedUris(Intent data, boolean allowMultiple) {
+        if (data == null) return null;
+
+        Set<Uri> selected = new LinkedHashSet<>();
+        if (allowMultiple) {
+            ClipData clipData = data.getClipData();
+            if (clipData != null) {
+                for (int i = 0; i < clipData.getItemCount(); i++) {
+                    addUniqueUri(selected, clipData.getItemAt(i).getUri());
+                }
+            }
+        }
+
+        // Providers may return a single data URI even for a multi-select request,
+        // or return only ClipData for a single-select request.
+        addUniqueUri(selected, data.getData());
+        return selected.isEmpty() ? null : selected.toArray(new Uri[0]);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -265,20 +290,9 @@ public class MainActivity extends Activity {
             pendingFileChooserMultiple = false;
 
             if (callback != null) {
-                Uri[] result = null;
-                if (resultCode == RESULT_OK && data != null) {
-                    if (allowMultiple && data.getClipData() != null) {
-                        int count = data.getClipData().getItemCount();
-                        List<Uri> uris = new ArrayList<>();
-                        for (int i = 0; i < count; i++) {
-                            Uri uri = data.getClipData().getItemAt(i).getUri();
-                            if (uri != null) uris.add(uri);
-                        }
-                        if (!uris.isEmpty()) result = uris.toArray(new Uri[0]);
-                    } else if (data.getData() != null) {
-                        result = new Uri[] { data.getData() };
-                    }
-                }
+                Uri[] result = resultCode == RESULT_OK
+                    ? collectSelectedUris(data, allowMultiple)
+                    : null;
                 callback.onReceiveValue(result);
             }
             return;
