@@ -132,6 +132,30 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   assert(importedMesh&&importedMesh.geometry.attributes.position.count===6,'Free mesh faces were not triangulated into six vertices.');
   assert(importedMesh.geometry.groups.length===2,'Free mesh material groups were not preserved.');
 
+  // Run the importer against the actual user-supplied Spartan shield regression model.
+  const shieldPath=path.join(__dirname,'fixtures','spartan_shild_editavel.bbmodel');
+  assert(fs.existsSync(shieldPath),'Real Spartan shield regression fixture is missing.');
+  const shieldData=JSON.parse(fs.readFileSync(shieldPath,'utf8'));
+  assert(shieldData.meta?.model_format==='free','Spartan shield fixture must exercise Blockbench free-mesh format.');
+  assert(shieldData.elements.length===4,'Spartan shield fixture should contain four independent mesh elements.');
+  const shieldResult=await parseBBModel({name:'spartan_shild_editavel.bbmodel',text:async()=>JSON.stringify(shieldData)});
+  let shieldMeshCount=0,shieldUvCount=0,shieldMaterialCount=0;
+  shieldResult.object.traverse(node=>{
+    if(node.isMesh){
+      shieldMeshCount++;
+      if(node.geometry?.attributes?.uv)shieldUvCount++;
+      const materials=Array.isArray(node.material)?node.material:[node.material];
+      if(materials.some(material=>material?.map))shieldMaterialCount++;
+    }
+  });
+  assert(shieldMeshCount===4,'Real Spartan shield should import as four editable mesh objects.');
+  assert(shieldUvCount===4,'Real Spartan shield must retain UV attributes for all four meshes.');
+  assert(shieldMaterialCount===4,'Real Spartan shield embedded atlas must attach to all four meshes.');
+  assert(shieldResult.object.userData.bbImportedVertices===1736,'Real Spartan shield vertex count does not match the source.');
+  assert(shieldResult.object.userData.bbImportedFaces===898,'Real Spartan shield triangle count does not match the source.');
+  assert(shieldResult.object.userData.bbTextureCount===1,'Real Spartan shield embedded texture was not detected.');
+  assert(shieldResult.object.userData.bbModelWarnings.length===0,'Real Spartan shield must not emit missing-texture warnings.');
+
   const hytaleData={
     name:'Hytale prop test',meta:{format_version:'5.0',model_format:'hytale_prop'},
     resolution:{width:16,height:16},textures:[texture],
