@@ -166,6 +166,9 @@ const blockbenchMarkers = [
   "extension==='bbmodel'",
 ];
 const requiredExportMarkers = [
+  'nyraExportBBModel',
+  'async function buildBBModelExport()',
+  'window.__nyraImportedBBSource',
   'HTMLAnchorElement.prototype.click',
   'beginExport',
   'appendExportChunk',
