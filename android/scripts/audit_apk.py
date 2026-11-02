@@ -78,7 +78,7 @@ with zipfile.ZipFile(apk) as z:
         # @mipmap/ic_launcher become resource IDs, not literal text names.
         # Validate the application icon attribute IDs via the binary XML string
         # pool and require both adaptive-icon XML resources to be present above.
-        if manifest[:2] != b"\\x03\\x00":
+        if manifest[:2] != bytes((0x03, 0x00)):
             errors.append("AndroidManifest.xml is not compiled binary XML")
         if not icon_manifest or not round_manifest or not foreground_candidates:
             errors.append("compiled manifest cannot resolve both adaptive launcher icon resources")
