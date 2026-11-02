@@ -27,7 +27,7 @@ html.nyra-desktop-mode nav{width:auto;flex-wrap:nowrap}
 html.nyra-desktop-mode nav button{flex:0 0 auto}
 html.nyra-desktop-mode #editorHost,html.nyra-desktop-mode #editorHost iframe{min-height:600px}
 @media(max-width:600px){header{align-items:flex-start}h1{font-size:15px}nav{width:100%}nav button{flex:1;padding:8px 5px;font-size:12px}#editorHost iframe{min-height:600px}}
-#nyraGuideHighlight{position:relative!important;z-index:9999!important;outline:3px solid #35e5ff!important;outline-offset:4px!important;box-shadow:0 0 0 9999px rgba(2,7,14,.62)!important;border-radius:7px!important;}</style>
+#nyraGuideHighlight{position:relative!important;z-index:1!important;outline:3px solid #35e5ff!important;outline-offset:4px!important;border-radius:7px!important;scroll-margin:18px!important;}</style>
 </head>
 <body>
 <header>
@@ -258,7 +258,7 @@ document.getElementById('nyraZoomReset').addEventListener('click',()=>applyEdito
 try{applyEditorZoom(Number(localStorage.getItem('nyra_ui_zoom'))||100)}catch(_){applyEditorZoom(100)}
 
 const nyraGuideSteps=[
- {title:'Bem-vindo ao Nyra',text:'O Nyra tem três áreas de criação. Vou mostrar onde ficam os editores e como começar. Você pode fechar o guia a qualquer momento.',target:'nav'},
+ {title:'Olá! Eu vou acompanhar você.',text:'Bem-vindo ao Nyra 3D Studio! Primeiro vou mostrar onde ficam as ferramentas. Depois, vou destacar cada controle e explicar para que ele serve, para que você possa experimentar no seu próprio ritmo.',target:'nav'},
  {title:'Oficina de Itens',text:'Aqui você cria e edita itens em pixel art. As ferramentas de desenho e a área de trabalho ficam dentro deste editor.',app:'items',target:'body'},
  {title:'Criador de Personagens',text:'Aqui você trabalha nos modelos 3D. Também existe o Gerador Matemático, onde você pode colar instruções estruturadas para construir modelos com várias peças.',app:'character',target:'body'},
  {title:'Gerador Matemático',text:'Abra “Gerador Matemático”. Escreva ou cole as instruções à esquerda, valide e confira a prévia 3D à direita. Só confirme quando estiver satisfeito.',app:'character',target:'#nyraMathDslPanel'},
@@ -287,11 +287,12 @@ function renderNyraGuide(){
    else if(step.target==='#nyraGuideOpen')target=document.getElementById('nyraGuideOpen');
    else if(step.target==='#nyraMathDslPanel'&&frame){try{target=frame.contentDocument.querySelector('#nyraMathDslPanel');target?.open&&(target.open=true);}catch(e){}}
    else if(frame){target=frame.contentDocument?.querySelector('main')||frame;}
-   if(target){target.id='nyraGuideHighlight';nyraGuideActiveTarget=target;target.scrollIntoView?.({block:'nearest',behavior:'smooth'});}
+   if(target){target.id='nyraGuideHighlight';nyraGuideActiveTarget=target;target.scrollIntoView?.({block:'nearest',behavior:'smooth'});if(target!==frame&&frame){try{frame.contentWindow?.postMessage({type:'NYRA_GUIDE_HIGHLIGHT',selector:step.target},'*');}catch(_){}}}
  };
  setTimeout(apply,180);
 }
 document.getElementById('nyraGuideOpen').addEventListener('click',()=>{nyraGuideIndex=0;nyraGuideRoot.style.display='flex';renderNyraGuide();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&nyraGuideRoot.style.display!=='none')closeNyraGuide();});
 document.getElementById('nyraGuideClose').addEventListener('click',closeNyraGuide);
 document.getElementById('nyraGuidePrev').addEventListener('click',()=>{nyraGuideIndex=Math.max(0,nyraGuideIndex-1);renderNyraGuide();});
 document.getElementById('nyraGuideNext').addEventListener('click',()=>{if(nyraGuideIndex===nyraGuideSteps.length-1){closeNyraGuide();return;}nyraGuideIndex++;renderNyraGuide();});
