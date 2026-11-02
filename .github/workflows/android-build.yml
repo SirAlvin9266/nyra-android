@@ -86,7 +86,9 @@ jobs:
       - name: Verify offline assets inside APK
         if: success() && steps.project.outputs.project_dir != 'missing'
         run: |
-          python3 android/scripts/audit_apk.py android/app/build/outputs/apk/debug/app-debug.apk
+          APK_PATH="${{ steps.project.outputs.project_dir }}/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK_PATH"
+          python3 android/scripts/audit_apk.py "$APK_PATH"
 
       - name: Explain missing Android project
         if: steps.project.outputs.project_dir == 'missing'
