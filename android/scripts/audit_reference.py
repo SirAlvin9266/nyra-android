@@ -169,7 +169,8 @@ else:
         outer_source = ""
     else:
         outer_source = text[script_open_end:pages_start]
-    if "const pages = {" not in outer_source or "function addAndroidExportAdapter" not in outer_source or "function ensureEditor" not in outer_source:
+    shell_source = text[script_open_end:script_close]
+    if "const pages = {" not in shell_source or "function addAndroidExportAdapter" not in shell_source or "function ensureEditor" not in shell_source:
         errors.append("outer app bootstrap is missing its editor map or adapter structure")
 
 
