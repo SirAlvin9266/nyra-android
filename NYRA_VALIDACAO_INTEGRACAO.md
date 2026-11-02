@@ -122,6 +122,7 @@ O PR permanece em rascunho. Mesmo com CI verde, a aprovação final depende da i
 - **DSL matemática:** ainda não implementa operações booleanas, geometria oca com espessura, relações paramétricas, semântica de vestuário ou validação topológica. É uma ampliação arquitetural, não um ajuste simples de interface.
 
 ### Estado do CI desta rodada
-- A execução que contém as correções do guia/grade e os ajustes de auditoria é a run 205: https://github.com/SirAlvin9266/nyra-android/actions/runs/41467376079
-- No momento do registro, ela estava na fila/início; não se deve declarar build verde até concluir todas as auditorias e upload do APK.
-- Execuções anteriores (runs 199–204) falharam em verificações de extração/execução do bootstrap; foram usadas para diagnosticar o problema e não são builds aprovados.
+- A execução aprovada que contém as correções do guia/grade e os ajustes de auditoria é a run 207: https://github.com/SirAlvin9266/nyra-android/actions/runs/41467657492
+- Resultado da run 207: todas as auditorias automatizadas passaram, o APK debug foi compilado, os assets offline foram auditados e o artefato `nyra-android-debug-apk` foi publicado.
+- Artefato da run 207: ID `13153750965`, SHA-256 `5f2e1f72b2a627df0d1ed094b74573b2b8cfeea3b7601825d0af8d27495c365a`, expira em 16/11/2026.
+- Execuções anteriores (runs 199–206) falharam em verificações intermediárias de extração/execução do bootstrap; a correção final foi validada na run 207.
