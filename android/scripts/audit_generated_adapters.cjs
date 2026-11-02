@@ -30,9 +30,10 @@ if (!outerSource || literalCloseCount !== 1 || pagesDeclaration < scriptOpenTag)
 // string; then inspect the generated documents and parse their inline modules.
 const outerSourceForExecution = outerSource;
 
+// The evaluated shell owns the real host/message bindings. The test harness supplies DOM shims only through document.getElementById().
 const frames = [];
-const host = { appendChild(frame) { frames.push(frame); frame.parentNode = host; } };
-const message = { textContent: '' };
+const testHost = { appendChild(frame) { frames.push(frame); frame.parentNode = testHost; } };
+const testMessage = { textContent: '' };
 const htmlClasses = new Set();
 const htmlStyle = { setProperty(name, value) { this[name] = value; } };
 const bodyStyle = {
@@ -52,8 +53,8 @@ const document = {
   },
   body: { style: bodyStyle },
   getElementById(id) {
-    if (id === 'editorHost') return host;
-    if (id === 'message') return message;
+    if (id === 'editorHost') return testHost;
+    if (id === 'message') return testMessage;
     return { textContent: '', style: {}, appendChild() {}, setAttribute() {}, addEventListener() {} };
   },
   querySelectorAll() { return []; },
