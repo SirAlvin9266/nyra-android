@@ -548,6 +548,18 @@ const message=document.getElementById('message');
 const editorFrames={};
 const names={items:'Oficina de Itens',character:'Criador de Personagens',animation:'RoboTV / Animação'};
 
+
+window.addEventListener('error',event=>{
+ const msg='Erro no shell: '+(event.message||event.error||'erro JavaScript');
+ const status=document.getElementById('message');if(status)status.textContent=msg;
+ console.error('[Nyra shell]',event.message,event.filename,event.lineno,event.error);
+});
+window.addEventListener('unhandledrejection',event=>{
+ const reason=event.reason;
+ const msg='Falha no shell: '+(reason&&reason.message?reason.message:String(reason||'Promise rejeitada'));
+ const status=document.getElementById('message');if(status)status.textContent=msg;
+ console.error('[Nyra shell promise]',reason);
+});
 function decodePage(encoded){
  const binary=atob(encoded);
  const bytes=Uint8Array.from(binary,ch=>ch.charCodeAt(0));
@@ -700,6 +712,7 @@ function ensureEditor(key){
  },{once:true});
  frame.addEventListener('error',()=>{message.textContent='Falha ao carregar o documento de '+names[key]+'.';},{once:true});
  frame.srcdoc=addAndroidExportAdapter(decodePage(pages[key]),key);
+ nyraInstallEditorDiagnostics(frame,key);
  host.appendChild(frame);
  editorFrames[key]=frame;
  applyEditorZoom(zoomRange.value);
@@ -800,6 +813,24 @@ document.getElementById('nyraGuidePrev').addEventListener('click',()=>{nyraGuide
 document.getElementById('nyraGuideNext').addEventListener('click',()=>{if(nyraGuideIndex===nyraGuideSteps.length-1){closeNyraGuide();return;}nyraGuideIndex++;renderNyraGuide();});
 nyraGuideRoot.addEventListener('click',e=>{if(e.target===nyraGuideRoot)closeNyraGuide();});
 
+
+function nyraInstallEditorDiagnostics(frame,key){
+ if(frame.dataset.nyraDiagnosticsInstalled==='1')return;
+ frame.dataset.nyraDiagnosticsInstalled='1';
+ const report=(kind,detail)=>{
+   const safe=String(detail||'erro sem detalhes').slice(0,240);
+   message.textContent=names[key]+': '+kind+' — '+safe;
+   console.error('[Nyra '+key+'] '+kind,detail);
+ };
+ frame.addEventListener('load',()=>{
+   try{
+     const inner=frame.contentWindow;
+     inner.addEventListener('error',e=>report('erro JavaScript',e.message||e.error||'erro sem mensagem'));
+     inner.addEventListener('unhandledrejection',e=>report('Promise rejeitada',e.reason?.message||e.reason||'sem detalhes'));
+     inner.postMessage({type:'NYRA_PING'},'*');
+   }catch(e){report('falha ao observar o documento',e.message);}
+ },{once:true});
+}
 function openEditor(key){
  if(!pages[key])return;
  const frame=editorFrames[key]||ensureEditor(key);
