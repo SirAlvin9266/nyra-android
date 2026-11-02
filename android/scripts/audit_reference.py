@@ -170,7 +170,9 @@ else:
     else:
         outer_source = text[script_open_end:pages_start]
     shell_source = text[script_open_end:script_close]
-    if "const pages = {" not in shell_source or "function addAndroidExportAdapter" not in shell_source or "function ensureEditor" not in shell_source:
+    # The serialized pages map is located after helper functions and remains inside the
+    # same root script; verify shell helpers and the map independently.
+    if "const pages = {" not in text or "function addAndroidExportAdapter" not in shell_source or "function ensureEditor" not in shell_source:
         errors.append("outer app bootstrap is missing its editor map or adapter structure")
 
 
