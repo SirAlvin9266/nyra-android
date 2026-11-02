@@ -744,7 +744,7 @@ function renderNyraGuide(){
    else if(frame){target=frame.contentDocument?.querySelector('main')||frame;}
    if(target){target.id='nyraGuideHighlight';nyraGuideActiveTarget=target;target.scrollIntoView?.({block:'nearest',behavior:'smooth'});if(target!==frame&&frame){try{frame.contentWindow?.postMessage({type:'NYRA_GUIDE_HIGHLIGHT',selector:step.target},'*');}catch(_){}}}
  };
- setTimeout(apply,180);
+ apply();
 }
 document.getElementById('nyraGuideOpen').addEventListener('click',()=>{nyraGuideIndex=0;nyraGuideRoot.style.display='flex';renderNyraGuide();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&nyraGuideRoot.style.display!=='none')closeNyraGuide();});
