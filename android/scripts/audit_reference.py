@@ -155,7 +155,12 @@ if script_open < 0 or script_open_end < 0 or script_close <= script_open_end:
     errors.append("could not isolate the outer app bootstrap script")
 else:
     outer_source = text[script_open_end + 1:script_close]
-    outer_source = re.sub(r"^<!doctype html>[\\s\\S]*?</html>", "", outer_source, flags=re.IGNORECASE).strip()
+    # The bootstrap stores the source editor pages and an HTML export-adapter
+    # template as JavaScript strings. Their generated code is validated by the
+    # dedicated editor/adapter audits below; strip only those declarations for
+    # the outer-bootstrap syntax pass.
+    outer_source = re.sub(r"const pages = \\{[\\s\\S]*?\\};", "const pages = {};", outer_source, count=1)
+    outer_source = re.sub(r"function addAndroidExportAdapter\\([\\s\\S]*?\\nfunction ensureEditor\\(", "function addAndroidExportAdapter(){}\\nfunction ensureEditor(", outer_source, count=1)
     node_syntax_check("outer app bootstrap", outer_source)
 
 # Decode and parse each original editor's own scripts independently.
