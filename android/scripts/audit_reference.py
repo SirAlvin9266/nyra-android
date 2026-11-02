@@ -148,6 +148,8 @@ def node_syntax_check(label: str, source: str) -> None:
 # Validate the complete outer bootstrap, including the escaped model I/O template.
 script_open = text.lower().find("<script")
 script_open_end = text.find(">", script_open) if script_open >= 0 else -1
+# Search after the actual outer script opening; earlier occurrences of literal
+# closing-tag text can appear inside JavaScript strings and must not truncate it.
 script_close = text.lower().rfind("</script>")
 if script_open < 0 or script_open_end < 0 or script_close <= script_open_end:
     errors.append("could not isolate the outer app bootstrap script")
