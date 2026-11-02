@@ -95,12 +95,16 @@ jobs:
           exit 1
 
       - name: Collect APK
-        if: success()
+        if: success() && steps.project.outputs.project_dir != 'missing'
         shell: bash
         run: |
+          set -euo pipefail
+          APK_PATH="${{ steps.project.outputs.project_dir }}/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK_PATH"
           mkdir -p build-output
-          find . -type f -path '*/build/outputs/apk/*/*.apk' -exec cp {} build-output/ \;
-          test "$(find build-output -type f -name '*.apk' | wc -l)" -gt 0
+          cp "$APK_PATH" build-output/nyra-android-debug.apk
+          test -s build-output/nyra-android-debug.apk
+          sha256sum build-output/nyra-android-debug.apk | tee build-output/SHA256SUMS.txt
 
       - name: Upload APK artifact
         if: success()
