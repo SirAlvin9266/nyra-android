@@ -82,24 +82,18 @@ Regra de segurança: nenhuma alteração foi feita na branch main e o PR permane
 - Os dados recuperados não identificam as especificações completas dos cinco modelos matemáticos. A DSL v1 documentada contém group/box/sphere/cylinder/cone; não declarar os cinco modelos atendidos antes de recuperar essas especificações.
 - O ícone usa a arte adaptativa Nyra fornecida no pacote de identidade. O guia usa uma versão reduzida desta mesma arte; não foi encontrado, neste pacote, um recurso de personagem robô independente da marca.
 
-## 5. Histórico de commits desta execução
+## 5. Commits e CI
 
-- 313a76ac68c2b4279446da0f80ea0c0f9bed9cbc — seletor Android e ClipData.
-- b2e0401e52c7aa25401b32ab4600a9aaa3f98b8d — pré-análise GLB e importação transacional inicial.
+O histórico integral da branch pode ser consultado no PR #3. Os principais commits verificáveis desta execução incluem:
+- 313a76ac68c2b4279446da0f80ea0c0f9bed9cbc — seletor Android/ClipData.
 - 138c8716c34f45e9bb2f731fbc3aec2c1271d1f8 — fixture real do escudo.
-- c0030dc8ba3c684045a6372b54b9b4b916d6ed35 — contagem das malhas e ajuste da seleção transacional.
-- a7508a16c495c18ded62fdd6691c9361abc62df4 — teste da fixture real do escudo.
-- 961938e15bbe8cd390345c1f50b6825ed73aa830 — validação correta de caracteres CR/LF no MIME.
-- e71af1e31d18c97219976c04cdb2418a7ad9bd26 — correspondência externa de textura sem associação ambígua.
-- 6b642e8018bb2733d895410151a2d73c54ed6f61 — arte do guia e tutorial da IA externa.
-- cf3f1cf294e533b51f42e0de2054d0fab5f03792 — teste GLB no workflow.
-- d5e440f25ef28a1ae9b4e3ad55e744202a6687ae — teste estrutural de GLB e rejeição de arquivo inválido.
-- d3bb1d34295340053387416871f586c61cd20ae6 — auditoria do adaptador transacional.
-- 98521301992552699ddccafe879e98ec99acffa6 — manifesto Android com referências de ícones.
-- 893f82757c3739739c62877a4c18705ea5e77025 — auditoria dos recursos do launcher/guia no APK.
-- 1cd7b10c9891b6fab0ea255e6dc752e00f517ae4 — recursos binários e XML dos ícones/guia.
-- f871d066ef4e087e023876c5c77dfba3a2ae10e8 — escape do fechamento do módulo embutido.
-- 0da21b2926205430097e86d134e872c95bb20de9 — auditoria ajustada para seleção transacional.
-- c0deb2c152fed6f4df0bdd809090fee80814eb51 — README atualizado.
+- 6b642e8018bb2733d895410151a2d73c54ed6f61 — artwork e tutoriais do guia.
+- d5e440f25ef28a1ae9b4e3ad55e744202a6687ae — teste estrutural GLB.
+- 1cd7b10c9891b6fab0ea255e6dc752e00f517ae4 — ícones e recursos Nyra.
+- f871d066ef4e087e023876c5c77dfba3a2ae10e8 — correção do fechamento de scripts embutidos.
+- 0da21b2926205430097e86d134e872c95bb20de9 — auditoria alinhada ao fluxo transacional.
+- 7e2716138ac625b80ea061af56c09af4dce7bdc2 — registro técnico inicial.
 
-O CI da revisão ainda precisa concluir com sucesso. O PR deve continuar em rascunho até que o APK seja compilado e os arquivos reais sejam testados em aparelho Android.
+A primeira compilação de APK passou, mas a auditoria final identificou diferenças entre os caminhos de recursos-fonte e os recursos processados pelo Android Gradle Plugin. A auditoria foi ajustada para verificar os recursos compilados e as referências reais do manifesto. A nova execução precisa confirmar esse ajuste.
+
+O PR permanece em rascunho. Mesmo com CI verde, a aprovação final depende da inspeção física de importação, memória, interface tátil, exportação e comportamento dos editores no Android.
