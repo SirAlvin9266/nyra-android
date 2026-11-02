@@ -238,7 +238,7 @@ for (const [name, page] of Object.entries(generated)) {
   }
   if (name === 'character' && moduleIndex >= 0) {
     const moduleStart = page.lastIndexOf('<script type="module">', moduleIndex);
-    const moduleEnd = page.indexOf('</script>', moduleIndex);
+    const moduleEnd = page.indexOf('<\\/script>', moduleIndex);
     if (moduleStart < 0 || moduleEnd < 0) {
       console.error('FAIL: final Character Editor model I/O module block is incomplete');
       process.exitCode = 1;
