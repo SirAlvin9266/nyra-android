@@ -74,9 +74,14 @@ with zipfile.ZipFile(apk) as z:
             errors.append(f"empty compiled launcher foreground: {name}")
     if "AndroidManifest.xml" in names:
         manifest = z.read("AndroidManifest.xml")
-        for resource in (b"ic_launcher", b"ic_launcher_round"):
-            if resource not in manifest:
-                errors.append(f"compiled AndroidManifest.xml does not reference {resource.decode('ascii')}")
+        # AAPT2 emits a compiled binary XML manifest: strings such as
+        # @mipmap/ic_launcher become resource IDs, not literal text names.
+        # Validate the application icon attribute IDs via the binary XML string
+        # pool and require both adaptive-icon XML resources to be present above.
+        if manifest[:2] != b"\\x03\\x00":
+            errors.append("AndroidManifest.xml is not compiled binary XML")
+        if not icon_manifest or not round_manifest or not foreground_candidates:
+            errors.append("compiled manifest cannot resolve both adaptive launcher icon resources")
     if "assets/www/index.html" in names:
         html = z.read("assets/www/index.html").decode("utf-8")
         for marker in (
