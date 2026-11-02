@@ -98,6 +98,15 @@ for (const marker of hostUiMarkers) {
   }
 }
 
+// The first editor is opened at bootstrap. Assert it is visible and that its inner
+// document is handled via an explicit ready handshake rather than a shell-only status.
+if (!html.includes("frame.style.cssText='display:block") ||
+    !html.includes("NYRA_EDITOR_READY") ||
+    !html.includes("O documento abriu, mas o editor não confirmou inicialização")) {
+  console.error('FAIL: editor host must expose the iframe and distinguish document load from editor readiness');
+  process.exitCode = 1;
+}
+
 // Test copy: the host stores a complete nested HTML document in the modelTools
 // template string. Replace only that template with a no-op for VM bootstrap
 // evaluation; the adapter source itself is inspected through markers below and
