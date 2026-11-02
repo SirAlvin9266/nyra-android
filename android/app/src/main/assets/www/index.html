@@ -671,12 +671,33 @@ function ensureEditor(key){
  if(editorFrames[key])return editorFrames[key];
  const frame=document.createElement('iframe');
  frame.title=names[key];
- frame.setAttribute('allow','clipboard-read; clipboard-write');
  frame.dataset.editor=key;
- frame.style.cssText='display:none;width:100%;height:100%;min-height:450px;border:0;background:var(--bg)';
+ frame.setAttribute('allow','clipboard-read; clipboard-write');
+ frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-pointer-lock');
+ frame.style.cssText='display:block;width:100%;height:100%;min-height:450px;border:0;background:var(--bg)';
+ frame.addEventListener('load',()=>{
+   let doc=null;
+   try{doc=frame.contentDocument;}catch(error){}
+   if(!doc||!doc.documentElement){
+     message.textContent='Falha: o documento de '+names[key]+' não ficou acessível no WebView.';
+     return;
+   }
+   message.textContent='Documento de '+names[key]+' carregado; aguardando inicialização do editor…';
+   const ready=event=>{
+     if(event.source!==frame.contentWindow||!event.data||event.data.type!=='NYRA_EDITOR_READY')return;
+     window.removeEventListener('message',ready);
+     message.textContent='Editor '+names[key]+' pronto.';
+   };
+   window.addEventListener('message',ready);
+   setTimeout(()=>{
+     window.removeEventListener('message',ready);
+     if(message.textContent==='Documento de '+names[key]+' carregado; aguardando inicialização do editor…'){
+       message.textContent='O documento abriu, mas o editor não confirmou inicialização. Consulte o diagnóstico do WebView.';
+     }
+   },12000);
+ },{once:true});
+ frame.addEventListener('error',()=>{message.textContent='Falha ao carregar o documento de '+names[key]+'.';},{once:true});
  frame.srcdoc=addAndroidExportAdapter(decodePage(pages[key]),key);
- frame.addEventListener('load',()=>{message.textContent='Editor '+names[key]+' carregado.';},{once:true});
- frame.addEventListener('error',()=>{message.textContent='Falha ao carregar '+names[key]+'.';},{once:true});
  host.appendChild(frame);
  editorFrames[key]=frame;
  applyEditorZoom(zoomRange.value);
