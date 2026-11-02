@@ -370,7 +370,7 @@ window.addEventListener('message',event=>{
 });
 let initial='items';
 try{const saved=localStorage.getItem('nyra_active_editor');if(saved&&pages[saved])initial=saved}catch(_){}
-try{openEditor(initial);message.textContent='Editor inicial pronto. Os demais serão preparados quando você os abrir.';}
+try{Object.keys(pages).forEach(key=>ensureEditor(key));openEditor(initial);message.textContent='Todos os editores foram preparados e estão prontos.';}
 catch(error){console.error('Nyra editor bootstrap failed',error);message.textContent='Falha ao preparar os editores: '+(error?.message||String(error));}
 </script>
 </body>
