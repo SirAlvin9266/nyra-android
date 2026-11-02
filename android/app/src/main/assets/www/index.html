@@ -545,6 +545,7 @@ const message=document.getElementById('message');
 const editorFrames={};
 const names={items:'Oficina de Itens',character:'Criador de Personagens',animation:'RoboTV / Animação'};
 
+
 function decodePage(encoded){
  const binary=atob(encoded);
  const bytes=Uint8Array.from(binary,ch=>ch.charCodeAt(0));
