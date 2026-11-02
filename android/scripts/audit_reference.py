@@ -127,8 +127,12 @@ for needle in ("onShowFileChooser", "FILE_CHOOSER_REQUEST", "ACTION_OPEN_DOCUMEN
 # Inner editor HTML lives only in Base64 payloads, never as raw nested documents.
 if len(re.findall(r"<!doctype html>", text, flags=re.IGNORECASE)) != 1:
     errors.append("root HTML must contain exactly one DOCTYPE")
+# The Android shell stores the Character Editor document inside a JS string.
+# Its inner module close must be escaped, leaving exactly one literal close for the root shell.
 if len(re.findall(r"</script>", text, flags=re.IGNORECASE)) != 1:
     errors.append("root HTML must contain exactly one literal script closing tag")
+if len(re.findall(r"<\\\\/script>", text, flags=re.IGNORECASE)) != 1:
+    errors.append("root HTML must contain exactly one escaped inner module script close")
 
 # Parse the outer bootstrap safely: the embedded Character Editor module's
 # closing tag is escaped as <\\/script> inside the JavaScript string.
@@ -157,7 +161,14 @@ script_close = text.lower().find("</script>", script_open_end) if script_open_en
 if script_open < 0 or script_open_end < 0 or script_close <= script_open_end:
     errors.append("could not isolate the outer app bootstrap script")
 else:
-    outer_source = text[script_open_end + 1:script_close]
+    # The bootstrap script contains the serialized editor template after its shell logic.
+    # Locate the pages map first; do not include the embedded template in shell checks.
+    pages_start = text.find("const pages = {", script_open_end, script_close)
+    if pages_start < 0:
+        errors.append("could not locate editor page map in shell bootstrap")
+        outer_source = ""
+    else:
+        outer_source = text[script_open_end:pages_start]
     if "const pages = {" not in outer_source or "function addAndroidExportAdapter" not in outer_source or "function ensureEditor" not in outer_source:
         errors.append("outer app bootstrap is missing its editor map or adapter structure")
 
