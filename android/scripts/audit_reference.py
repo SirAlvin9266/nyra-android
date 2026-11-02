@@ -123,11 +123,11 @@ for needle in ("onShowFileChooser", "FILE_CHOOSER_REQUEST", "ACTION_OPEN_DOCUMEN
     if needle not in java:
         errors.append(f"missing Android native file support: {needle}")
 
-# There must be one literal close for the top-level document and escaped
-# closes for nested scripts inside JavaScript string literals.
+# The root shell and the three embedded templates are intentionally separate.
+# Only the root executable document closes with a literal script tag; nested
+# script closes in the templates must stay escaped while serialized in JS.
 if text.lower().count("</script>") != 1 or text.count("<\\/script>") < 1:
     errors.append("outer HTML must have one literal closing tag and escaped nested module tags")
-
 
 # Parse the outer bootstrap safely: the embedded Character Editor module's
 # closing tag is escaped as <\\/script> inside the JavaScript string.
