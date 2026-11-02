@@ -60,6 +60,9 @@ jobs:
       - name: Test Blockbench model importer
         run: node android/scripts/audit_bbmodel_import.cjs
 
+      - name: Test GLB structural preflight
+        run: node android/scripts/audit_glb_preflight.cjs
+
       - name: Locate Gradle wrapper
         id: project
         shell: bash
