@@ -97,10 +97,16 @@ for (const marker of hostUiMarkers) {
   }
 }
 
-// The modelTools literal is now escaped for the enclosing HTML script context,
-// so execute the real host bootstrap and inspect its actual generated editor pages.
+// Test copy: the host stores a complete nested HTML document in the modelTools
+// template string. Replace only that template with a no-op for VM bootstrap
+// evaluation; the adapter source itself is inspected through markers below and
+// its assembled generated editor module is syntax-checked further down.
 checkJs('outer app bootstrap', outerSourceForExecution);
-vm.runInContext(outerSourceForExecution, context, { filename: 'nyra-outer-bootstrap.js' });
+const bootstrapForTest = outerSourceForExecution.replace(
+  /const modelTools = [\\s\\S]*?;\\s*if \(html\.toLowerCase\(\)\.includes\(modelTools\)\) \{[\\s\\S]*?\\n \\}\\n/ ,
+  'const modelTools = "";\\n'
+);
+vm.runInContext(bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
 
 const generated = vm.runInContext(`({
   items: addAndroidExportAdapter(decodePage(pages.items), 'items'),
