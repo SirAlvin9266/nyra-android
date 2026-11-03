@@ -188,5 +188,47 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   catch(_){invalidRejected=true;}
   assert(invalidRejected,'Unsupported/empty Blockbench model must be rejected before replacing the current scene.');
 
+
+
+  // Preservation contract: metadata and raw source document must remain attached to the imported root.
+  const preservationData={
+    ...cubeData,
+    name:'Preservation contract fixture',
+    meta:{...cubeData.meta,model_format:'bedrock',project_uuid:'project-uuid',box_uv:true},
+    model_identifier:'example:preserved_model',
+    visible_box:[1,2,3],
+    resolution:{width:64,height:32},
+    groups:[
+      {uuid:'group-1',name:'Wing',origin:[1,2,3],rotation:[0,15,0],visibility:true,export:true,locked:true},
+      {uuid:'empty-group',name:'Empty group',origin:[4,5,6],rotation:[0,0,0],visibility:true}
+    ],
+    outliner:[
+      {uuid:'group-1',children:['cube-1']},
+      {uuid:'empty-group',children:[]}
+    ],
+    elements:[
+      {...cubeData.elements[0],inflate:0.25,shade:false,autouv:0,locked:true,export:false,visibility:false}
+    ],
+    animations:[{
+      name:'multi-point animation',length:2,loop:'loop',override:true,animators:{
+        'group-1':{name:'Wing animator',type:'bone',keyframes:[
+          {channel:'position',time:0,data_points:[{x:'0',y:'0',z:'0'},{x:'1',y:'2',z:'3'}],interpolation:'catmullrom',bezier_linked:true},
+          {channel:'position',time:1,data_points:[{x:'2',y:'0',z:'0'}],interpolation:'bezier',bezier_left_time:0.5,bezier_right_time:0.5}
+        ]}
+      }
+    }],
+    unknownExtension:{mustSurviveRoundTrip:true}
+  };
+  const preservationResult=await parseBBModel(fileFor(preservationData,'preservation.bbmodel'));
+  const preserved=preservationResult.sourceData||preservationResult.object.userData.bbSourceDocument;
+  assert(preserved,'Original Blockbench document was not retained in the import result.');
+  assert(preserved.unknownExtension?.mustSurviveRoundTrip===true,'Unknown project metadata was discarded.');
+  assert(preserved.groups[1].uuid==='empty-group','Empty group data was discarded.');
+  assert(preserved.elements[0].inflate===0.25,'Element-level metadata was discarded.');
+  assert(preserved.animations[0].animators['group-1'].keyframes[0].data_points.length===2,'Multiple keyframe data points were discarded from the preserved source.');
+  assert(preservationResult.object.userData.bbSourceDocument?.meta?.project_uuid==='project-uuid','Original document metadata is not attached to the scene root.');
+  const preservedGroup=preservationResult.object.children.find(node=>node.userData?.bbGroupUuid==='empty-group');
+  assert(preservedGroup,'Empty outliner group was not retained as a scene node.');
+
   console.log('PASS: Blockbench cube/UV import, free-mesh triangulation/material groups, Hytale geometry, animation clips, external texture matching, and missing-texture warnings.');
 })().catch(error=>{console.error('FAIL: '+error.stack);process.exit(1);});
