@@ -175,24 +175,48 @@ Objetivo: fazer as capacidades serem compreensíveis, utilizáveis no telefone e
 - Rodar auditorias, build APK, verificação dos assets offline e instalar/testar no dispositivo físico.
 - Não mergear na main sem CI verde e ensaio Android real.
 
-## Dependências técnicas e ordem sugerida
+## Prioridade definida pelo usuário
 
-A ordem é uma proposta de execução para minimizar retrabalho, não uma prioridade imposta ao usuário.
+A ordem principal do projeto foi definida assim:
+1. **Frente A completa**, começando pelo bloco A1 (auditoria e preservação da importação Blockbench) e avançando pelas tarefas relacionadas A1–A6.
+2. **Frente B completa**, depois de estabilizar interoperabilidade, conversão e mapas.
+3. **Frente C completa**, depois das frentes A e B.
 
-1. **C3 + C5 — alicerce e segurança:** validar robô-guia como identidade/base, restaurar e testar fluxo Android, estabilizar serialização/CI e produzir referência reproduzível. Não iniciar grandes mudanças no motor antes de confiar no pipeline.
-2. **A1 + A6 — inventário e mapa de origem:** medir o que o importador realmente carrega e explicitar lacunas. Isso define o contrato de dados que a modelagem e os exportadores precisam preservar.
-3. **A2 + C1 — interface de importação/exportação:** limpar duplicações e organizar o fluxo, sem retirar compatibilidade.
-4. **A3 + A4 + A5 — conversor BBModel real e round-trip:** entregar uma cadeia editada/importada que sobreviva ao Blockbench. Isso valida a representação antes de sobrecarregá-la com novas geometrias.
-5. **B2 + B3 — topologia e seleção localizadas:** são a infraestrutura da modelagem avançada e devem preceder operações complexas.
-6. **B1 — revisar e ampliar primitivas:** validar `tube` e completar opções paramétricas úteis.
-7. **B5 — superfícies e pontos de controle:** implementar placa subdividida e deformação local como primeiro caso de uso observável.
-8. **B6 — perfis, extrusão, loft e espessura:** derivam naturalmente da infraestrutura de superfícies.
-9. **B7 — roupas e tecidos manuais:** montar peças e camadas sobre superfícies e loft.
-10. **B4 — operações avançadas/booleanas:** corte, separação e reparo; booleanas robustas por último, pois dependem de topologia confiável.
-11. **B8 — DSL ampliada:** refletir cada capacidade já definida no motor, com schema/versionamento e testes. Não implementar DSL antes da geometria correspondente.
-12. **C2 — guia contextual por função pronta:** manter o guia atualizado por fase; adicionar instruções de cada ferramenta quando o respectivo controle existir.
-13. **C4 — otimização iterativa:** estabelecer benchmark primeiro e repetir após topologia, superfícies e modelos grandes. Performance é transversal e deve ser medida ao longo do trabalho.
-14. **Validação final integrada:** fixtures reais, round-trip, regressão Android, ensaio físico e documentação das perdas.
+O trabalho deve ser organizado em **blocos de melhorias relacionadas**, não em pequenas tarefas isoladas sem contexto. As dependências internas podem determinar a ordem exata dentro de cada frente, mas não devem inverter a sequência principal A → B → C sem uma necessidade técnica claramente explicada e aceita pelo usuário.
+
+## Ordem de execução em blocos
+
+### Frente A — concluir antes de iniciar a Frente B
+1. **Bloco A1 — auditoria e preservação da importação:** fixtures reais (escudo mesh, cubos, Bedrock e projetos com UV/textura/animação); inventariar dados e perdas; corrigir o que o inventário demonstrar estar faltando.
+2. **Bloco A2 — importação unificada:** integrar .bbmodel e .json ao seletor principal e preservar os outros formatos compatíveis; remover o botão duplicado sem perder compatibilidade.
+3. **Bloco A3 + A4 — conversão e exportação BBModel:** converter a cena editada, não o original; estruturar corretamente hierarquia, UUIDs, pivôs, transforms, UVs, faces, texturas, materiais e animações quando suportados; separar converter de salvar/exportar.
+4. **Bloco A5 — round-trip real:** importar → inventariar → editar → converter/exportar → abrir no Blockbench → comparar os dados de entrada e saída; não considerar sucesso apenas porque o arquivo foi gravado.
+5. **Bloco A6 — mapas de inspeção:** hierarquia/outliner; componentes/metadados; geometria/topologia; UV; materiais/texturas; transformações espaciais; rig/animação; dependências/recursos; compatibilidade e perdas de conversão.
+6. **Fechamento da Frente A:** executar testes com todas as fixtures, documentar capacidades e perdas por formato, corrigir regressões e obter CI verde antes de iniciar o desenvolvimento amplo do motor geométrico.
+
+### Frente B — iniciar depois da conclusão da Frente A
+1. **Bloco B1 — primitivas paramétricas:** validar o tubo oco e revisar os parâmetros das formas base.
+2. **Bloco B2 + B3 — topologia e seleção localizada:** vértices, arestas, faces, seleção por região, transformações locais/globais e validação/reparo básico de malha.
+3. **Bloco B5 — superfícies e deformação:** começar por uma placa subdividida com pontos de controle para mover extremidades e pontos internos, formando arcos, concavidades e ondulações.
+4. **Bloco B6 — perfis, extrusão, loft e espessura:** gerar superfícies e volumes a partir de contornos e seções.
+5. **Bloco B7 — roupas e tecidos manuais:** peças, camadas, pregas, dobras, mangas, saias, capas, aventais e babados, com UVs e materiais.
+6. **Bloco B4 — operações de malha avançadas:** separar, cortar, preencher, soldar, subdividir, simetria e booleanas com reparo topológico. Booleanas robustas vêm após a base de topologia.
+7. **Bloco B8 — DSL/gerador paramétrico:** descrever e testar recursos já existentes no motor, com versionamento e compatibilidade retroativa.
+8. **Fechamento da Frente B:** validar edição, undo/redo, geometria, UVs, materiais e exportação das malhas resultantes.
+
+### Frente C — iniciar depois da conclusão da Frente B
+1. **Bloco C1 — acabamento da interface:** organizar importação e exportação, botões, acessibilidade e layout móvel com as funções reais já consolidadas.
+2. **Bloco C2 — guia contextual:** atualizar o guia com instruções precisas para as funções implementadas, estados honestos e alvos reais da interface.
+3. **Bloco C3 — robô-guia oficial:** completar o personagem baseado em `nyra_personagem.json` e manter um fallback se a renderização falhar.
+4. **Bloco C4 — desempenho de modelos grandes:** instrumentar e comparar o mesmo arquivo no mesmo dispositivo; otimizar parse, geometria, materiais, texturas, draw calls, memória e renderização sem degradar silenciosamente.
+5. **Bloco C5 — robustez e validação Android:** regressões, URIs/arquivos, armazenamento, rotação/retomada, assets offline, build e ensaio físico.
+6. **Fechamento da Frente C:** validar o fluxo integrado, documentar limites e só então propor integração à main.
+
+### Dependências transversais
+- Manter CI e verificações básicas funcionando durante todas as frentes; isso é uma condição de segurança do desenvolvimento, não uma mudança de prioridade para a Frente C.
+- Se uma dependência crítica de Android, teste ou estrutura de dados bloquear a Frente A, resolver apenas o necessário para desbloquear o bloco atual e depois retomar a ordem A → B → C.
+- Não declarar nenhuma frente concluída sem testes reproduzíveis e evidência do comportamento real.
+- A main continua protegida; nenhum merge é autorizado por esta ordem de planejamento.
 
 ## Critérios gerais de conclusão
 - Cada recurso tem estado explícito e teste reproduzível.
