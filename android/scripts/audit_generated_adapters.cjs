@@ -169,6 +169,17 @@ const blockbenchMarkers = [
   'nyraExportBB',
   'function createBBModelDocument()',
   'function exportBBModelBlob()',
+  'function refreshModelInspector()',
+  'id="nyraInspector"',
+  'nyraMapHierarchy',
+  'nyraMapMetadata',
+  'nyraMapGeometry',
+  'nyraMapUV',
+  'nyraMapMaterials',
+  'nyraMapTransforms',
+  'nyraMapRig',
+  'nyraMapDependencies',
+  'nyraMapCompatibility',
 ];
 const requiredExportMarkers = [
   'HTMLAnchorElement.prototype.click',
