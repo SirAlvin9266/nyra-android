@@ -13,20 +13,14 @@ function extractModelTools(source){
   const assignment=source.indexOf('const modelTools = ');
   if(assignment<0)throw new Error('Android modelTools adapter was not found.');
   const start=assignment+'const modelTools = '.length;
-  // Locate the host-language string terminator without being fooled by nested
-  // escaped quotes. Backslash escaping is one character at a time in this JS literal.
-  let end=-1, escaped=false;
-  for(let i=literalStart+1;i<source.length;i++){
-    const ch=source[i];
-    if(escaped){escaped=false;continue;}
-    if(ch==='\\\\'){escaped=true;continue;}
-    if(ch==='"'){end=i;break;}
-  }
-  if(end<0) throw new Error('Could not isolate modelTools string literal.');
-  let terminator=end+1;
-  while(/\\s/.test(source[terminator]||'')) terminator++;
-  if(source[terminator]!==';') throw new Error('modelTools string literal is not followed by a semicolon.');
-  return JSON.parse(source.slice(start,end+1));
+  // modelTools is a JSON string literal. Its actual terminator is the quote
+  // immediately preceding the semicolon and the host template's panelEnd declaration.
+  // Backtracking regex honors escaped quotes and avoids scanning the nested payload.
+  const tail=source.slice(literalStart);
+  const match=tail.match(/^("(?:\\\\.|[^"\\\\])*")(?=;)/s);
+  if(!match) throw new Error('Could not isolate complete serialized modelTools assignment.');
+  const literal=match[1];
+  return JSON.parse(literal);
 }
 const modelTools=extractModelTools(html);
 
