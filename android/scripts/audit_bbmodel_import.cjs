@@ -13,15 +13,23 @@ function extractModelTools(source){
   const assignment=source.indexOf('const modelTools = ');
   if(assignment<0)throw new Error('Android modelTools adapter was not found.');
   const start=assignment+'const modelTools = '.length;
-  let escaped=false,end=-1;
-  for(let i=start;i<source.length;i++){
+  let end=-1;
+  // The host template contains a JSON-encoded JavaScript string. Do not search
+  // for a textual delimiter: nested templates may contain the same sequence.
+  // Decode exactly one JSON string literal, then require the assignment's semicolon.
+  if(source[start+'const modelTools = '.length] !== '"') throw new Error('modelTools assignment must use a quoted string literal.');
+  let escaped=false;
+  for(let i=start+'const modelTools = '.length+1;i<source.length;i++){
     const ch=source[i];
     if(escaped){escaped=false;continue;}
-    if(ch==='\\'){escaped=true;continue;}
-    if(ch==='"'&&source[i+1]===';'){end=i;break;}
+    if(ch==='\\\\'){escaped=true;continue;}
+    if(ch==='"'){
+      end=i;
+      break;
+    }
   }
-  if(end<0)throw new Error('Could not isolate serialized modelTools payload.');
-  return JSON.parse(source.slice(start,end+1));
+  if(end<0||source[end+1]!==';') throw new Error('Could not isolate complete serialized modelTools assignment.');
+    return JSON.parse(source.slice(start,end+1));
 }
 const modelTools=extractModelTools(html);
 
