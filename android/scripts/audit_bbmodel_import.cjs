@@ -16,11 +16,10 @@ function extractModelTools(source){
   const literalStart=start+assignment.length;
   const boundary=source.indexOf('const panelEnd = ',literalStart);
   if(boundary<0)throw new Error('Host template boundary after modelTools was not found.');
-  // In the generated host source, a literal newline separates the template
-  // assignment from panelEnd. Whitespace before the boundary ends with the quote.
-  let closingQuote=boundary-1;
-  while(closingQuote>=literalStart && /\\s/.test(source[closingQuote])) closingQuote--;
-  if(source[closingQuote]!=='"')throw new Error('Closing quote for modelTools was not found before panelEnd.');
+  const closingQuote=source.lastIndexOf('"',boundary);
+  if(closingQuote<literalStart)throw new Error('Closing quote for modelTools was not found.');
+  // The only unescaped quote immediately before the declaration belongs to the
+  // host assignment; JSON.parse validates all escaping and the payload structure.
   return JSON.parse(source.slice(literalStart,closingQuote+1));
 }
 const modelTools=extractModelTools(html);
