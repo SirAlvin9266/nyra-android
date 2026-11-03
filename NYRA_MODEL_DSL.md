@@ -104,3 +104,31 @@ O texto DSL é guardado como rascunho local. Nesta etapa, o modelo matemático n
 ## Próxima expansão prevista
 
 O formato foi concebido para receber novos tipos e propriedades sem exigir que uma IA específica esteja integrada ao Nyra. A evolução futura pode incluir relações de articulação, materiais mais ricos, texturas, coordenadas UV, geometrias adicionais e conversões orientadas a formatos de jogos.
+
+
+## Propriedades para mapeamento (contrato versionado)
+
+A DSL v1 preserva a estrutura mínima acima. O seguinte contrato opcional pode ser anexado a cada componente sem alterar a geometria atual:
+
+- `metadata`: objeto JSON livre para UUID de origem, fonte, tags e notas de importação.
+- `material`: descrição declarativa de aparência: `name`, `color`, `roughness`, `metalness`, `transparent`, `opacity`, `emissive`.
+- `texture`: referência por `id` a um item de `textures` do documento, mais `map` (`color`, `normal`, `roughness`, `metalness`, `alpha`, `emissive`).
+- `uv`: dados explícitos de mapeamento por vértice ou por face. A forma e a contagem devem corresponder à geometria; não se faz inferência automática.
+- `tags`: lista de classificações que ferramentas de mapa/seleção poderão filtrar.
+- `pivotMode`: `origin`, `center` ou `custom`; `pivot` continua sendo a posição customizada local.
+
+O campo de nível superior `textures` reserva IDs únicos, nome, URI relativa e dimensões declaradas. O DSL v1 atual **não aplica esses campos novos ao material/UV da malha gerada**; eles documentam o contrato de interoperabilidade para uma próxima versão do interpretador. Não inclua dados binários base64 grandes no DSL: use assets do projeto e referências relativas.
+
+## Catálogo de mapas pretendidos
+
+1. Mapa de hierarquia/outliner: objetos, grupos, ossos, pais e filhos.
+2. Mapa de componentes: seleção, tipo de geometria, UUID e metadados de origem.
+3. Mapa geométrico/topológico: vértices, arestas, faces, triângulos, normais, índices e limites.
+4. Mapa UV: coordenadas, ilhas, faces e associação com atlas/textura.
+5. Mapa de materiais/texturas: materiais, slots, imagens, canais e transparência/emissão.
+6. Mapa espacial: posição, rotação, escala, origem, pivô e transformações locais/mundiais.
+7. Mapa de rig/animação: ossos, pesos, pivôs, clips, tracks, duração e relações articuladas.
+8. Mapa de dependências/recursos: arquivos externos, imagens, buffers e dependências ausentes.
+9. Mapa de exportação/compatibilidade: o que cada formato consegue preservar e o que será convertido ou perdido.
+
+O painel de inspeção introduzido nesta branch implementa relatórios somente de leitura para hierarquia, contagem geométrica, presença de UV, materiais/texturas, transformações e clips de animação. Ele não implementa edição topológica, pintura UV localizada, mapa de pesos de skinning, ilhas UV nem exportação .bbmodel reconstruída. Os itens restantes continuam pendentes e devem ser desenvolvidos com fixtures reais e testes round-trip.
