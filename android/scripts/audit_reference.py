@@ -121,8 +121,11 @@ for needle in ("onShowFileChooser", "FILE_CHOOSER_REQUEST", "ACTION_OPEN_DOCUMEN
     if needle not in java:
         errors.append(f"missing Android native file support: {needle}")
 
+# Regression guard for single root document/script.
+if len(re.findall(r"<!doctype html>", text, flags=re.IGNORECASE)) != 1:
+    errors.append("root HTML must contain exactly one DOCTYPE")
 if len(re.findall(r"</script>", text, flags=re.IGNORECASE)) != 1:
-    errors.append("outer HTML must contain exactly one literal closing script tag; nested scripts must be escaped")
+    errors.append("outer HTML must contain exactly one literal closing script tag")
 
 
 # Parse the outer app script and each original inline editor script with Node's JS parser.
