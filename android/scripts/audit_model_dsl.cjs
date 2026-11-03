@@ -14,14 +14,13 @@ function extractModelTools(source){
   const start=source.indexOf(assignment);
   if(start<0)throw new Error('Model I/O template is missing from the Android host page.');
   const literalStart=start+assignment.length;
-  // modelTools is a JSON string literal. Its actual terminator is the quote
-  // immediately preceding the semicolon and the host template's panelEnd declaration.
-  // Backtracking regex honors escaped quotes and avoids scanning the nested payload.
-  const tail=source.slice(literalStart);
-  const match=tail.match(/^("(?:\\\\.|[^"\\\\])*")(?=;)/s);
-  if(!match) throw new Error('Could not isolate complete serialized modelTools assignment.');
-  const literal=match[1];
+  const endMarker='\\n  const panelEnd = \'</div></section></main>\';';
+  const end=source.indexOf(endMarker,literalStart);
+  if(end<0) throw new Error('Could not find the host template boundary after modelTools.');
+  const literal=source.slice(literalStart,end);
+  if(!literal.startsWith('"')||!literal.endsWith('"')) throw new Error('modelTools is not a complete quoted JSON string.');
   return JSON.parse(literal);
+
 }
 const modelToolsHtml=extractModelTools(html);
 
