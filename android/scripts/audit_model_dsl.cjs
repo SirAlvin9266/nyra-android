@@ -50,12 +50,18 @@ const validDocument = {
     { id: 'root', type: 'group', name: 'Root' },
     { id: 'torso', type: 'box', name: 'Torso', parent: 'root', size: [1, 2, 0.5], position: [0, 1, 0], pivot: [0, 0.5, 0] },
     { id: 'head', type: 'sphere', name: 'Head', parent: 'root', radius: 0.4, color: '#aabbcc' },
-    { id: 'arm', type: 'cylinder', name: 'Arm', parent: 'root', radiusTop: 0.1, radiusBottom: 0.15, height: 0.9 }
+    { id: 'arm', type: 'cylinder', name: 'Arm', parent: 'root', radiusTop: 0.1, radiusBottom: 0.15, height: 0.9 },
+    { id: 'tube', type: 'tube', name: 'Hollow tube', parent: 'root', radiusOuter: 0.4, radiusInner: 0.25, height: 1.2, openTop: true, openBottom: false, segments: 32 }
   ]
 };
 const normalized = context.validateMathDocument(validDocument);
 assert.equal(normalized.name, 'Test model');
-assert.equal(normalized.components.length, 4);
+assert.equal(normalized.components.length, 5);
+assert.equal(normalized.components[4].radiusOuter, 0.4);
+assert.equal(normalized.components[4].radiusInner, 0.25);
+assert.equal(normalized.components[4].openTop, true);
+assert.equal(normalized.components[4].openBottom, false);
+assert.equal(normalized.components[4].segments, 32);
 assert.deepEqual(Array.from(normalized.components[1].position), [0, 1, 0]);
 assert.deepEqual(Array.from(normalized.components[1].pivot), [0, 0.5, 0]);
 assert.equal(normalized.components[1].segments, 24);
@@ -103,6 +109,10 @@ expectInvalid('invalid color', {
   version: 1,
   components: [{id: 'x', type: 'box', name: 'X', color: 'red'}]
 }, 'color deve usar #RRGGBB');
+expectInvalid('tube inner radius must be smaller than outer radius', {
+  version: 1,
+  components: [{id:'tube',type:'tube',name:'Invalid tube',radiusOuter:0.2,radiusInner:0.2,height:1}]
+}, 'radiusInner deve ser menor que radiusOuter');
 expectInvalid('too many components', {
   version: 1,
   components: Array.from({length: 501}, (_, i) => ({id: 'g' + i, type: 'group', name: 'G' + i}))
@@ -111,11 +121,21 @@ expectInvalid('too many components', {
 class TestGeometry {
   constructor(kind, args) { this.kind = kind; this.args = args; }
 }
+class TestAttribute {
+  constructor(array,itemSize){this.array=array;this.itemSize=itemSize;this.count=array.length/itemSize;}
+}
+class TestBufferGeometry {
+  constructor(){this.attributes={};this.normalsComputed=false;}
+  setAttribute(name,value){this.attributes[name]=value;return this;}
+  computeVertexNormals(){this.normalsComputed=true;}
+}
 context.THREE = {
   BoxGeometry: class extends TestGeometry { constructor(...args) { super('box', args); } },
   SphereGeometry: class extends TestGeometry { constructor(...args) { super('sphere', args); } },
   CylinderGeometry: class extends TestGeometry { constructor(...args) { super('cylinder', args); } },
   ConeGeometry: class extends TestGeometry { constructor(...args) { super('cone', args); } },
+  BufferGeometry: TestBufferGeometry,
+  Float32BufferAttribute: TestAttribute,
 };
 vm.runInContext(
   moduleSource.slice(geometryStart, buildStart)
@@ -129,6 +149,12 @@ assert.equal(geom(normalized.components[2]).kind, 'sphere');
 assert.equal(geom(normalized.components[3]).kind, 'cylinder');
 assert.equal(geom({...normalized.components[3], type: 'cone'}).kind, 'cone');
 assert.equal(geom(normalized.components[1]).args[1], 2);
+const tubeGeometry=geom(normalized.components[4]);
+assert.ok(tubeGeometry instanceof TestBufferGeometry,'tube must produce a custom BufferGeometry');
+assert.ok(tubeGeometry.attributes.position.count>0,'tube must contain vertices');
+assert.equal(tubeGeometry.attributes.position.count%3,0,'non-indexed tube geometry must contain complete triangles');
+assert.equal(tubeGeometry.normalsComputed,true,'tube normals must be computed');
+assert.equal(tubeGeometry.attributes.position.count,864,'32-segment tube with one closed end must generate the expected triangle budget');
 
-console.log('PASS: mathematical DSL accepts valid hierarchies and rejects invalid IDs, parents, cycles, vectors, dimensions, colors and oversized documents.');
-console.log('PASS: box, sphere, cylinder and cone geometry constructors receive the expected parameters.');
+console.log('PASS: mathematical DSL accepts valid hierarchies and rejects invalid IDs, parents, cycles, vectors, dimensions, colors, invalid tube radii and oversized documents.');
+console.log('PASS: box, sphere, cylinder and cone constructors work; hollow tube builds a closed-bottom/open-top mesh with computed normals.');
