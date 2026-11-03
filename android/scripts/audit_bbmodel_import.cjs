@@ -173,6 +173,25 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   assert(shieldResult.object.userData.bbImportedFaces===898,'Real Spartan shield triangle count does not match the source.');
   assert(shieldResult.object.userData.bbTextureCount===1,'Real Spartan shield embedded texture was not detected.');
   assert(shieldResult.object.userData.bbModelWarnings.length===0,'Real Spartan shield must not emit missing-texture warnings.');
+  
+  // Exercise a real cuboid Hytale/Blockbench project with an embedded atlas.
+  const chairPath=path.join(__dirname,'fixtures','chinese.bbmodel');
+  assert(fs.existsSync(chairPath),'Real Chinese armchair regression fixture is missing.');
+  const chairData=JSON.parse(fs.readFileSync(chairPath,'utf8'));
+  const chairResult=await parseBBModel({name:'chinese.bbmodel',text:async()=>JSON.stringify(chairData)});
+  assert(chairResult.object.userData.bbSourceElementCount===chairData.elements.length,'Chinese armchair source element inventory changed.');
+  assert(chairResult.object.userData.bbImportedCubes===chairData.elements.filter(element=>(!element.type||element.type==='cube')&&Array.isArray(element.from)&&Array.isArray(element.to)).length,'Chinese armchair cube import count diverged from source.');
+  assert(chairResult.object.userData.bbTextureCount===chairData.textures.length,'Chinese armchair embedded atlas was not resolved.');
+  assert(chairResult.object.userData.bbModelWarnings.length===0,'Chinese armchair should not warn about its embedded atlas.');
+
+  // The multi-megabyte Kintsugi project is a real-world memory/format regression fixture.
+  const kintsugiPath=path.join(__dirname,'fixtures','kintsugi.bbmodel');
+  assert(fs.existsSync(kintsugiPath),'Real Kintsugi regression fixture is missing.');
+  const kintsugiData=JSON.parse(fs.readFileSync(kintsugiPath,'utf8'));
+  const kintsugiResult=await parseBBModel({name:'kintsugi.bbmodel',text:async()=>JSON.stringify(kintsugiData)});
+  assert(kintsugiResult.object.userData.bbSourceElementCount===kintsugiData.elements.length,'Kintsugi source element inventory changed.');
+  assert(kintsugiResult.object.userData.bbImportedCubes+kintsugiResult.object.userData.bbImportedMeshes>0,'Kintsugi fixture did not produce editable geometry.');
+  assert(kintsugiResult.object.userData.bbUnsupportedElementCount===kintsugiData.elements.filter(element=>!((!element.type||element.type==='cube')&&Array.isArray(element.from)&&Array.isArray(element.to))&&!(element.type==='mesh'&&element.vertices&&element.faces)).length,'Kintsugi unsupported-element diagnostics diverged from source.');
 
   const hytaleData={
     name:'Hytale prop test',meta:{format_version:'5.0',model_format:'hytale_prop'},
