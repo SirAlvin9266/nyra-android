@@ -2,6 +2,7 @@ package com.nyra.studio;
 
 import android.app.Activity;
 import android.app.DownloadManager;
+import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -11,6 +12,8 @@ import android.util.Base64;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.ConsoleMessage;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -29,16 +32,18 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MainActivity extends Activity {
     private static final int CREATE_DOCUMENT_REQUEST = 4207;
     private static final int FILE_CHOOSER_REQUEST = 4208;
-    private static final long MAX_EXPORT_BYTES = 64L * 1024L * 1024L;
+    private static final long MAX_EXPORT_BYTES = 256L * 1024L * 1024L;
 
     private WebView webView;
     private WebViewAssetLoader assetLoader;
@@ -78,11 +83,41 @@ public class MainActivity extends Activity {
         ));
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
+        webView.getSettings().setSupportZoom(true);
+        webView.getSettings().setBuiltInZoomControls(true);
+        webView.getSettings().setDisplayZoomControls(false);
+        webView.getSettings().setUseWideViewPort(true);
+        webView.getSettings().setLoadWithOverviewMode(false);
         webView.getSettings().setAllowFileAccess(false);
         webView.getSettings().setAllowContentAccess(true);
         webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
         webView.addJavascriptInterface(new ExportBridge(), "NyraAndroid");
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                android.util.Log.i("NyraWebView", "Page started: " + url);
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                android.util.Log.i("NyraWebView", "Page finished: " + url);
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if (request.isForMainFrame()) {
+                    android.util.Log.e("NyraWebView", "Main frame error " + request.getUrl()
+                        + " code=" + error.getErrorCode() + " description=" + error.getDescription());
+                }
+            }
+
+            @Override
+            public void onReceivedHttpError(WebView view, WebResourceRequest request,
+                                            android.webkit.WebResourceResponse response) {
+                android.util.Log.e("NyraWebView", "HTTP " + response.getStatusCode()
+                    + " " + request.getUrl());
+            }
+
             @Override
             public android.webkit.WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return assetLoader.shouldInterceptRequest(request.getUrl());
@@ -94,6 +129,14 @@ public class MainActivity extends Activity {
             }
         });
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+                android.util.Log.e("NyraWebView", consoleMessage.messageLevel() + " "
+                    + consoleMessage.message() + " -- " + consoleMessage.sourceId()
+                    + ":" + consoleMessage.lineNumber());
+                return true;
+            }
+
             @Override
             public boolean onShowFileChooser(
                 WebView view,
@@ -248,6 +291,29 @@ public class MainActivity extends Activity {
         }
     }
 
+    private static void addUniqueUri(Set<Uri> uris, Uri uri) {
+        if (uri != null) uris.add(uri);
+    }
+
+    private static Uri[] collectSelectedUris(Intent data, boolean allowMultiple) {
+        if (data == null) return null;
+
+        Set<Uri> selected = new LinkedHashSet<>();
+        if (allowMultiple) {
+            ClipData clipData = data.getClipData();
+            if (clipData != null) {
+                for (int i = 0; i < clipData.getItemCount(); i++) {
+                    addUniqueUri(selected, clipData.getItemAt(i).getUri());
+                }
+            }
+        }
+
+        // Providers may return a single data URI even for a multi-select request,
+        // or return only ClipData for a single-select request.
+        addUniqueUri(selected, data.getData());
+        return selected.isEmpty() ? null : selected.toArray(new Uri[0]);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -259,20 +325,9 @@ public class MainActivity extends Activity {
             pendingFileChooserMultiple = false;
 
             if (callback != null) {
-                Uri[] result = null;
-                if (resultCode == RESULT_OK && data != null) {
-                    if (allowMultiple && data.getClipData() != null) {
-                        int count = data.getClipData().getItemCount();
-                        List<Uri> uris = new ArrayList<>();
-                        for (int i = 0; i < count; i++) {
-                            Uri uri = data.getClipData().getItemAt(i).getUri();
-                            if (uri != null) uris.add(uri);
-                        }
-                        if (!uris.isEmpty()) result = uris.toArray(new Uri[0]);
-                    } else if (data.getData() != null) {
-                        result = new Uri[] { data.getData() };
-                    }
-                }
+                Uri[] result = resultCode == RESULT_OK
+                    ? collectSelectedUris(data, allowMultiple)
+                    : null;
                 callback.onReceiveValue(result);
             }
             return;

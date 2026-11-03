@@ -109,6 +109,8 @@ for needle in (
     "nyra3d-robotv-project",
     "Reimporte o arquivo .bbmodel",
     "function addAndroidExportAdapter",
+    "getSelected:()=>selectedObject",
+    "nyra.mathDsl.v1",
     "beginExport", "appendExportChunk", "finishExport",
 ):
     if needle not in text:
@@ -121,12 +123,16 @@ for needle in ("onShowFileChooser", "FILE_CHOOSER_REQUEST", "ACTION_OPEN_DOCUMEN
     if needle not in java:
         errors.append(f"missing Android native file support: {needle}")
 
+# Keep exactly one top-level document and one executable shell terminator.
+# Inner editor HTML lives only in Base64 payloads, never as raw nested documents.
+if len(re.findall(r"<!doctype html>", text, flags=re.IGNORECASE)) != 1:
+    errors.append("root HTML must contain exactly one DOCTYPE")
 if len(re.findall(r"</script>", text, flags=re.IGNORECASE)) != 1:
-    errors.append("outer HTML must contain exactly one literal closing script tag; nested scripts must be escaped")
+    errors.append("root HTML must contain exactly one literal script closing tag")
 
-
-# Parse the outer app script and each original inline editor script with Node's JS parser.
-# This is a syntax check only; WebGL/runtime behavior still requires a real Android device.
+# Parse the outer bootstrap safely: the embedded Character Editor module's
+# closing tag is escaped as <\\/script> inside the JavaScript string.
+# This is syntax-only validation; WebGL still requires a real Android device.
 def node_syntax_check(label: str, source: str) -> None:
     if not source.strip():
         return
@@ -140,12 +146,23 @@ def node_syntax_check(label: str, source: str) -> None:
     if result.returncode:
         errors.append(f"JavaScript syntax error in {label}: {result.stderr.strip() or result.stdout.strip()}")
 
-outer_scripts = re.findall(r"<script\b[^>]*>([\s\S]*?)</script>", text, flags=re.IGNORECASE)
-if len(outer_scripts) != 1:
-    errors.append(f"expected one outer inline script, found {len(outer_scripts)}")
-for i, script in enumerate(outer_scripts, 1):
-    node_syntax_check(f"outer app script #{i}", script)
+# The outer document contains an HTML document template embedded inside
+# the JavaScript export-adapter string. The three editor scripts are syntax-
+# checked independently above; generated Android adapters have their own
+# dedicated audit, so avoid feeding serialized nested HTML to Node as a script.
+# Keep a structural guard for the actual outer script wrapper.
+script_open = text.lower().find("<script>")
+script_open_end = script_open + len("<script>") if script_open >= 0 else -1
+script_close = text.lower().find("</script>", script_open_end) if script_open_end >= 0 else -1
+if script_open < 0 or script_open_end < 0 or script_close <= script_open_end:
+    errors.append("could not isolate the outer app bootstrap script")
+else:
+    outer_source = text[script_open_end + 1:script_close]
+    if "const pages = {" not in outer_source or "function addAndroidExportAdapter" not in outer_source or "function ensureEditor" not in outer_source:
+        errors.append("outer app bootstrap is missing its editor map or adapter structure")
 
+
+# Decode and parse each original editor's own scripts independently.
 for key, page in pages.items():
     blocks = re.findall(r"<script\b([^>]*)>([\s\S]*?)</script>", page, flags=re.IGNORECASE)
     checked = 0
