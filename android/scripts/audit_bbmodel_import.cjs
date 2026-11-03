@@ -37,7 +37,7 @@ const helperEnd = moduleSource.indexOf('async function parseModel(', helperStart
 if (helperStart < 0 || helperEnd < 0) throw new Error('Blockbench importer functions are incomplete.');
 const helperSource = moduleSource.slice(helperStart, helperEnd)
   + String.fromCharCode(10) + 'this.parseBBModel = parseBBModel;'
-  + String.fromCharCode(10) + 'this.parseNyraCharacterProject = parseNyraCharacterProject;';\\nthis.parseNyraCharacterProject = parseNyraCharacterProject;';
+  + String.fromCharCode(10) + 'this.parseNyraCharacterProject = parseNyraCharacterProject;';
 
 let nextUuid = 0;
 class Vec3 {
