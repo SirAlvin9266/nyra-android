@@ -205,6 +205,28 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   assert(hytaleResult.object.userData.bbModelFormat==='hytale_prop','Hytale model format metadata was lost.');
   assert(hytaleResult.object.userData.bbImportedCubes===1,'Hytale cube element was not imported.');
 
+  // Actual Nyra Character+Voxel Project v4 uses named parts and a color palette,
+  // not the generic objects/components schema.
+  const nyraCharacter={
+    format:'Nyra Character+Voxel Project v4',name:'Meu Personagem',
+    colors:{torso:'#263548',head:'#35e5ff',armL:'#d5e2ed',armR:'#d5e2ed',legL:'#56677d',legR:'#56677d'},
+    parts:{
+      torso:{position:[0,2.2,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      head:{position:[0,.88,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      armL:{position:[-.72,.4,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      armR:{position:[.72,.4,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      legL:{position:[-.28,1.55,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      legR:{position:[.28,1.55,0],scale:[1,1,1],rotation:[0,0,0],visible:true}
+    },headScaleY:1,voxels:[],objects:[]
+  };
+  const nyraResult=await parseNyraCharacterProject(nyraCharacter,'nyra_personagem.json');
+  const nyraParts=[];
+  nyraResult.object.traverse(node=>{if(node.userData?.nyraJsonPartId)nyraParts.push(node);});
+  assert(nyraParts.length===6,'Nyra v4 JSON must reconstruct six named body parts.');
+  assert(nyraParts.find(node=>node.userData.nyraJsonPartId==='head').material.color==='#35e5ff','Nyra head palette color was not retained.');
+  assert(nyraResult.object.userData.nyraJsonSource.format==='Nyra Character+Voxel Project v4','Nyra JSON source was not preserved.');
+
+
   // External texture fixture mirrors real-world .bbmodel files that reference an image by path.
   const externalTextureFile={name:'shield.png',type:'image/png'};
   const externalTextureModel={...meshData,textures:[{uuid:'texture-uuid',id:'0',name:'shield.png',path:'textures/shield.png'}]};
