@@ -14,15 +14,12 @@ function extractModelTools(source){
   const start=source.indexOf(assignment);
   if(start<0)throw new Error('Model I/O template is missing from the Android host page.');
   const literalStart=start+assignment.length;
-  // In the outer HTML source, the inner module terminator is serialized as <\\/script>.
-  // The host assignment ends at the quote immediately before the next newline/statement.
-  const boundary='\\n  const panelEnd = ';
-  const boundaryIndex=source.indexOf(boundary,literalStart);
-  if(boundaryIndex<0)throw new Error('Could not locate the host template boundary.');
-  let quote=boundaryIndex-1;
-  while(quote>literalStart&&/\\s/.test(source[quote]))quote--;
-  if(source[quote]!=='"')throw new Error('Could not locate closing quote before host template boundary.');
-  return JSON.parse(source.slice(literalStart,quote+1));
+  const endMarker='\\n  const panelEnd = ';
+  const end=source.indexOf(endMarker,literalStart);
+  if(end<0)throw new Error('Host template boundary after modelTools was not found.');
+  const closingQuote=end-1;
+  if(source[closingQuote]!=='"')throw new Error('Closing quote for modelTools is not at the expected boundary.');
+  return JSON.parse(source.slice(literalStart,closingQuote+1));
 }
 const modelTools=extractModelTools(html);
 
