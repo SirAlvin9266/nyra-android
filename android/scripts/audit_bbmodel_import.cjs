@@ -35,8 +35,8 @@ const moduleSource = modelTools.slice(moduleStart, moduleEnd);
 const helperStart = moduleSource.indexOf('function bbCoordinate(');
 const helperEnd = moduleSource.indexOf('async function parseModel(', helperStart);
 if (helperStart < 0 || helperEnd < 0) throw new Error('Blockbench importer functions are incomplete.');
-const nyraParserStart = moduleSource.indexOf('async function parseNyraCharacterProject(', helperStart);
-const helperSource = moduleSource.slice(helperStart, helperEnd) + '\nthis.parseBBModel = parseBBModel;\nthis.parseNyraCharacterProject = parseNyraCharacterProject;';
+const helperSource = moduleSource.slice(helperStart, helperEnd)
+  + '\\nthis.parseBBModel = parseBBModel;\\nthis.parseNyraCharacterProject = parseNyraCharacterProject;';
 
 let nextUuid = 0;
 class Vec3 {
