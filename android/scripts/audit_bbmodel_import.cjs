@@ -264,5 +264,24 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   assert(unknownResult.object.userData.bbSourceDocument.elements.some(element=>element.type==='locator'),'Unsupported source element was not preserved in the raw source document.');
   assert(unknownResult.object.userData.bbUnsupportedElementCount>=1,'Unsupported source element count must be exposed to the compatibility report.');
 
+
+  // The importer must reject duplicated source UUIDs rather than silently binding the first item.
+  const duplicateSource={...cubeData,elements:[cubeData.elements[0],{...cubeData.elements[0],name:'duplicate'}]};
+  let duplicateSourceRejected=false;
+  try{await parseBBModel(fileFor(duplicateSource));}catch(error){duplicateSourceRejected=String(error.message).includes('UUIDs duplicados');}
+  assert(duplicateSourceRejected,'Duplicate Blockbench UUIDs must be reported as an invalid source document.');
+
+  // Outliner is a required source hierarchy and must not be guessed when absent.
+  const noOutliner={...cubeData};delete noOutliner.outliner;
+  let noOutlinerRejected=false;
+  try{await parseBBModel(fileFor(noOutliner));}catch(error){noOutlinerRejected=String(error.message).includes('outliner');}
+  assert(noOutlinerRejected,'Missing outliner must be rejected, not silently flattened.');
+
+  // Source elements not represented by current Three geometry are counted for compatibility diagnostics.
+  const unsupportedSource={...cubeData,elements:[...cubeData.elements,{uuid:'locator-unsupported',type:'locator',name:'Hand socket'}]};
+  const unsupportedResult=await parseBBModel(fileFor(unsupportedSource));
+  assert(unsupportedResult.object.userData.bbUnsupportedElementCount===1,'Unsupported Blockbench element count was not surfaced.');
+  assert(unsupportedResult.object.userData.bbSourceDocument.elements.some(item=>item.uuid==='locator-unsupported'),'Unsupported source element must remain preserved in raw document snapshot.');
+
   console.log('PASS: Blockbench cube/UV import, free-mesh triangulation/material groups, Hytale geometry, animation clips, external texture matching, and missing-texture warnings.');
 })().catch(error=>{console.error('FAIL: '+error.stack);process.exit(1);});
