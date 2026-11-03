@@ -242,5 +242,27 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   const preservedGroup=preservationResult.object.children.find(node=>node.userData?.bbGroupUuid==='empty-group');
   assert(preservedGroup,'Empty outliner group was not retained as a scene node.');
 
+
+  // Multi-file texture resolution must be deterministic and must not bind an ambiguous basename.
+  const ambiguousA={name:'armor/albedo.png',type:'image/png'};
+  const ambiguousB={name:'skin/albedo.png',type:'image/png'};
+  const ambiguousModel={...meshData,textures:[{uuid:'ambiguous-texture',id:'0',name:'albedo.png',path:'albedo.png'}]};
+  const ambiguousResult=await parseBBModel(fileFor(ambiguousModel,'ambiguous.bbmodel'),[fileFor(ambiguousModel,'ambiguous.bbmodel'),ambiguousA,ambiguousB]);
+  assert(ambiguousResult.object.userData.bbModelWarnings.length>0,'Ambiguous external texture paths must be reported instead of selecting an arbitrary image.');
+
+  // Reject duplicate element UUIDs and invalid free-mesh vertex references without partial scene replacement.
+  const duplicateUuid={...cubeData,elements:[cubeData.elements[0],{...cubeData.elements[0],name:'Duplicate UUID'}]};
+  let duplicateRejected=false;try{await parseBBModel(fileFor(duplicateUuid));}catch(_){duplicateRejected=true;}
+  assert(duplicateRejected,'Duplicate element UUIDs must not be silently collapsed.');
+  const badVertex={...meshData,elements:[{...meshData.elements[0],faces:{bad:{vertices:['a','missing','c'],uv:{a:[0,0],missing:[1,1],c:[1,0]},texture:'texture-uuid'}}}]};
+  let badVertexRejected=false;try{await parseBBModel(fileFor(badVertex));}catch(_){badVertexRejected=true;}
+  assert(badVertexRejected,'Free-mesh faces with missing vertex references must be rejected.');
+
+  // Unsupported non-geometric elements remain visible in the preservation report.
+  const withUnknown={...cubeData,elements:[...cubeData.elements,{uuid:'locator-1',type:'locator',name:'Hand socket',position:[0,0,0]}]};
+  const unknownResult=await parseBBModel(fileFor(withUnknown));
+  assert(unknownResult.object.userData.bbSourceDocument.elements.some(element=>element.type==='locator'),'Unsupported source element was not preserved in the raw source document.');
+  assert(unknownResult.object.userData.bbUnsupportedElementCount>=1,'Unsupported source element count must be exposed to the compatibility report.');
+
   console.log('PASS: Blockbench cube/UV import, free-mesh triangulation/material groups, Hytale geometry, animation clips, external texture matching, and missing-texture warnings.');
 })().catch(error=>{console.error('FAIL: '+error.stack);process.exit(1);});
