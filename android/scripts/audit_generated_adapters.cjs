@@ -168,6 +168,8 @@ const blockbenchMarkers = [
   'parseNyraCharacterProject',
   'nyraExportBB',
   'function createBBModelDocument()',
+  'function validateBBModelDocument(documentData)',
+  'function createRoundTripAuditDocument()',
   'function exportBBModelBlob()',
   'function refreshModelInspector()',
   'id="nyraInspector"',
