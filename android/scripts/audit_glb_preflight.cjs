@@ -16,7 +16,7 @@ function extractModelTools(source){
   for(let i=literalStart;i<source.length;i++){
     const ch=source[i];
     if(escaped){escaped=false;continue;}
-    if(ch==='\\\\'){escaped=true;continue;}
+    if(ch==='\\'){escaped=true;continue;}
     if(ch==='"'&&source[i+1]===';'){end=i;break;}
   }
   assert.ok(end>literalStart,'Could not isolate serialized modelTools payload');
