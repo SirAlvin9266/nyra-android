@@ -13,7 +13,12 @@ const end=html.indexOf('";',start);
 assert.ok(start>=0&&end>start,'Android modelTools adapter must exist');
 const modelTools=JSON.parse(html.slice(start+assignment.length,end+1));
 const moduleStart=modelTools.indexOf('<script type="module">');
-const moduleEnd=modelTools.indexOf('</script>',moduleStart);
+// The outer HTML stores this nested module close escaped so it does not
+// terminate the shell script. JSON.parse restores the backslash in this string.
+const escapedClose='<'+String.fromCharCode(92)+'/script>';
+const escapedModuleEnd=modelTools.indexOf(escapedClose,moduleStart);
+const literalModuleEnd=modelTools.indexOf('</script>',moduleStart);
+const moduleEnd=escapedModuleEnd>=0?escapedModuleEnd:literalModuleEnd;
 assert.ok(moduleStart>=0&&moduleEnd>moduleStart,'Model I/O module must exist');
 const moduleSource=modelTools.slice(moduleStart+'<script type="module">'.length,moduleEnd);
 const preflightStart=moduleSource.indexOf('async function inspectGLBFile');
