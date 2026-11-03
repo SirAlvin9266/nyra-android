@@ -170,6 +170,7 @@ window.addEventListener('message',event=>{
 });
 let initial='items';
 try{const saved=localStorage.getItem('nyra_active_editor');if(saved&&pages[saved])initial=saved}catch(_){}
+try{Object.keys(pages).forEach(key=>ensureEditor(key));openEditor(initial);message.textContent='Todos os editores foram preparados e estão prontos.';}
 openEditor(initial);
 </script>
 </body>
