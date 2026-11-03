@@ -10,13 +10,16 @@ const assert = require('node:assert/strict');
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 function extractModelTools(source){
-    const endMarker='\\n  const panelEnd = \'</div></section></main>\';';
-  const end=source.indexOf(endMarker,literalStart);
-  if(end<0) throw new Error('Could not find host template boundary after modelTools.');
+  const assignment='const modelTools = ';
+  const start=source.indexOf(assignment);
+  if(start<0)throw new Error('Model I/O template is missing from the Android host page.');
+  const literalStart=start+assignment.length;
+  const boundary='\\n  const panelEnd = ';
+  const end=source.indexOf(boundary,literalStart);
+  if(end<0)throw new Error('Could not find host template boundary after modelTools.');
   const literal=source.slice(literalStart,end);
-  if(!literal.startsWith('"')||!literal.endsWith('"')) throw new Error('Incomplete modelTools JSON string.');
+  if(!literal.startsWith('"')||!literal.endsWith('"'))throw new Error('Incomplete modelTools JSON string.');
   return JSON.parse(literal);
-
 }
 const modelToolsHtml=extractModelTools(html);
 
