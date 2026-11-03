@@ -13,14 +13,13 @@ function extractModelTools(source){
   const assignment=source.indexOf('const modelTools = ');
   if(assignment<0)throw new Error('Android modelTools adapter was not found.');
   const start=assignment+'const modelTools = '.length;
-  // modelTools is a JSON string literal. Its actual terminator is the quote
-  // immediately preceding the semicolon and the host template's panelEnd declaration.
-  // Backtracking regex honors escaped quotes and avoids scanning the nested payload.
-  const tail=source.slice(literalStart);
-  const match=tail.match(/^("(?:\\\\.|[^"\\\\])*")(?=;)/s);
-  if(!match) throw new Error('Could not isolate complete serialized modelTools assignment.');
-  const literal=match[1];
+  const endMarker='\\n  const panelEnd = \'</div></section></main>\';';
+  const end=source.indexOf(endMarker,start);
+  if(end<0) throw new Error('Could not find the host template boundary after modelTools.');
+  const literal=source.slice(start,end);
+  if(!literal.startsWith('"')||!literal.endsWith('"')) throw new Error('modelTools is not a complete quoted JSON string.');
   return JSON.parse(literal);
+
 }
 const modelTools=extractModelTools(html);
 
