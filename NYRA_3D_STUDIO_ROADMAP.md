@@ -23,12 +23,12 @@ Objetivo: garantir que um modelo entre e saia do Nyra sem perder dados silencios
 - Validar formatos e versões de projeto suportadas, incluindo `.bbmodel` e JSON de projeto.
 
 ### A2. Unificar o seletor de importação
-- **Planejado.** Remover o botão separado duplicado Importar modelo / projeto (.bbmodel, .json).
+- **Implementado, validação Android pendente.** O fluxo principal Importar modelo 3D aceita `.bbmodel`, JSON de projeto Nyra, GLB, glTF, OBJ, FBX e STL; o input aceita arquivos auxiliares múltiplos. A seleção ainda exige um único arquivo de modelo por vez.
 - Incorporar `.bbmodel` e `.json` ao fluxo principal Importar modelo 3D, mantendo GLB, glTF, OBJ, FBX, STL e arquivos auxiliares compatíveis.
 - Testar seleção de múltiplos arquivos no Android, URIs, ClipData e permissões de leitura.
 
 ### A3. Converter para BBModel
-- **Planejado.** Criar ação explícita Converter modelo para BBModel.
+- **Parcial/em desenvolvimento.** A ação Converter/Exportar BBModel reconstrói elementos mesh, grupos, UUIDs, transforms, UVs e texturas a partir da cena editada. Escalas não uniformes são recusadas para evitar distorção; formatos de elemento, pivôs e metadados ainda precisam de round-trip real.
 - Converter a representação atual do Nyra, incluindo as edições realizadas; não devolver apenas dados do arquivo original.
 - Gerar estrutura nativa Blockbench: elementos cube e mesh quando viável, grupos/outliner, UUIDs, parent, pivôs, origens, rotações, transforms, UVs, faces, textura/atlas, materiais e animações.
 - Separar conversão (construção do documento interno) de exportação (salvar arquivo).
@@ -48,7 +48,7 @@ Objetivo: garantir que um modelo entre e saia do Nyra sem perder dados silencios
 - Não considerar concluído só porque salvou um arquivo ou o próprio Nyra o reimportou.
 
 ### A6. Mapeamentos e diagnóstico de compatibilidade
-- **Parcial/em desenvolvimento.** Já existe árvore de componentes e contadores/diagnósticos de modelos; o painel experimental de mapas foi fechado sem merge por falha estrutural.
+- **Parcial/em desenvolvimento.** Há nove áreas de inspeção: hierarquia, metadados, geometria/topologia, UV, materiais/texturas, transforms/pivôs, rig/animação, dependências e compatibilidade. UV islands são apenas descritas como não calculadas; topologia e rig ainda não são inspeção completa/editável.
 - Mapa de hierarquia/outliner e UUIDs.
 - Mapa de componentes e metadados de origem.
 - Mapa geométrico/topológico: vértices, arestas, faces, índices, normais, triângulos e bounds.
