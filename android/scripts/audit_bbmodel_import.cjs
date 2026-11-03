@@ -9,18 +9,31 @@ const vm = require('node:vm');
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 
-function extractModelTools(source){
-  const assignment='const modelTools = ';
-  const start=source.indexOf(assignment);
-  if(start<0)throw new Error('Model I/O template is missing from the Android host page.');
-  const literalStart=start+assignment.length;
-  const boundary=source.indexOf('const panelEnd = ',literalStart);
-  if(boundary<0)throw new Error('Host template boundary after modelTools was not found.');
-  const closingQuote=source.lastIndexOf('"',boundary);
-  if(closingQuote<literalStart)throw new Error('Closing quote for modelTools was not found.');
-  // The only unescaped quote immediately before the declaration belongs to the
-  // host assignment; JSON.parse validates all escaping and the payload structure.
-  return JSON.parse(source.slice(literalStart,closingQuote+1));
+function extractModelTools(source) {
+  const assignment = 'const modelTools = ';
+  const start = source.indexOf(assignment);
+  if (start < 0) throw new Error('Model I/O template is missing from the Android host page.');
+  const literalStart = start + assignment.length;
+  if (source[literalStart] !== '"') throw new Error('modelTools assignment is not a quoted string.');
+
+  // Parse the outer JavaScript string token, honoring exactly one-character
+  // backslash escapes. Stop only at its unescaped closing quote followed by ';'.
+  let escaped = false;
+  for (let i = literalStart + 1; i < source.length; i++) {
+    const ch = source[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (ch === '"' && source[i + 1] === ';') {
+      return JSON.parse(source.slice(literalStart, i + 1));
+    }
+  }
+  throw new Error('Could not isolate the complete modelTools JSON string literal.');
 }
 const modelTools=extractModelTools(html);
 
