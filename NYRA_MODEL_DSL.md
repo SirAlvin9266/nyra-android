@@ -13,6 +13,7 @@ Tipos aceitos nesta versão:
 - `sphere`: esfera, com `radius`.
 - `cylinder`: cilindro, com `radiusTop`, `radiusBottom` e `height`.
 - `cone`: cone, com `radiusBottom` e `height`.
+- `tube`: cilindro oco parametrizado, com `radiusOuter`, `radiusInner`, `height`, `openTop` e `openBottom`. Os dois campos de abertura são opcionais e usam `true` por padrão; `false` cria um fundo/tampa fechada. `radiusInner` precisa ser menor que `radiusOuter`.
 
 As posições, dimensões e escalas usam unidades relativas coerentes dentro do modelo. `rotation` é expressa em radianos. `pivot` define o ponto local em torno do qual o componente gira e escala. `color` deve usar o formato hexadecimal `#RRGGBB`.
 
@@ -60,6 +61,20 @@ As posições, dimensões e escalas usam unidades relativas coerentes dentro do 
       "pivot": [0, 0.38, 0],
       "color": "#879caf"
     }
+    ,
+    {
+      "id": "cup",
+      "type": "tube",
+      "name": "Cilindro oco",
+      "parent": "body",
+      "radiusOuter": 0.5,
+      "radiusInner": 0.38,
+      "height": 1.2,
+      "openTop": true,
+      "openBottom": false,
+      "segments": 32,
+      "color": "#35e5ff"
+    }
   ]
 }
 ```
@@ -74,7 +89,7 @@ Um componente pode conter filhos, inclusive quando for uma forma geométrica. Pa
 
 O gerador valida a estrutura antes de substituir o modelo que já está na cena. Ele rejeita IDs duplicados, tipos desconhecidos, referências a pais inexistentes, ciclos na hierarquia, vetores inválidos, dimensões não positivas e cores fora de `#RRGGBB`.
 
-O limite atual é de 500 componentes por modelo. Os tipos geométricos são malhas poligonais Three.js; este DSL ainda não cria automaticamente cubos de Blockbench, esqueleto de animação, texturas pintadas ou mapas UV personalizados. As primitivas geradas recebem materiais com cor e UVs padrão da geometria Three.js.
+O limite atual é de 500 componentes por modelo. Os tipos geométricos são malhas poligonais Three.js. `tube` cria parede externa, parede interna e bordas anulares; `openTop`/`openBottom` deixam a cavidade aberta ou fecham o fundo/tampa. Este tipo ainda é uma malha geométrica, não uma entidade nativa de cubos Blockbench. O DSL ainda não cria automaticamente esqueleto de animação, texturas pintadas ou mapas UV personalizados. As primitivas geradas recebem materiais com cor e UVs padrão da geometria Three.js.
 
 ## Fluxo de trabalho
 
