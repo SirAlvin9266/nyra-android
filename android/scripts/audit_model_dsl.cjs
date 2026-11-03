@@ -14,14 +14,13 @@ function extractModelTools(source){
   const start=source.indexOf(assignment);
   if(start<0)throw new Error('Model I/O template is missing from the Android host page.');
   const literalStart=start+assignment.length;
-  // Extract the complete host string before the next statement. This boundary is
-  // authored outside the JSON literal and therefore cannot be confused with quotes
-  // or escaped markup inside the embedded editor module.
-  const boundary='\\n  const panelEnd = ';
-  const end=source.indexOf(boundary,literalStart);
-  if(end<0)throw new Error('Could not locate the statement following modelTools.');
-  const literal=source.slice(literalStart,end);
-  if(!literal.startsWith('"')||!literal.endsWith('"'))throw new Error('modelTools payload is not a complete JSON string.');
+  const marker='\\n  const panelEnd = ';
+  const markerIndex=source.indexOf(marker,literalStart);
+  if(markerIndex<0)throw new Error('Could not locate the host template boundary.');
+  const end=source.lastIndexOf('"',markerIndex);
+  if(end<literalStart)throw new Error('Could not locate the closing quote for modelTools.');
+  const literal=source.slice(literalStart,end+1);
+  if(!literal.startsWith('"'))throw new Error('modelTools payload is not a quoted JSON string.');
   return JSON.parse(literal);
 }
 const modelToolsHtml=extractModelTools(html);
