@@ -8,10 +8,23 @@ const vm = require('node:vm');
 
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
-const hostLine = html.split(/\r?\n/).find(line => line.includes('const modelTools = '));
-if (!hostLine) throw new Error('Android modelTools adapter was not found.');
-const literal = hostLine.slice(hostLine.indexOf('const modelTools = ') + 'const modelTools = '.length, -1);
-const modelTools = JSON.parse(literal);
+
+function extractModelTools(source){
+  const assignment=source.indexOf('const modelTools = ');
+  if(assignment<0)throw new Error('Android modelTools adapter was not found.');
+  const start=assignment+'const modelTools = '.length;
+  let escaped=false,end=-1;
+  for(let i=start;i<source.length;i++){
+    const ch=source[i];
+    if(escaped){escaped=false;continue;}
+    if(ch==='\\\\'){escaped=true;continue;}
+    if(ch==='"'&&source[i+1]===';'){end=i;break;}
+  }
+  if(end<0)throw new Error('Could not isolate serialized modelTools payload.');
+  return JSON.parse(source.slice(start,end+1));
+}
+const modelTools=extractModelTools(html);
+
 const moduleMarker = '/* NyraModelIO:';
 const markerIndex = modelTools.indexOf(moduleMarker);
 const moduleStart = modelTools.lastIndexOf('<script type="module">', markerIndex);
