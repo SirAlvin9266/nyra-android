@@ -240,5 +240,26 @@ for (const [name, page] of Object.entries(generated)) {
   console.log(name + ': generated ' + page.length + ' chars; parsed ' + checked + ' inline script(s)');
 }
 
+
+const mappingMarkers = [
+  'nyraMappingPanel',
+  'data-map="summary"',
+  'data-map="hierarchy"',
+  'data-map="geometry"',
+  'data-map="uv"',
+  'data-map="materials"',
+  'data-map="transforms"',
+  'data-map="animation"',
+  'function makeMappingReport(kind)',
+  'function collectMappingMetrics',
+  'updateMappingReport()',
+];
+for (const marker of mappingMarkers) {
+  if (!html.includes(marker)) {
+    console.error('FAIL: mapping inspection panel is missing ' + marker);
+    process.exitCode = 1;
+  }
+}
+
 if (process.exitCode) process.exit(process.exitCode);
 console.log('PASS: all generated editor scripts parse, CDN dependencies are rewritten, and Android export adapters are present.');
