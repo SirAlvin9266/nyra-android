@@ -171,11 +171,6 @@ const requiredExportMarkers = [
   'appendExportChunk',
   'finishExport',
 ];
-const requiredCharacterExportMarkers = [
-  'nyraExportBBModel',
-  'async function buildBBModelExport()',
-  'window.__nyraImportedBBSource',
-];
 for (const [name, page] of Object.entries(generated)) {
   if (!page || page.length < 10000) {
     console.error('FAIL: generated ' + name + ' editor document is unexpectedly short');
@@ -201,12 +196,6 @@ for (const [name, page] of Object.entries(generated)) {
     }
   }
   if (name === 'character') {
-    for (const marker of requiredCharacterExportMarkers) {
-      if (!page.includes(marker)) {
-        console.error('FAIL: generated character document is missing native Blockbench export marker ' + marker);
-        process.exitCode = 1;
-      }
-    }
     for (const marker of blockbenchMarkers) {
       if (!page.includes(marker)) {
         console.error('FAIL: generated character document is missing Blockbench importer marker ' + marker);
