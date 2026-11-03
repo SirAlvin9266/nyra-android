@@ -14,23 +14,20 @@ function extractModelTools(source){
   const start=source.indexOf(assignment);
   if(start<0)throw new Error('Model I/O template is missing from the Android host page.');
   const literalStart=start+assignment.length;
-  let end=-1;
-  // The host template contains a JSON-encoded JavaScript string. Do not search
-  // for a textual delimiter: nested templates may contain the same sequence.
-  // Decode exactly one JSON string literal, then require the assignment's semicolon.
-  if(source[literalStart] !== '"') throw new Error('modelTools assignment must use a quoted string literal.');
-  let escaped=false;
+  // Locate the host-language string terminator without being fooled by nested
+  // escaped quotes. Backslash escaping is one character at a time in this JS literal.
+  let end=-1, escaped=false;
   for(let i=literalStart+1;i<source.length;i++){
     const ch=source[i];
     if(escaped){escaped=false;continue;}
     if(ch==='\\\\'){escaped=true;continue;}
-    if(ch==='"'){
-      end=i;
-      break;
-    }
+    if(ch==='"'){end=i;break;}
   }
-  if(end<0||source[end+1]!==';') throw new Error('Could not isolate complete serialized modelTools assignment.');
-    return JSON.parse(source.slice(literalStart,end+1));
+  if(end<0) throw new Error('Could not isolate modelTools string literal.');
+  let terminator=end+1;
+  while(/\\s/.test(source[terminator]||'')) terminator++;
+  if(source[terminator]!==';') throw new Error('modelTools string literal is not followed by a semicolon.');
+  return JSON.parse(source.slice(literalStart,end+1));
 }
 const modelToolsHtml=extractModelTools(html);
 
