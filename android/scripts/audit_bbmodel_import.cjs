@@ -14,26 +14,13 @@ function extractModelTools(source) {
   const start = source.indexOf(assignment);
   if (start < 0) throw new Error('Model I/O template is missing from the Android host page.');
   const literalStart = start + assignment.length;
-  if (source[literalStart] !== '"') throw new Error('modelTools assignment is not a quoted string.');
-
-  // Parse the outer JavaScript string token, honoring exactly one-character
-  // backslash escapes. Stop only at its unescaped closing quote followed by ';'.
-  let escaped = false;
-  for (let i = literalStart + 1; i < source.length; i++) {
-    const ch = source[i];
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (ch === '\\') {
-      escaped = true;
-      continue;
-    }
-    if (ch === '"' && source[i + 1] === ';') {
-      return JSON.parse(source.slice(literalStart, i + 1));
-    }
-  }
-  throw new Error('Could not isolate the complete modelTools JSON string literal.');
+  const boundary = source.indexOf('const panelEnd = ', literalStart);
+  if (boundary < 0) throw new Error('Host template boundary after modelTools was not found.');
+  // The host uses automatic semicolon insertion: the string closes immediately
+  // before the newline introducing panelEnd, not before a semicolon.
+  const closingQuote = source.lastIndexOf('"', boundary);
+  if (closingQuote < literalStart) throw new Error('Closing quote for modelTools was not found.');
+  return JSON.parse(source.slice(literalStart, closingQuote + 1));
 }
 const modelTools=extractModelTools(html);
 
