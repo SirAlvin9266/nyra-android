@@ -8,15 +8,11 @@ const assert=require('node:assert/strict');
 
 const html=fs.readFileSync(path.resolve(__dirname,'../app/src/main/assets/www/index.html'),'utf8');
 function extractModelTools(source){
-  const assignment='const modelTools = ';
-  const start=source.indexOf(assignment);
-  assert.ok(start>=0,'Android modelTools adapter must exist');
-  const literalStart=start+assignment.length;
-  const endMarker='\\n  const panelEnd = \'</div></section></main>\';';
+    const endMarker='\\n  const panelEnd = \'</div></section></main>\';';
   const end=source.indexOf(endMarker,literalStart);
-  if(end<0) throw new Error('Could not find the host template boundary after modelTools.');
+  if(end<0) throw new Error('Could not find host template boundary after modelTools.');
   const literal=source.slice(literalStart,end);
-  if(!literal.startsWith('"')||!literal.endsWith('"')) throw new Error('modelTools is not a complete quoted JSON string.');
+  if(!literal.startsWith('"')||!literal.endsWith('"')) throw new Error('Incomplete modelTools JSON string.');
   return JSON.parse(literal);
 
 }
