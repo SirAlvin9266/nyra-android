@@ -9,13 +9,23 @@ const assert = require('node:assert/strict');
 
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
-const assignment = 'const modelTools = ';
-const assignmentStart = html.indexOf(assignment);
-const assignmentEnd = html.indexOf('";', assignmentStart);
-if (assignmentStart < 0 || assignmentEnd < 0) {
-  throw new Error('Model I/O template is missing from the Android host page.');
+function extractModelTools(source){
+  const assignment='const modelTools = ';
+  const start=source.indexOf(assignment);
+  if(start<0)throw new Error('Model I/O template is missing from the Android host page.');
+  const literalStart=start+assignment.length;
+  let escaped=false,end=-1;
+  for(let i=literalStart;i<source.length;i++){
+    const ch=source[i];
+    if(escaped){escaped=false;continue;}
+    if(ch==='\\\\'){escaped=true;continue;}
+    if(ch==='"'&&source[i+1]===';'){end=i;break;}
+  }
+  if(end<0)throw new Error('Could not isolate serialized modelTools payload.');
+  return JSON.parse(source.slice(literalStart,end+1));
 }
-const modelToolsHtml = JSON.parse(html.slice(assignmentStart + assignment.length, assignmentEnd + 1));
+const modelToolsHtml=extractModelTools(html);
+
 const moduleMarker = '/* NyraModelIO:';
 const moduleMarkerIndex = modelToolsHtml.indexOf(moduleMarker);
 const moduleStart = modelToolsHtml.lastIndexOf('<script type="module">', moduleMarkerIndex);
