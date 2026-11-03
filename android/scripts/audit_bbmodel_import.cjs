@@ -35,7 +35,8 @@ const moduleSource = modelTools.slice(moduleStart, moduleEnd);
 const helperStart = moduleSource.indexOf('function bbCoordinate(');
 const helperEnd = moduleSource.indexOf('async function parseModel(', helperStart);
 if (helperStart < 0 || helperEnd < 0) throw new Error('Blockbench importer functions are incomplete.');
-const helperSource = moduleSource.slice(helperStart, helperEnd) + '\nthis.parseBBModel = parseBBModel;';
+const nyraParserStart = moduleSource.indexOf('async function parseNyraCharacterProject(', helperStart);
+const helperSource = moduleSource.slice(helperStart, helperEnd) + '\nthis.parseBBModel = parseBBModel;\nthis.parseNyraCharacterProject = parseNyraCharacterProject;';
 
 let nextUuid = 0;
 class Vec3 {
@@ -102,6 +103,7 @@ const THREE = {
 const context=vm.createContext({THREE,Map,Set,WeakMap,Number,String,Array,Object,Math,Promise,Error,resourceUrls:[],URL:{createObjectURL:file=>'blob:'+file.name}});
 vm.runInContext(helperSource,context,{filename:'nyra-bbmodel-import.js'});
 const parseBBModel=context.parseBBModel;
+const parseNyraCharacterProject=context.parseNyraCharacterProject;
 
 function assert(condition,message){if(!condition)throw new Error(message);}
 function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.stringify(data)};}
