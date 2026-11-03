@@ -7,11 +7,22 @@ const vm=require('node:vm');
 const assert=require('node:assert/strict');
 
 const html=fs.readFileSync(path.resolve(__dirname,'../app/src/main/assets/www/index.html'),'utf8');
-const assignment='const modelTools = ';
-const start=html.indexOf(assignment);
-const end=html.indexOf('";',start);
-assert.ok(start>=0&&end>start,'Android modelTools adapter must exist');
-const modelTools=JSON.parse(html.slice(start+assignment.length,end+1));
+function extractModelTools(source){
+  const assignment='const modelTools = ';
+  const start=source.indexOf(assignment);
+  assert.ok(start>=0,'Android modelTools adapter must exist');
+  const literalStart=start+assignment.length;
+  let escaped=false,end=-1;
+  for(let i=literalStart;i<source.length;i++){
+    const ch=source[i];
+    if(escaped){escaped=false;continue;}
+    if(ch==='\\\\'){escaped=true;continue;}
+    if(ch==='"'&&source[i+1]===';'){end=i;break;}
+  }
+  assert.ok(end>literalStart,'Could not isolate serialized modelTools payload');
+  return JSON.parse(source.slice(literalStart,end+1));
+}
+const modelTools=extractModelTools(html);
 const moduleStart=modelTools.indexOf('<script type="module">');
 // The outer HTML stores this nested module close escaped so it does not
 // terminate the shell script. JSON.parse restores the backslash in this string.
