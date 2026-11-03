@@ -10,14 +10,11 @@ const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html'
 const html = fs.readFileSync(htmlPath, 'utf8');
 
 function extractModelTools(source){
-  const assignment=source.indexOf('const modelTools = ');
-  if(assignment<0)throw new Error('Android modelTools adapter was not found.');
-  const start=assignment+'const modelTools = '.length;
-  const endMarker='\\n  const panelEnd = \'</div></section></main>\';';
-  const end=source.indexOf(endMarker,start);
-  if(end<0) throw new Error('Could not find the host template boundary after modelTools.');
-  const literal=source.slice(start,end);
-  if(!literal.startsWith('"')||!literal.endsWith('"')) throw new Error('modelTools is not a complete quoted JSON string.');
+    const endMarker='\\n  const panelEnd = \'</div></section></main>\';';
+  const end=source.indexOf(endMarker,start+'const modelTools = '.length);
+  if(end<0) throw new Error('Could not find host template boundary after modelTools.');
+  const literal=source.slice(start+'const modelTools = '.length,end);
+  if(!literal.startsWith('"')||!literal.endsWith('"')) throw new Error('Incomplete modelTools JSON string.');
   return JSON.parse(literal);
 
 }
