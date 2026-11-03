@@ -313,6 +313,32 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   assert(nyraParts.find(node=>node.userData.nyraJsonPartId==='head').material.color==='#35e5ff','Nyra head color palette was not retained.');
   assert(nyraResult.object.userData.nyraJsonSource.format==='Nyra Character+Voxel Project v4','Nyra JSON source was not preserved.');
 
+
+  // Real user-provided Blockbench fixtures: Hytale furniture and a Bedrock animated character.
+  const chinesePath=path.join(__dirname,'fixtures','chinese.bbmodel');
+  assert(fs.existsSync(chinesePath),'Chinese armchair real-world regression fixture is missing.');
+  const chineseData=JSON.parse(fs.readFileSync(chinesePath,'utf8'));
+  assert(chineseData.meta?.model_format==='hytale_prop','Chinese armchair fixture should exercise Hytale prop cubes.');
+  assert(chineseData.elements.length===67,'Chinese armchair fixture should contain 67 source elements.');
+  const chineseResult=await parseBBModel({name:'chinese-armchair.bbmodel',text:async()=>JSON.stringify(chineseData)});
+  let chineseMeshes=0;chineseResult.object.traverse(node=>{if(node.isMesh)chineseMeshes++;});
+  assert(chineseMeshes===67,'Chinese armchair should import all 67 cubes.');
+  assert(chineseResult.object.userData.bbTextureCount===1,'Chinese armchair embedded atlas was not detected.');
+  assert(chineseResult.object.userData.bbModelWarnings.length===0,'Chinese armchair should not emit texture warnings.');
+
+  const kintsugiPath=path.join(__dirname,'fixtures','kintsugi.bbmodel');
+  assert(fs.existsSync(kintsugiPath),'Kintsugi real-world regression fixture is missing.');
+  const kintsugiData=JSON.parse(fs.readFileSync(kintsugiPath,'utf8'));
+  assert(kintsugiData.meta?.model_format==='bedrock','Kintsugi fixture should exercise Bedrock model format.');
+  assert(kintsugiData.elements.length===38&&kintsugiData.groups.length===24,'Kintsugi fixture should exercise 38 elements and 24 groups.');
+  assert(kintsugiData.animations.length===28,'Kintsugi fixture should include its 28 source animations.');
+  const kintsugiResult=await parseBBModel({name:'kintsugi.bbmodel',text:async()=>JSON.stringify(kintsugiData)});
+  let kintsugiMeshes=0,kintsugiGroups=0;kintsugiResult.object.traverse(node=>{if(node.isMesh)kintsugiMeshes++;if(node.userData?.bbGroupUuid)kintsugiGroups++;});
+  assert(kintsugiMeshes===38,'Kintsugi should import all 38 cube elements.');
+  assert(kintsugiGroups===24,'Kintsugi should preserve all 24 Blockbench group nodes.');
+  assert(kintsugiResult.object.userData.bbModelAnimationCount===28,'Kintsugi source animation count was not retained.');
+  assert(kintsugiResult.object.userData.bbModelWarnings.length===0,'Kintsugi should not emit missing-texture warnings.');
+
   // The importer must reject duplicated source UUIDs rather than silently binding the first item.
   const duplicateSource={...cubeData,elements:[cubeData.elements[0],{...cubeData.elements[0],name:'duplicate'}]};
   let duplicateSourceRejected=false;
