@@ -293,6 +293,26 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   assert(nyraResult.object.userData.nyraJsonSource.format==='Nyra Character+Voxel Project v4','Nyra source project was not preserved.');
   assert(nyraResult.object.userData.nyraJsonFormat.includes('character'),'Nyra project format was not retained.');
 
+
+  const nyraCharacter={
+    format:'Nyra Character+Voxel Project v4',
+    name:'Meu Personagem',
+    colors:{torso:'#263548',head:'#35e5ff',armL:'#d5e2ed',armR:'#d5e2ed',legL:'#56677d',legR:'#56677d'},
+    parts:{
+      torso:{position:[0,2.2,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      head:{position:[0,.88,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      armL:{position:[-.72,.4,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      armR:{position:[.72,.4,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      legL:{position:[-.28,1.55,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      legR:{position:[.28,1.55,0],scale:[1,1,1],rotation:[0,0,0],visible:true}
+    },headScaleY:1,voxels:[],objects:[]
+  };
+  const nyraResult=await parseNyraCharacterProject(nyraCharacter,'nyra_personagem.json');
+  const nyraParts=[];nyraResult.object.traverse(node=>{if(node.userData?.nyraJsonPartId)nyraParts.push(node);});
+  assert(nyraParts.length===6,'Nyra v4 JSON must reconstruct six named parts.');
+  assert(nyraParts.find(node=>node.userData.nyraJsonPartId==='head').material.color==='#35e5ff','Nyra head color palette was not retained.');
+  assert(nyraResult.object.userData.nyraJsonSource.format==='Nyra Character+Voxel Project v4','Nyra JSON source was not preserved.');
+
   // The importer must reject duplicated source UUIDs rather than silently binding the first item.
   const duplicateSource={...cubeData,elements:[cubeData.elements[0],{...cubeData.elements[0],name:'duplicate'}]};
   let duplicateSourceRejected=false;
