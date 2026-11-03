@@ -143,6 +143,10 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   assert(meshResult.object.userData.bbImportedMeshes===1,'Free mesh fixture should create one mesh element.');
   assert(importedMesh&&importedMesh.geometry.attributes.position.count===6,'Free mesh faces were not triangulated into six vertices.');
   assert(importedMesh.geometry.groups.length===2,'Free mesh material groups were not preserved.');
+  const untexturedData={...meshData,elements:[{...meshData.elements[0],faces:{plain:{...meshData.elements[0].faces.first,texture:null}}}]};
+  const untexturedResult=await parseBBModel(fileFor(untexturedData));
+  let untexturedMesh=null;untexturedResult.object.traverse(node=>{if(node.isMesh)untexturedMesh=node;});
+  assert(untexturedMesh&&untexturedMesh.geometry.groups[0].materialIndex===0,'Explicitly untextured faces must use the fallback material even when one texture exists.');
 
   // Run the importer against the actual user-supplied Spartan shield regression model.
   const shieldPath=path.join(__dirname,'fixtures','spartan_shild_editavel.bbmodel');
