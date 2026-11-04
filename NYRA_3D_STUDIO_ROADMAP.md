@@ -14,52 +14,71 @@ Este documento reúne o trabalho ainda não concluído identificado nos PRs, com
 
 Objetivo: garantir que um modelo entre e saia do Nyra sem perder dados silenciosamente, e que os arquivos gerados abram corretamente nas ferramentas de destino.
 
+## Estado de fechamento em 2026-11-03
+
+**Resultado: implementação substancial e CI verde; validação externa ainda pendente. Não declarar a Frente A concluída nem integrar à main.**
+
+Evidências verificadas na branch `work/bbmodel-export-and-large-model-performance`, commit `e8fe035559eabcc3b64c20115a10050840f910f3`:
+- CI #349 concluiu com sucesso: auditorias do editor e adaptadores, DSL, importador Blockbench, pré-validação GLB, build debug APK e verificação de assets offline.
+- O importador tem testes com o fixture real do escudo `spartan_shild_editavel.bbmodel` (898 faces, uma textura, sem warnings), fixture `chinese.bbmodel` (67 elementos, formato Hytale prop, atlas embutido), além de fixtures sintéticas para malha livre, grupos vazios, metadados desconhecidos, UUIDs duplicados, referências de vértices inválidas, texturas ambíguas e elementos não suportados.
+- O script de auditoria também referencia `kintsugi.bbmodel`, mas o conteúdo do arquivo não pôde ser recuperado nesta verificação; não registrar seu inventário como validado aqui.
+- O seletor principal aceita GLB, glTF, OBJ, FBX, STL, BBModel e JSON Nyra, com seleção de arquivos auxiliares.
+- O editor contém construção de documento BBModel a partir da cena atual, validação estrutural, reimportação interna e relatório de compatibilidade. Isso é round-trip interno, não prova de compatibilidade no Blockbench externo.
+- O painel de inspeção de nove visões está no HTML atual da branch. O commit mais recente declara correção da escala de UVs para pixels Blockbench e cálculo de UV islands; a semântica e a apresentação ainda precisam de validação visual no aplicativo.
+- O PR #6, que continha uma primeira implementação separada de mapeamentos, foi fechado sem merge por problemas de serialização HTML. Não contabilizar seu conteúdo como integrado; usar somente a implementação presente no PR #5.
+
 ### A1. Auditoria e preservação da importação Blockbench
-- **Parcial/em desenvolvimento.** O importador já lê cubos, malhas, hierarquia e texturas em cenários suportados.
-- Testar arquivos reais: modelo de escudo em malha livre, cubos, projetos Bedrock e modelos com grupos e animações.
-- Criar inventário de origem por arquivo: elementos, tipos, UUIDs, nomes, grupos/outliner, parent, pivôs/origens, rotações, transforms, UV por face/vértice, texturas, atlas, materiais, animações, bones e recursos externos.
-- Preservar caminhos de texturas; resolver arquivos auxiliares sem associar imagens ambíguas pelo nome.
-- Tratar dados desconhecidos sem descartá-los silenciosamente; registrar o que foi preservado, convertido ou perdido.
-- Validar formatos e versões de projeto suportadas, incluindo `.bbmodel` e JSON de projeto.
+- **Base automatizada forte; cobertura de fixtures reais parcial.**
+- Confirmado por teste: cubos e malhas livres, triangulação, grupos de materiais, metadados e documento de origem, grupos vazios, warnings de dependências, rejeição de UUID duplicados e referências inválidas, elementos não suportados preservados no documento bruto.
+- Confirmado por fixture real no script: escudo Spartan (mesh) e cadeira chinesa/Hytale (cubos e atlas).
+- **Pendente:** executar e registrar fixtures adicionais de projeto Bedrock e modelos com combinações reais de bones/animações/texturas externas; abrir e inspecionar visualmente resultados no Blockbench.
+- **Pendente:** recuperar/verificar o fixture Kintsugi referenciado no script e registrar contagens e resultado real do teste.
 
 ### A2. Unificar o seletor de importação
-- **Implementado, validação Android pendente.** O fluxo principal Importar modelo 3D aceita `.bbmodel`, JSON de projeto Nyra, GLB, glTF, OBJ, FBX e STL; o input aceita arquivos auxiliares múltiplos. A seleção ainda exige um único arquivo de modelo por vez.
-- Incorporar `.bbmodel` e `.json` ao fluxo principal Importar modelo 3D, mantendo GLB, glTF, OBJ, FBX, STL e arquivos auxiliares compatíveis.
-- Testar seleção de múltiplos arquivos no Android, URIs, ClipData e permissões de leitura.
+- **Implementado no código e coberto pela auditoria do editor; validação Android física pendente.**
+- Formatos declarados: `.bbmodel`, JSON de projeto Nyra, GLB, glTF, OBJ, FBX e STL; arquivos auxiliares múltiplos.
+- A seleção exige um arquivo principal de modelo por vez.
+- **Pendente:** confirmar seletor Android, URIs, ClipData, permissões e múltiplos arquivos auxiliares em aparelho físico.
 
 ### A3. Converter para BBModel
-- **Parcial/em desenvolvimento.** A ação Converter/Exportar BBModel reconstrói elementos mesh, grupos, UUIDs, transforms, UVs e texturas a partir da cena editada. Escalas não uniformes são recusadas para evitar distorção; formatos de elemento, pivôs e metadados ainda precisam de round-trip real.
-- Converter a representação atual do Nyra, incluindo as edições realizadas; não devolver apenas dados do arquivo original.
-- Gerar estrutura nativa Blockbench: elementos cube e mesh quando viável, grupos/outliner, UUIDs, parent, pivôs, origens, rotações, transforms, UVs, faces, textura/atlas, materiais e animações.
-- Separar conversão (construção do documento interno) de exportação (salvar arquivo).
-- Mostrar relatório de compatibilidade e perdas antes de salvar.
+- **Implementação presente; compatibilidade externa não certificada.**
+- A conversão constrói o documento usando a cena atual, incluindo malhas, grupos, UUIDs, transforms, UVs e texturas nos casos suportados.
+- Há validação estrutural e relatório de itens não suportados.
+- Limites conhecidos: escalas não uniformes podem ser recusadas; transformações de malha são incorporadas aos vértices; pivôs individuais podem não permanecer como objetos editáveis separados; interpolações avançadas, múltiplos data points e metadados desconhecidos de animação não são preservados integralmente.
+- **Pendente:** confrontar o resultado no Blockbench real e ajustar diferenças observadas.
 
 ### A4. Exportar modelos editados
-- **Parcial/em desenvolvimento.** Exportadores GLB, OBJ e STL já existem; o `.bbmodel` editado não está concluído.
-- Reposicionar Exportar .bbmodel editado junto às opções de exportação do editor 3D.
-- Manter a exportação específica de personagem JSON separada.
-- Garantir que exportação reflita a cena editada e não o arquivo importado original.
-- Documentar suporte e perdas por formato; validar materiais, texturas, hierarquia e animações onde possível.
+- **Implementação presente; fluxo externo pendente.**
+- O controle `Exportar BBModel editado` gera arquivo a partir da cena editada; a validação/reimportação interna ocorre antes de salvar.
+- GLB, OBJ e STL permanecem como exportadores separados; exportação de personagem JSON é fluxo distinto.
+- **Pendente:** verificar conteúdo, nomes, grupos, pivôs, transforms, UVs, atlas/texturas e animações após abrir o arquivo no Blockbench.
 
 ### A5. Teste round-trip e fixtures
-- Importar arquivo real → comparar inventário → editar no Nyra → converter → exportar → abrir no Blockbench → comparar novamente.
-- Fixtures mínimas: escudo mesh, modelo de cubos, projeto Bedrock e arquivo com textura/UV/animação.
-- Verificar nomes, contagens, topologia, UUIDs, grupos, pivôs, transforms, UVs, texturas, materiais e clips.
-- Não considerar concluído só porque salvou um arquivo ou o próprio Nyra o reimportou.
+- **Round-trip interno coberto; round-trip externo não executado.**
+- Já existe: construir BBModel → validar estrutura → reimportar no próprio Nyra → contar malhas, UV meshes e grupos.
+- **Pendente obrigatório:** importar arquivo real → inventariar → editar de forma identificável → exportar → abrir no Blockbench → comparar origem e saída.
+- Fixtures mínimas de validação externa: escudo mesh e um projeto de cubos/Bedrock com textura; incluir Kintsugi quando o fixture estiver acessível.
+- Comparar nomes, contagens, topologia, UUIDs, grupos, pivôs, transforms, UVs, texturas, materiais e clips.
 
 ### A6. Mapeamentos e diagnóstico de compatibilidade
-- **Parcial/em desenvolvimento.** Há nove áreas de inspeção: hierarquia, metadados, geometria/topologia, UV, materiais/texturas, transforms/pivôs, rig/animação, dependências e compatibilidade. UV islands são apenas descritas como não calculadas; topologia e rig ainda não são inspeção completa/editável.
-- Mapa de hierarquia/outliner e UUIDs.
-- Mapa de componentes e metadados de origem.
-- Mapa geométrico/topológico: vértices, arestas, faces, índices, normais, triângulos e bounds.
-- Mapa UV: coordenadas, ilhas, faces e ligação com atlas/textura.
-- Mapa de materiais/texturas: slots, canais, imagens, transparência e emissão.
-- Mapa espacial: posições, rotações, escalas, transformações locais/mundiais, pivôs e origens.
-- Mapa rig/animação: ossos, pesos, pivôs, clips, tracks, duração e articulações.
-- Mapa de dependências/recursos: arquivos externos, buffers, imagens e referências ausentes.
-- Mapa de compatibilidade/exportação: preservado, convertido, descartado e motivo.
-- Separar mapas somente de leitura de ferramentas de edição real.
+- **Painel implementado no PR #5; validação funcional/visual pendente.**
+- Nove visões no painel: hierarquia, metadados, geometria/topologia, UV, materiais/texturas, transforms/pivôs, rig/animação, dependências e compatibilidade.
+- Código atual calcula dados de inspeção e UV islands; commit final corrige escala de UV para pixels Blockbench.
+- **Pendente:** abrir no aplicativo e confirmar que cada visão apresenta dados coerentes nos fixtures reais, inclusive UV islands, pivôs, animações e dependências externas.
+- Os mapas são diagnósticos, não ferramentas de edição topológica.
 
+### Checklist de encerramento restante
+- [ ] Recuperar e confirmar fixture Kintsugi, registrar inventário e resultado do teste.
+- [ ] Executar round-trip externo de escudo mesh e projeto de cubos/Bedrock no Blockbench.
+- [ ] Conferir visualmente UVs/atlas, grupos, pivôs, transforms, texturas e animações exportadas.
+- [ ] Validar as nove visões de inspeção no Nyra com fixtures reais.
+- [ ] Testar importação/exportação pelo seletor Android/WebView em aparelho físico.
+- [ ] Registrar versão do Blockbench, aparelho/Android, arquivos usados, resultados e limitações.
+- [x] CI #349 verde e APK debug produzido com assets offline verificados.
+- [ ] Só depois dos itens externos acima, marcar Frente A concluída e considerar integração à main mediante decisão explícita.
+
+**Política de integração preservada:** não mesclar automaticamente na `main` nesta etapa. CI verde é necessário, mas não substitui round-trip externo e teste físico Android.
+ 
 # Frente B — Motor geométrico, modelagem avançada e criação paramétrica
 
 Objetivo: evoluir o Nyra de um editor centrado em primitivas para um ambiente em que seja possível construir e deformar superfícies e volumes complexos, mantendo geometria válida e exportável.
