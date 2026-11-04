@@ -8,10 +8,22 @@ const vm = require('node:vm');
 
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
-const hostLine = html.split(/\r?\n/).find(line => line.includes('const modelTools = '));
-if (!hostLine) throw new Error('Android modelTools adapter was not found.');
-const literal = hostLine.slice(hostLine.indexOf('const modelTools = ') + 'const modelTools = '.length, -1);
-const modelTools = JSON.parse(literal);
+
+function extractModelTools(source) {
+  const assignment = 'const modelTools = ';
+  const start = source.indexOf(assignment);
+  if (start < 0) throw new Error('Model I/O template is missing from the Android host page.');
+  const literalStart = start + assignment.length;
+  const boundary = source.indexOf('const panelEnd = ', literalStart);
+  if (boundary < 0) throw new Error('Host template boundary after modelTools was not found.');
+  // The host uses automatic semicolon insertion: the string closes immediately
+  // before the newline introducing panelEnd, not before a semicolon.
+  const closingQuote = source.lastIndexOf('"', boundary);
+  if (closingQuote < literalStart) throw new Error('Closing quote for modelTools was not found.');
+  return JSON.parse(source.slice(literalStart, closingQuote + 1));
+}
+const modelTools=extractModelTools(html);
+
 const moduleMarker = '/* NyraModelIO:';
 const markerIndex = modelTools.indexOf(moduleMarker);
 const moduleStart = modelTools.lastIndexOf('<script type="module">', markerIndex);
@@ -23,7 +35,9 @@ const moduleSource = modelTools.slice(moduleStart, moduleEnd);
 const helperStart = moduleSource.indexOf('function bbCoordinate(');
 const helperEnd = moduleSource.indexOf('async function parseModel(', helperStart);
 if (helperStart < 0 || helperEnd < 0) throw new Error('Blockbench importer functions are incomplete.');
-const helperSource = moduleSource.slice(helperStart, helperEnd) + '\nthis.parseBBModel = parseBBModel;';
+const helperSource = moduleSource.slice(helperStart, helperEnd)
+  + String.fromCharCode(10) + 'this.parseBBModel = parseBBModel;'
+  + String.fromCharCode(10) + 'this.parseNyraCharacterProject = parseNyraCharacterProject;';
 
 let nextUuid = 0;
 class Vec3 {
@@ -90,6 +104,7 @@ const THREE = {
 const context=vm.createContext({THREE,Map,Set,WeakMap,Number,String,Array,Object,Math,Promise,Error,resourceUrls:[],URL:{createObjectURL:file=>'blob:'+file.name}});
 vm.runInContext(helperSource,context,{filename:'nyra-bbmodel-import.js'});
 const parseBBModel=context.parseBBModel;
+const parseNyraCharacterProject=context.parseNyraCharacterProject;
 
 function assert(condition,message){if(!condition)throw new Error(message);}
 function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.stringify(data)};}
@@ -131,6 +146,10 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   assert(meshResult.object.userData.bbImportedMeshes===1,'Free mesh fixture should create one mesh element.');
   assert(importedMesh&&importedMesh.geometry.attributes.position.count===6,'Free mesh faces were not triangulated into six vertices.');
   assert(importedMesh.geometry.groups.length===2,'Free mesh material groups were not preserved.');
+  const untexturedData={...meshData,elements:[{...meshData.elements[0],faces:{plain:{...meshData.elements[0].faces.first,texture:null}}}]};
+  const untexturedResult=await parseBBModel(fileFor(untexturedData));
+  let untexturedMesh=null;untexturedResult.object.traverse(node=>{if(node.isMesh)untexturedMesh=node;});
+  assert(untexturedMesh&&untexturedMesh.geometry.groups[0].materialIndex===0,'Explicitly untextured faces must use the fallback material even when one texture exists.');
 
   // Run the importer against the actual user-supplied Spartan shield regression model.
   const shieldPath=path.join(__dirname,'fixtures','spartan_shild_editavel.bbmodel');
@@ -155,6 +174,25 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   assert(shieldResult.object.userData.bbImportedFaces===898,'Real Spartan shield triangle count does not match the source.');
   assert(shieldResult.object.userData.bbTextureCount===1,'Real Spartan shield embedded texture was not detected.');
   assert(shieldResult.object.userData.bbModelWarnings.length===0,'Real Spartan shield must not emit missing-texture warnings.');
+  
+  // Exercise a real cuboid Hytale/Blockbench project with an embedded atlas.
+  const chairPath=path.join(__dirname,'fixtures','chinese.bbmodel');
+  assert(fs.existsSync(chairPath),'Real Chinese armchair regression fixture is missing.');
+  const chairData=JSON.parse(fs.readFileSync(chairPath,'utf8'));
+  const chairResult=await parseBBModel({name:'chinese.bbmodel',text:async()=>JSON.stringify(chairData)});
+  assert(chairResult.object.userData.bbSourceElementCount===chairData.elements.length,'Chinese armchair source element inventory changed.');
+  assert(chairResult.object.userData.bbImportedCubes===chairData.elements.filter(element=>(!element.type||element.type==='cube')&&Array.isArray(element.from)&&Array.isArray(element.to)).length,'Chinese armchair cube import count diverged from source.');
+  assert(chairResult.object.userData.bbTextureCount===chairData.textures.length,'Chinese armchair embedded atlas was not resolved.');
+  assert(chairResult.object.userData.bbModelWarnings.length===0,'Chinese armchair should not warn about its embedded atlas.');
+
+  // The multi-megabyte Kintsugi project is a real-world memory/format regression fixture.
+  const kintsugiPath=path.join(__dirname,'fixtures','kintsugi.bbmodel');
+  assert(fs.existsSync(kintsugiPath),'Real Kintsugi regression fixture is missing.');
+  const kintsugiData=JSON.parse(fs.readFileSync(kintsugiPath,'utf8'));
+  const kintsugiResult=await parseBBModel({name:'kintsugi.bbmodel',text:async()=>JSON.stringify(kintsugiData)});
+  assert(kintsugiResult.object.userData.bbSourceElementCount===kintsugiData.elements.length,'Kintsugi source element inventory changed.');
+  assert(kintsugiResult.object.userData.bbImportedCubes+kintsugiResult.object.userData.bbImportedMeshes>0,'Kintsugi fixture did not produce editable geometry.');
+  assert(kintsugiResult.object.userData.bbUnsupportedElementCount===kintsugiData.elements.filter(element=>!((!element.type||element.type==='cube')&&Array.isArray(element.from)&&Array.isArray(element.to))&&!(element.type==='mesh'&&element.vertices&&element.faces)).length,'Kintsugi unsupported-element diagnostics diverged from source.');
 
   const hytaleData={
     name:'Hytale prop test',meta:{format_version:'5.0',model_format:'hytale_prop'},
@@ -166,6 +204,28 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   const hytaleResult=await parseBBModel(fileFor(hytaleData));
   assert(hytaleResult.object.userData.bbModelFormat==='hytale_prop','Hytale model format metadata was lost.');
   assert(hytaleResult.object.userData.bbImportedCubes===1,'Hytale cube element was not imported.');
+
+  // Actual Nyra Character+Voxel Project v4 uses named parts and a color palette,
+  // not the generic objects/components schema.
+  const nyraCharacter={
+    format:'Nyra Character+Voxel Project v4',name:'Meu Personagem',
+    colors:{torso:'#263548',head:'#35e5ff',armL:'#d5e2ed',armR:'#d5e2ed',legL:'#56677d',legR:'#56677d'},
+    parts:{
+      torso:{position:[0,2.2,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      head:{position:[0,.88,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      armL:{position:[-.72,.4,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      armR:{position:[.72,.4,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      legL:{position:[-.28,1.55,0],scale:[1,1,1],rotation:[0,0,0],visible:true},
+      legR:{position:[.28,1.55,0],scale:[1,1,1],rotation:[0,0,0],visible:true}
+    },headScaleY:1,voxels:[],objects:[]
+  };
+  const nyraResult=await parseNyraCharacterProject(nyraCharacter,'nyra_personagem.json');
+  const nyraParts=[];
+  nyraResult.object.traverse(node=>{if(node.userData?.nyraJsonPartId)nyraParts.push(node);});
+  assert(nyraParts.length===6,'Nyra v4 JSON must reconstruct six named body parts.');
+  assert(nyraParts.find(node=>node.userData.nyraJsonPartId==='head').material.color==='#35e5ff','Nyra head palette color was not retained.');
+  assert(nyraResult.object.userData.nyraJsonSource.format==='Nyra Character+Voxel Project v4','Nyra JSON source was not preserved.');
+
 
   // External texture fixture mirrors real-world .bbmodel files that reference an image by path.
   const externalTextureFile={name:'shield.png',type:'image/png'};
@@ -187,6 +247,90 @@ function fileFor(data,name='fixture.bbmodel'){return {name,text:async()=>JSON.st
   try{await parseBBModel(fileFor({meta:{},elements:[{uuid:'empty',type:'point'}],outliner:['empty']}));}
   catch(_){invalidRejected=true;}
   assert(invalidRejected,'Unsupported/empty Blockbench model must be rejected before replacing the current scene.');
+
+
+
+  // Preservation contract: metadata and raw source document must remain attached to the imported root.
+  const preservationData={
+    ...cubeData,
+    name:'Preservation contract fixture',
+    meta:{...cubeData.meta,model_format:'bedrock',project_uuid:'project-uuid',box_uv:true},
+    model_identifier:'example:preserved_model',
+    visible_box:[1,2,3],
+    resolution:{width:64,height:32},
+    groups:[
+      {uuid:'group-1',name:'Wing',origin:[1,2,3],rotation:[0,15,0],visibility:true,export:true,locked:true},
+      {uuid:'empty-group',name:'Empty group',origin:[4,5,6],rotation:[0,0,0],visibility:true}
+    ],
+    outliner:[
+      {uuid:'group-1',children:['cube-1']},
+      {uuid:'empty-group',children:[]}
+    ],
+    elements:[
+      {...cubeData.elements[0],inflate:0.25,shade:false,autouv:0,locked:true,export:false,visibility:false}
+    ],
+    animations:[{
+      name:'multi-point animation',length:2,loop:'loop',override:true,animators:{
+        'group-1':{name:'Wing animator',type:'bone',keyframes:[
+          {channel:'position',time:0,data_points:[{x:'0',y:'0',z:'0'},{x:'1',y:'2',z:'3'}],interpolation:'catmullrom',bezier_linked:true},
+          {channel:'position',time:1,data_points:[{x:'2',y:'0',z:'0'}],interpolation:'bezier',bezier_left_time:0.5,bezier_right_time:0.5}
+        ]}
+      }
+    }],
+    unknownExtension:{mustSurviveRoundTrip:true}
+  };
+  const preservationResult=await parseBBModel(fileFor(preservationData,'preservation.bbmodel'));
+  const preserved=preservationResult.sourceData||preservationResult.object.userData.bbSourceDocument;
+  assert(preserved,'Original Blockbench document was not retained in the import result.');
+  assert(preserved.unknownExtension?.mustSurviveRoundTrip===true,'Unknown project metadata was discarded.');
+  assert(preserved.groups[1].uuid==='empty-group','Empty group data was discarded.');
+  assert(preserved.elements[0].inflate===0.25,'Element-level metadata was discarded.');
+  assert(preserved.animations[0].animators['group-1'].keyframes[0].data_points.length===2,'Multiple keyframe data points were discarded from the preserved source.');
+  assert(preservationResult.object.userData.bbSourceDocument?.meta?.project_uuid==='project-uuid','Original document metadata is not attached to the scene root.');
+  const preservedGroup=preservationResult.object.children.find(node=>node.userData?.bbGroupUuid==='empty-group');
+  assert(preservedGroup,'Empty outliner group was not retained as a scene node.');
+
+
+  // Multi-file texture resolution must be deterministic and must not bind an ambiguous basename.
+  const ambiguousA={name:'armor/albedo.png',type:'image/png'};
+  const ambiguousB={name:'skin/albedo.png',type:'image/png'};
+  const ambiguousModel={...meshData,textures:[{uuid:'ambiguous-texture',id:'0',name:'albedo.png',path:'albedo.png'}]};
+  const ambiguousResult=await parseBBModel(fileFor(ambiguousModel,'ambiguous.bbmodel'),[fileFor(ambiguousModel,'ambiguous.bbmodel'),ambiguousA,ambiguousB]);
+  assert(ambiguousResult.object.userData.bbModelWarnings.length>0,'Ambiguous external texture paths must be reported instead of selecting an arbitrary image.');
+
+  // Reject duplicate element UUIDs and invalid free-mesh vertex references without partial scene replacement.
+  const duplicateUuid={...cubeData,elements:[cubeData.elements[0],{...cubeData.elements[0],name:'Duplicate UUID'}]};
+  let duplicateRejected=false;try{await parseBBModel(fileFor(duplicateUuid));}catch(_){duplicateRejected=true;}
+  assert(duplicateRejected,'Duplicate element UUIDs must not be silently collapsed.');
+  const badVertex={...meshData,elements:[{...meshData.elements[0],faces:{bad:{vertices:['a','missing','c'],uv:{a:[0,0],missing:[1,1],c:[1,0]},texture:'texture-uuid'}}}]};
+  let badVertexRejected=false;try{await parseBBModel(fileFor(badVertex));}catch(_){badVertexRejected=true;}
+  assert(badVertexRejected,'Free-mesh faces with missing vertex references must be rejected.');
+
+  // Unsupported non-geometric elements remain visible in the preservation report.
+  const withUnknown={...cubeData,elements:[...cubeData.elements,{uuid:'locator-1',type:'locator',name:'Hand socket',position:[0,0,0]}]};
+  const unknownResult=await parseBBModel(fileFor(withUnknown));
+  assert(unknownResult.object.userData.bbSourceDocument.elements.some(element=>element.type==='locator'),'Unsupported source element was not preserved in the raw source document.');
+  assert(unknownResult.object.userData.bbUnsupportedElementCount>=1,'Unsupported source element count must be exposed to the compatibility report.');
+
+
+
+  // The importer must reject duplicated source UUIDs rather than silently binding the first item.
+  const duplicateSource={...cubeData,elements:[cubeData.elements[0],{...cubeData.elements[0],name:'duplicate'}]};
+  let duplicateSourceRejected=false;
+  try{await parseBBModel(fileFor(duplicateSource));}catch(error){duplicateSourceRejected=String(error.message).includes('UUIDs duplicados');}
+  assert(duplicateSourceRejected,'Duplicate Blockbench UUIDs must be reported as an invalid source document.');
+
+  // Outliner is a required source hierarchy and must not be guessed when absent.
+  const noOutliner={...cubeData};delete noOutliner.outliner;
+  let noOutlinerRejected=false;
+  try{await parseBBModel(fileFor(noOutliner));}catch(error){noOutlinerRejected=String(error.message).includes('outliner');}
+  assert(noOutlinerRejected,'Missing outliner must be rejected, not silently flattened.');
+
+  // Source elements not represented by current Three geometry are counted for compatibility diagnostics.
+  const unsupportedSource={...cubeData,elements:[...cubeData.elements,{uuid:'locator-unsupported',type:'locator',name:'Hand socket'}]};
+  const unsupportedResult=await parseBBModel(fileFor(unsupportedSource));
+  assert(unsupportedResult.object.userData.bbUnsupportedElementCount===1,'Unsupported Blockbench element count was not surfaced.');
+  assert(unsupportedResult.object.userData.bbSourceDocument.elements.some(item=>item.uuid==='locator-unsupported'),'Unsupported source element must remain preserved in raw document snapshot.');
 
   console.log('PASS: Blockbench cube/UV import, free-mesh triangulation/material groups, Hytale geometry, animation clips, external texture matching, and missing-texture warnings.');
 })().catch(error=>{console.error('FAIL: '+error.stack);process.exit(1);});

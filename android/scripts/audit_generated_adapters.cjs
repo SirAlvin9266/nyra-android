@@ -164,6 +164,24 @@ const blockbenchMarkers = [
   'bbImportedMeshes',
   'bbModelAnimationCount',
   "extension==='bbmodel'",
+  "extension==='json'",
+  'parseNyraCharacterProject',
+  'nyraExportBB',
+  'function createBBModelDocument()',
+  'function validateBBModelDocument(documentData)',
+  'function createRoundTripAuditDocument()',
+  'function exportBBModelBlob()',
+  'function refreshModelInspector()',
+  'id="nyraInspector"',
+  'nyraMapHierarchy',
+  'nyraMapMetadata',
+  'nyraMapGeometry',
+  'nyraMapUV',
+  'nyraMapMaterials',
+  'nyraMapTransforms',
+  'nyraMapRig',
+  'nyraMapDependencies',
+  'nyraMapCompatibility',
 ];
 const requiredExportMarkers = [
   'HTMLAnchorElement.prototype.click',
@@ -189,7 +207,7 @@ for (const [name, page] of Object.entries(generated)) {
     }
   }
 
-  for (const marker of [...(requiredByEditor[name] || []), ...requiredExportMarkers, ...(name === 'character' ? ['NyraModelIO', 'Importar modelo 3D', 'editor.selectModel(object)', 'previousModel=importedModel', 'candidateInScene=true', 'animations:importedAnimations', 'function validateMathDocument(', 'function buildMathModel(', 'function geometryForMathComponent(', 'function generateMathModel(', 'async function parseBBModel(file,files=[])', 'function bbCoordinate(', 'function bbEuler(', 'new THREE.TextureLoader()', 'new THREE.BufferGeometry()', 'new THREE.BoxGeometry(', 'bbImportedMeshes', 'bbModelAnimationCount', "extension==='bbmodel'"] : [])]) {
+  for (const marker of [...(requiredByEditor[name] || []), ...requiredExportMarkers, ...(name === 'character' ? ['NyraModelIO', 'Importar modelo 3D', 'editor.selectModel(object)', 'previousModel=importedModel', 'candidateInScene=true', 'animations:importedAnimations', 'function validateMathDocument(', 'function buildMathModel(', 'function geometryForMathComponent(', 'function generateMathModel(', 'async function parseBBModel(file,files=[])', 'function bbCoordinate(', 'function bbEuler(', 'new THREE.TextureLoader()', 'new THREE.BufferGeometry()', 'new THREE.BoxGeometry(', 'bbImportedMeshes', 'bbModelAnimationCount', "extension==='bbmodel'", "extension==='json'", 'parseNyraCharacterProject', 'nyraExportBB', 'function createBBModelDocument()'] : [])]) {
     if (!page.includes(marker)) {
       console.error('FAIL: generated ' + name + ' document is missing ' + marker);
       process.exitCode = 1;
@@ -227,7 +245,7 @@ for (const [name, page] of Object.entries(generated)) {
   }
   if (name === 'character' && moduleIndex >= 0) {
     const moduleStart = page.lastIndexOf('<script type="module">', moduleIndex);
-    const moduleEnd = page.indexOf('</script>', moduleIndex);
+    const moduleEnd = page.indexOf('<\\/script>', moduleIndex);
     if (moduleStart < 0 || moduleEnd < 0) {
       console.error('FAIL: final Character Editor model I/O module block is incomplete');
       process.exitCode = 1;

@@ -1,0 +1,125 @@
+{
+  "format": "Nyra Character+Voxel Project v4",
+  "name": "Meu Personagem",
+  "colors": {
+    "torso": "#263548",
+    "head": "#35e5ff",
+    "armL": "#d5e2ed",
+    "armR": "#d5e2ed",
+    "legL": "#56677d",
+    "legR": "#56677d"
+  },
+  "parts": {
+    "torso": {
+      "position": [
+        0,
+        2.2,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "visible": true
+    },
+    "head": {
+      "position": [
+        0,
+        0.88,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "visible": true
+    },
+    "armL": {
+      "position": [
+        -0.72,
+        0.4,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "visible": true
+    },
+    "armR": {
+      "position": [
+        0.72,
+        0.4,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "visible": true
+    },
+    "legL": {
+      "position": [
+        -0.28,
+        1.55,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "visible": true
+    },
+    "legR": {
+      "position": [
+        0.28,
+        1.55,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "visible": true
+    }
+  },
+  "headScaleY": 1,
+  "voxels": [],
+  "objects": []
+}

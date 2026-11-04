@@ -328,6 +328,19 @@ public class MainActivity extends Activity {
                 Uri[] result = resultCode == RESULT_OK
                     ? collectSelectedUris(data, allowMultiple)
                     : null;
+                if (result != null) {
+                    for (Uri uri : result) {
+                        try {
+                            getContentResolver().takePersistableUriPermission(
+                                uri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            );
+                        } catch (SecurityException ignored) {
+                            // Some document providers grant only a transient read
+                            // permission; WebView can still read during this session.
+                        }
+                    }
+                }
                 callback.onReceiveValue(result);
             }
             return;
