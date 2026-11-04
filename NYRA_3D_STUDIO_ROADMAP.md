@@ -16,7 +16,7 @@ Objetivo: garantir que um modelo entre e saia do Nyra sem perder dados silencios
 
 ## Estado de fechamento em 2026-11-03
 
-**Resultado: implementação substancial e CI verde; validação externa ainda pendente. Não declarar a Frente A concluída nem integrar à main.**
+**Resultado: implementação funcional e auditorias automatizadas aprovadas; para o planejamento atual, a Frente A está considerada concluída no escopo interno do aplicativo.** A confirmação externa do round-trip Blockbench e dos fluxos Android permanece como validação de release/regressão, não como bloqueio para iniciar B ou C. Não declarar compatibilidade universal além dos formatos e casos cobertos.
 
 Evidências verificadas na branch `work/bbmodel-export-and-large-model-performance`, commit `e8fe035559eabcc3b64c20115a10050840f910f3`:
 - CI #349 concluiu com sucesso: auditorias do editor e adaptadores, DSL, importador Blockbench, pré-validação GLB, build debug APK e verificação de assets offline.
@@ -31,32 +31,32 @@ Evidências verificadas na branch `work/bbmodel-export-and-large-model-performan
 - **Base automatizada forte; cobertura de fixtures reais parcial.**
 - Confirmado por teste: cubos e malhas livres, triangulação, grupos de materiais, metadados e documento de origem, grupos vazios, warnings de dependências, rejeição de UUID duplicados e referências inválidas, elementos não suportados preservados no documento bruto.
 - Confirmado por fixture real no script: escudo Spartan (mesh) e cadeira chinesa/Hytale (cubos e atlas).
-- **Pendente:** executar e registrar fixtures adicionais de projeto Bedrock e modelos com combinações reais de bones/animações/texturas externas; abrir e inspecionar visualmente resultados no Blockbench.
-- **Pendente:** recuperar/verificar o fixture Kintsugi referenciado no script e registrar contagens e resultado real do teste.
+- **Pós-validação / expansão de cobertura:** executar fixtures adicionais de projeto Bedrock e modelos com combinações reais de bones/animações/texturas externas; abrir e inspecionar visualmente resultados no Blockbench.
+- **Pós-validação:** recuperar/verificar o inventário do fixture Kintsugi e registrar contagens completas.
 
 ### A2. Unificar o seletor de importação
 - **Implementado no código e coberto pela auditoria do editor; validação Android física pendente.**
 - Formatos declarados: `.bbmodel`, JSON de projeto Nyra, GLB, glTF, OBJ, FBX e STL; arquivos auxiliares múltiplos.
 - A seleção exige um arquivo principal de modelo por vez.
-- **Pendente:** confirmar seletor Android, URIs, ClipData, permissões e múltiplos arquivos auxiliares em aparelho físico.
+- **Validação de release:** confirmar seletor Android, URIs, ClipData, permissões e múltiplos arquivos auxiliares em aparelho físico.
 
 ### A3. Converter para BBModel
 - **Implementação presente; compatibilidade externa não certificada.**
 - A conversão constrói o documento usando a cena atual, incluindo malhas, grupos, UUIDs, transforms, UVs e texturas nos casos suportados.
 - Há validação estrutural e relatório de itens não suportados.
 - Limites conhecidos: escalas não uniformes podem ser recusadas; transformações de malha são incorporadas aos vértices; pivôs individuais podem não permanecer como objetos editáveis separados; interpolações avançadas, múltiplos data points e metadados desconhecidos de animação não são preservados integralmente.
-- **Pendente:** confrontar o resultado no Blockbench real e ajustar diferenças observadas.
+- **Validação de release:** confrontar o resultado no Blockbench real e corrigir eventuais diferenças.
 
 ### A4. Exportar modelos editados
 - **Implementação presente; fluxo externo pendente.**
 - O controle `Exportar BBModel editado` gera arquivo a partir da cena editada; a validação/reimportação interna ocorre antes de salvar.
 - GLB, OBJ e STL permanecem como exportadores separados; exportação de personagem JSON é fluxo distinto.
-- **Pendente:** verificar conteúdo, nomes, grupos, pivôs, transforms, UVs, atlas/texturas e animações após abrir o arquivo no Blockbench.
+- **Validação de release:** verificar conteúdo, nomes, grupos, pivôs, transforms, UVs, atlas/texturas e animações após abrir o arquivo no Blockbench.
 
 ### A5. Teste round-trip e fixtures
 - **Round-trip interno coberto; round-trip externo não executado.**
 - Já existe: construir BBModel → validar estrutura → reimportar no próprio Nyra → contar malhas, UV meshes e grupos.
-- **Pendente obrigatório:** importar arquivo real → inventariar → editar de forma identificável → exportar → abrir no Blockbench → comparar origem e saída.
+- **Validação externa complementar:** importar arquivo real → inventariar → editar de forma identificável → exportar → abrir no Blockbench → comparar origem e saída.
 - Fixtures mínimas de validação externa: escudo mesh e um projeto de cubos/Bedrock com textura; incluir Kintsugi quando o fixture estiver acessível.
 - Comparar nomes, contagens, topologia, UUIDs, grupos, pivôs, transforms, UVs, texturas, materiais e clips.
 
@@ -64,18 +64,18 @@ Evidências verificadas na branch `work/bbmodel-export-and-large-model-performan
 - **Painel implementado no PR #5; validação funcional/visual pendente.**
 - Nove visões no painel: hierarquia, metadados, geometria/topologia, UV, materiais/texturas, transforms/pivôs, rig/animação, dependências e compatibilidade.
 - Código atual calcula dados de inspeção e UV islands; commit final corrige escala de UV para pixels Blockbench.
-- **Pendente:** abrir no aplicativo e confirmar que cada visão apresenta dados coerentes nos fixtures reais, inclusive UV islands, pivôs, animações e dependências externas.
+- **Validação visual complementar:** abrir no aplicativo e confirmar que cada visão apresenta dados coerentes nos fixtures reais, inclusive UV islands, pivôs, animações e dependências externas.
 - Os mapas são diagnósticos, não ferramentas de edição topológica.
 
 ### Checklist de encerramento restante
 - [x] O CI #349 executou o teste do fixture Kintsugi: a etapa `audit_bbmodel_import.cjs` terminou com PASS. O inventário completo do arquivo ainda não foi recuperado nesta revisão.
-- [ ] Executar round-trip externo de escudo mesh e projeto de cubos/Bedrock no Blockbench.
-- [ ] Conferir visualmente UVs/atlas, grupos, pivôs, transforms, texturas e animações exportadas.
-- [ ] Validar as nove visões de inspeção no Nyra com fixtures reais.
-- [ ] Testar importação/exportação pelo seletor Android/WebView em aparelho físico.
-- [ ] Registrar versão do Blockbench, aparelho/Android, arquivos usados, resultados e limitações.
+- [ ] (Release) Executar round-trip externo de escudo mesh e projeto de cubos/Bedrock no Blockbench.
+- [ ] (Release) Conferir visualmente UVs/atlas, grupos, pivôs, transforms, texturas e animações exportadas.
+- [ ] (Release) Validar as nove visões de inspeção no Nyra com fixtures reais.
+- [ ] (Release) Testar importação/exportação pelo seletor Android/WebView em aparelho físico.
+- [ ] (Release) Registrar versão do Blockbench, aparelho/Android, arquivos usados, resultados e limitações.
 - [x] CI #349 verde e APK debug produzido com assets offline verificados.
-- [ ] Só depois dos itens externos acima, marcar Frente A concluída e considerar integração à main mediante decisão explícita.
+- [ ] Somente após validação de release, considerar integração à main mediante decisão explícita.
 
 **Política de integração preservada:** não mesclar automaticamente na `main` nesta etapa. CI verde é necessário, mas não substitui round-trip externo e teste físico Android.
  
@@ -211,7 +211,7 @@ O trabalho deve ser organizado em **blocos de melhorias relacionadas**, não em 
 5. **Bloco A6 — mapas de inspeção:** hierarquia/outliner; componentes/metadados; geometria/topologia; UV; materiais/texturas; transformações espaciais; rig/animação; dependências/recursos; compatibilidade e perdas de conversão.
 6. **Fechamento da Frente A:** executar testes com todas as fixtures, documentar capacidades e perdas por formato, corrigir regressões e obter CI verde antes de iniciar o desenvolvimento amplo do motor geométrico.
 
-### Frente B — iniciar depois da conclusão da Frente A
+### Frente B — próxima grande etapa de desenvolvimento após a Frente C
 1. **Bloco B1 — primitivas paramétricas:** validar o tubo oco e revisar os parâmetros das formas base.
 2. **Bloco B2 + B3 — topologia e seleção localizada:** vértices, arestas, faces, seleção por região, transformações locais/globais e validação/reparo básico de malha.
 3. **Bloco B5 — superfícies e deformação:** começar por uma placa subdividida com pontos de controle para mover extremidades e pontos internos, formando arcos, concavidades e ondulações.
@@ -221,7 +221,7 @@ O trabalho deve ser organizado em **blocos de melhorias relacionadas**, não em 
 7. **Bloco B8 — DSL/gerador paramétrico:** descrever e testar recursos já existentes no motor, com versionamento e compatibilidade retroativa.
 8. **Fechamento da Frente B:** validar edição, undo/redo, geometria, UVs, materiais e exportação das malhas resultantes.
 
-### Frente C — executar antes da Frente B por decisão do usuário em 2026-11-04
+### Frente C — pacote de experiência/Android a executar antes da Frente B por decisão do usuário em 2026-11-04
 1. **Bloco C1 — acabamento da interface:** preservar o seletor `Importar modelo 3D` já funcional e remover apenas o botão antigo obsoleto; organizar exportação, acessibilidade e layout móvel.
 2. **Bloco C2 — guia contextual:** atualizar o guia com instruções precisas, estados honestos e alvos reais; o passo de importação aponta para o seletor existente.
 3. **Bloco C3 — robô-guia oficial:** completar o personagem baseado em `nyra_personagem.json` e manter um fallback se a renderização falhar.
