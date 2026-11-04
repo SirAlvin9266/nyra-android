@@ -149,18 +149,18 @@ Objetivo: evoluir o Nyra de um editor centrado em primitivas para um ambiente em
 Objetivo: fazer as capacidades serem compreensíveis, utilizáveis no telefone e confiáveis em modelos pequenos e grandes.
 
 ### C1. Corrigir layout e ações duplicadas
-- **Planejado.** Retirar o segundo botão de importação e consolidar `.bbmodel`/`.json` no seletor principal.
+- **Correção de escopo:** o botão `Importar modelo 3D` e o seletor `nyraModelFiles` já são o fluxo funcional principal e já aceitam `.bbmodel` e `.json` Nyra. A alteração necessária é somente remover o botão antigo/obsoleto, sem recriar, substituir ou alterar a lógica do seletor atual.
 - Mover exportação `.bbmodel` para o grupo de exportação 3D perto de GLB/OBJ/STL.
 - Deixar Exportar personagem JSON separado, pois é outro formato/fluxo.
 - Conferir quebra de linha, acessibilidade, tamanho de toque e ordem visual no Android.
 
 ### C2. Guia interativo específico e contextual
-- **Parcial.** O guia já foi ampliado em texto na branch, mas precisa validar seus alvos na WebView e cobrir cada função.
+- **Parcial.** Texto do passo de importação corrigido para apontar ao seletor funcional existente; ainda validar alvos e cobertura na WebView. O guia já foi ampliado em texto na branch, mas precisa validar seus alvos na WebView e cobrir cada função.
 - Diferenciar objeto, grupo, malha, vértice, aresta, face e superfície.
 - Ensinar primitivas, perfis e superfícies; subdividir e selecionar elementos.
 - Ensinar movimentação/deformação local, extrusão, loft, espessura, camadas e pregas quando implementados.
 - Explicar mapeamentos e inspeção de geometria, UV, materiais, pivôs e animações.
-- Importação `.bbmodel`/`.json`, arquivos auxiliares e resolução de texturas.
+- Importação `.bbmodel`/`.json` pelo botão funcional atual `Importar modelo 3D`, arquivos auxiliares e resolução de texturas.
 - Diferenciar Converter para BBModel de Exportar.
 - Explicar perdas/limitações de GLB, OBJ, STL e BBModel.
 - Incluir salvamento, backup, undo/redo e operações destrutivas.
@@ -169,7 +169,8 @@ Objetivo: fazer as capacidades serem compreensíveis, utilizáveis no telefone e
 - Guia não deve ensinar uma função futura como se ela já estivesse no app.
 
 ### C3. Robô-guia oficial
-- **Planejado.** Fonte de identidade: `nyra_personagem.json`.
+- **Planejado.** Fonte de identidade: `nyra_personagem.json` (incluído nesta branch em `docs/sources/nyra_personagem.json`).
+- O arquivo enviado contém seis partes principais (`torso`, `head`, `armL`, `armR`, `legL`, `legR`), cores, posições, escalas, rotações e visibilidade. Os arrays `voxels` e `objects` estão vazios; portanto, é uma especificação estrutural, não uma malha 3D pronta.
 - A base é Character+Voxel v4, com seis partes principais, cores e transforms, mas `voxels` e `objects` vazios.
 - Construir o visual oficial a partir dessa base; não confundir o arquivo estrutural com um personagem finalizado.
 - Manter o guia operável mesmo se o modelo 3D do robô falhar; fallback e erros isolados.
@@ -196,12 +197,9 @@ Objetivo: fazer as capacidades serem compreensíveis, utilizáveis no telefone e
 
 ## Prioridade definida pelo usuário
 
-A ordem principal do projeto foi definida assim:
-1. **Frente A completa**, começando pelo bloco A1 (auditoria e preservação da importação Blockbench) e avançando pelas tarefas relacionadas A1–A6.
-2. **Frente B completa**, depois de estabilizar interoperabilidade, conversão e mapas.
-3. **Frente C completa**, depois das frentes A e B.
+A Frente A permanece com as pendências externas documentadas; não declarar conclusão sem validação real. Em 2026-11-04, o usuário autorizou antecipar a **Frente C completa** antes da Frente B, por considerá-la mais rápida e por querer priorizar experiência de uso e robô-guia. Após concluir C, retomar a **Frente B completa**. Nenhuma pendência da A ou B deve ser descartada.
 
-O trabalho deve ser organizado em **blocos de melhorias relacionadas**, não em pequenas tarefas isoladas sem contexto. As dependências internas podem determinar a ordem exata dentro de cada frente, mas não devem inverter a sequência principal A → B → C sem uma necessidade técnica claramente explicada e aceita pelo usuário.
+O trabalho deve ser organizado em **blocos de melhorias relacionadas**, não em pequenas tarefas isoladas sem contexto.
 
 ## Ordem de execução em blocos
 
@@ -223,9 +221,9 @@ O trabalho deve ser organizado em **blocos de melhorias relacionadas**, não em 
 7. **Bloco B8 — DSL/gerador paramétrico:** descrever e testar recursos já existentes no motor, com versionamento e compatibilidade retroativa.
 8. **Fechamento da Frente B:** validar edição, undo/redo, geometria, UVs, materiais e exportação das malhas resultantes.
 
-### Frente C — iniciar depois da conclusão da Frente B
-1. **Bloco C1 — acabamento da interface:** organizar importação e exportação, botões, acessibilidade e layout móvel com as funções reais já consolidadas.
-2. **Bloco C2 — guia contextual:** atualizar o guia com instruções precisas para as funções implementadas, estados honestos e alvos reais da interface.
+### Frente C — executar antes da Frente B por decisão do usuário em 2026-11-04
+1. **Bloco C1 — acabamento da interface:** preservar o seletor `Importar modelo 3D` já funcional e remover apenas o botão antigo obsoleto; organizar exportação, acessibilidade e layout móvel.
+2. **Bloco C2 — guia contextual:** atualizar o guia com instruções precisas, estados honestos e alvos reais; o passo de importação aponta para o seletor existente.
 3. **Bloco C3 — robô-guia oficial:** completar o personagem baseado em `nyra_personagem.json` e manter um fallback se a renderização falhar.
 4. **Bloco C4 — desempenho de modelos grandes:** instrumentar e comparar o mesmo arquivo no mesmo dispositivo; otimizar parse, geometria, materiais, texturas, draw calls, memória e renderização sem degradar silenciosamente.
 5. **Bloco C5 — robustez e validação Android:** regressões, URIs/arquivos, armazenamento, rotação/retomada, assets offline, build e ensaio físico.
