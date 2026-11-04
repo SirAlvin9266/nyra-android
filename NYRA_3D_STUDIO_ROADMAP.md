@@ -68,7 +68,7 @@ Evidências verificadas na branch `work/bbmodel-export-and-large-model-performan
 - Os mapas são diagnósticos, não ferramentas de edição topológica.
 
 ### Checklist de encerramento restante
-- [ ] Recuperar e confirmar fixture Kintsugi, registrar inventário e resultado do teste.
+- [x] O CI #349 executou o teste do fixture Kintsugi: a etapa `audit_bbmodel_import.cjs` terminou com PASS. O inventário completo do arquivo ainda não foi recuperado nesta revisão.
 - [ ] Executar round-trip externo de escudo mesh e projeto de cubos/Bedrock no Blockbench.
 - [ ] Conferir visualmente UVs/atlas, grupos, pivôs, transforms, texturas e animações exportadas.
 - [ ] Validar as nove visões de inspeção no Nyra com fixtures reais.
