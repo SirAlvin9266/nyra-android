@@ -265,6 +265,49 @@ public class MainActivity extends Activity {
         }
     }
 
+    @JavascriptInterface
+    public String getRebuildableCacheReport() {
+        File directory = new File(getCacheDir(), "nyra-rebuildable");
+        long bytes = 0L;
+        int files = 0;
+        if (directory.isDirectory()) {
+            File[] entries = directory.listFiles();
+            if (entries != null) {
+                for (File entry : entries) {
+                    if (entry.isFile()) {
+                        bytes += entry.length();
+                        files++;
+                    }
+                }
+            }
+        }
+        return "{\"files\":" + files + ",\"bytes\":" + bytes + "}";
+    }
+
+    @JavascriptInterface
+    public boolean clearRebuildableCache() {
+        synchronized (completedExports) {
+            if (!transfers.isEmpty() || pendingDocument != null || !completedExports.isEmpty() || documentPickerOpen) {
+                return false;
+            }
+        }
+        File directory = new File(getCacheDir(), "nyra-rebuildable");
+        if (!directory.exists()) return true;
+        File[] entries = directory.listFiles();
+        if (entries == null) return false;
+        boolean success = true;
+        for (File entry : entries) {
+            if (entry.isFile() && entry.getName().startsWith("nyra-export-")) {
+                success &= entry.delete();
+            }
+        }
+        File[] remaining = directory.listFiles();
+        if (success && remaining != null && remaining.length == 0) {
+            success = directory.delete();
+        }
+        return success;
+    }
+
     private void discardTransfer(String token, ExportTransfer transfer) {
         transfers.remove(token);
         transfer.file.delete();
