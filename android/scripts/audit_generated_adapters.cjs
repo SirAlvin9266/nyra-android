@@ -173,21 +173,34 @@ if (modelToolsAssignmentStart < 0 || modelToolsLiteralEnd < 0) {
 }
 const literal = outerSourceForExecution.slice(modelToolsLiteralStart, modelToolsLiteralEnd + 1);
 function decodeJsStringLiteral(source) {
-  if (source[0] !== '"' || source[source.length - 1] !== '"') throw new Error('Expected a double-quoted modelTools literal');
+  if (source[0] !== '"' || source[source.length - 1] !== '"') {
+    throw new Error('Expected a double-quoted modelTools literal');
+  }
   let value = '';
   for (let i = 1; i < source.length - 1; i++) {
     const ch = source[i];
-    if (ch !== '\\\\') { value += ch; continue; }
+    if (ch !== '\\') {
+      value += ch;
+      continue;
+    }
     const next = source[++i];
-    if (next === 'n') value += '\\n';
-    else if (next === 'r') value += '\\r';
-    else if (next === 't') value += '\\t';
-    else if (next === '"' || next === '\\\\' || next === "'") value += next;
-    else if (next === 'x') { value += String.fromCharCode(parseInt(source.slice(i + 1, i + 3), 16)); i += 2; }
-    else if (next === 'u') { value += String.fromCharCode(parseInt(source.slice(i + 1, i + 5), 16)); i += 4; }
-    else value += next;
+    if (next === 'n') value += '\n';
+    else if (next === 'r') value += '\r';
+    else if (next === 't') value += '\t';
+    else if (next === '"' || next === "'" || next === '\\') value += next;
+    else if (next === 'x') {
+      value += String.fromCharCode(parseInt(source.slice(i + 1, i + 3), 16));
+      i += 2;
+    } else if (next === 'u') {
+      value += String.fromCharCode(parseInt(source.slice(i + 1, i + 5), 16));
+      i += 4;
+    } else {
+      value += next;
+    }
   }
-  return value;
+  // The host stores HTML inside a string embedded in a second script string.
+  // Decode one more escape layer so the assembled HTML has normal attribute quotes.
+  return value.replace(/\\\\(["'])/g, '$1').replace(/\\\\\\\\/g, '\\\\');
 }
 const modelToolsHtml = decodeJsStringLiteral(literal);
 if (typeof modelToolsHtml !== 'string' ||
