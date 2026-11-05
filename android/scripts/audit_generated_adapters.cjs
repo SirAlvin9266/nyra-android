@@ -182,7 +182,7 @@ function decodeJsStringLiteral(source) {
   return value;
 }
 const modelToolsHtml = decodeJsStringLiteral(literal);
-if (typeof modelToolsHtml !== 'string' || !modelToolsHtml.includes('id=\\\\"nyraModelIO\\\\"')) {
+if (typeof modelToolsHtml !== 'string' || !/<div\\s+id=["']nyraModelIO["']/.test(modelToolsHtml)) {
   throw new Error('Recovered modelTools payload is not the expected model I/O HTML');
 }
 generated.character = generated.character.replace('</main>', modelToolsHtml + '</main>');
