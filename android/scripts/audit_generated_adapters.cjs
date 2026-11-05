@@ -154,8 +154,16 @@ const generated = vm.runInContext(`({
   animation: addAndroidExportAdapter(decodePage(pages.animation), 'animation')
 })`, context);
 
-// The sanitized bootstrap uses an empty modelTools placeholder for evaluation.
-// Reattach the exact model I/O HTML source extracted from the host adapter.
+// Restore the exact serialized module in the generated Character document.
+// The VM bootstrap used an empty placeholder only to avoid evaluating module HTML.
+const modelToolsAssignmentStart = outerSourceForExecution.indexOf('const modelTools = "');
+const modelToolsLiteralStart = modelToolsAssignmentStart + 'const modelTools = '.length;
+const modelToolsLiteralEnd = outerSourceForExecution.indexOf('";', modelToolsLiteralStart);
+if (modelToolsAssignmentStart < 0 || modelToolsLiteralEnd < 0) {
+  throw new Error('Could not recover the original modelTools literal');
+}
+const modelToolsHtml = vm.runInNewContext('(' + outerSourceForExecution.slice(modelToolsLiteralStart, modelToolsLiteralEnd + 1) + ')');
+generated.character = generated.character.replace('</main>', modelToolsHtml + '</main>');
 const requiredByEditor = {
   items: ['/assets/www/vendor/jszip/jszip.min.js'],
   character: ['/assets/www/vendor/three/build/three.module.js'],
