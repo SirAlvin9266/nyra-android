@@ -77,14 +77,22 @@ const document = {
   },
   querySelectorAll() { return []; },
   createElement(tag) {
-    return {
+    const element = {
       tagName: String(tag).toUpperCase(),
       style: {},
       dataset: {},
       classList: { toggle() {} },
       setAttribute() {},
       addEventListener() {},
+      contentWindow: {},
     };
+    if (String(tag).toLowerCase() === 'iframe') {
+      Object.defineProperty(element, 'srcdoc', {
+        get() { return this._srcdoc || ''; },
+        set(value) { this._srcdoc = value; },
+      });
+    }
+    return element;
   },
   addEventListener() {},
 };
