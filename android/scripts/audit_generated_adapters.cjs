@@ -196,8 +196,9 @@ if (typeof modelToolsHtml !== 'string' ||
     !modelToolsHtml.includes('nyraExportJSON')) {
   throw new Error('Recovered modelTools payload is not the expected model I/O HTML');
 }
-const characterPanelEnd = generated.character.indexOf('</div></section></main>');
-if (characterPanelEnd < 0) throw new Error('Character panel closing wrapper not found for modelTools insertion');
+const panelEndMarker = '</div></section></main>';
+const characterPanelEnd = generated.character.indexOf(panelEndMarker);
+if (characterPanelEnd < 0) throw new Error('Character panelEnd marker not found in adapted editor document');
 generated.character =
   generated.character.slice(0, characterPanelEnd) +
   modelToolsHtml +
