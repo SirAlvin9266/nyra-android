@@ -293,7 +293,7 @@ A implementação da Frente C foi consolidada na branch `work/nyra-front-c-close
 - C1: seletor original preservado; JSON Scene Project v1 separado de Character+Voxel v4; estados de exportação corrigidos após importação.
 - C2: 23 etapas do guia preservadas, com a documentação dos formatos e alvos reais.
 - C3: robô carrega a fonte oficial empacotada em `assets/www/nyra_personagem.json`, valida o esquema e mantém fallback 2D. Os arrays vazios `voxels` e `objects` significam que o modelo ainda usa partes proxy.
-- C4: instrumentação por estágios de leitura/parse e relatório de desempenho disponíveis; benchmark e otimização física continuam como gates de release.
-- C5: temporários de exportação isolados em `nyra-rebuildable`, com consulta/limpeza segura bloqueada durante operações ativas. Isso não equivale a armazenamento de projetos nem cache genérico de cenas.
+- C4: instrumentação por estágios de leitura/parse, construção/commit da cena e duração total; relatório de desempenho disponível. Benchmark e otimização física continuam como gates de release.
+- C5: temporários de exportação isolados em `nyra-rebuildable`, com consulta/limpeza segura bloqueada durante operações ativas, orçamento agregado de 512 MiB, limite individual de 256 MiB e retenção automática de 7 dias para temporários abandonados. Isso não equivale a armazenamento de projetos nem cache genérico de cenas.
 
 **Frente B permanece separada e pendente, conforme ordem definida pelo usuário.** A `main` continua protegida; não integrar automaticamente esta branch.
