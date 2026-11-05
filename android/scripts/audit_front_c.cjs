@@ -26,7 +26,7 @@ const model = modelStart >= 0 && modelEnd > modelStart ? html.slice(modelStart, 
 const guideStart = html.indexOf('const nyraGuideSteps=[');
 const guideEnd = html.indexOf('let nyraGuideRobotRuntime=null', guideStart);
 const guide = guideStart >= 0 && guideEnd > guideStart ? html.slice(guideStart, guideEnd) : '';
-const guideCount = (guide.match(/\\{title:/g) || []).length;
+const guideCount = (guide.match(/\{title:/g) || []).length;
 if (guideCount !== 23) failures.push('Expected 23 guide steps, found ' + guideCount);
 
 for (const marker of [
