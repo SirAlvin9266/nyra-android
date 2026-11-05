@@ -130,7 +130,10 @@ if (!html.includes("frame.style.cssText='display:block") ||
 // template string. Replace only that template with a no-op for VM bootstrap
 // evaluation; the adapter source itself is inspected through markers below and
 // its assembled generated editor module is syntax-checked further down.
-checkJs('outer app bootstrap', outerSourceForExecution);
+// The nested modelTools payload is a serialized HTML document containing a module script.
+ // Its complete assembled module is syntax-checked below after the host adapters create it.
+ // Check the shell bootstrap with only that nested payload neutralized.
+
 const bootstrapForTest = outerSourceForExecution.replace(
   /const modelTools = [\\s\\S]*?;\\s*if \(html\.toLowerCase\(\)\.includes\(modelTools\)\) \{[\\s\\S]*?\\n \\}\\n/ ,
   'const modelTools = "";\\n'
