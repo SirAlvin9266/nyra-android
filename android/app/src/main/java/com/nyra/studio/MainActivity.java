@@ -211,7 +211,9 @@ public class MainActivity extends Activity {
                 String safe = safeFilename(filename, "nyra-export.bin");
                 String mime = (mimeType == null || mimeType.trim().isEmpty()) ? "application/octet-stream" : mimeType.trim();
                 if (mime.length() > 120 || mime.contains("\r") || mime.contains("\n")) mime = "application/octet-stream";
-                File cacheRoot = new File(getCacheDir(), "nyra-rebuildable");\n                if (!cacheRoot.exists() && !cacheRoot.mkdirs()) throw new IllegalStateException("Não foi possível criar o cache temporário Nyra.");\n                File temp = File.createTempFile("nyra-export-", ".tmp", cacheRoot);
+                File cacheRoot = new File(getCacheDir(), "nyra-rebuildable");
+                if (!cacheRoot.exists() && !cacheRoot.mkdirs()) throw new IllegalStateException("Não foi possível criar o cache temporário Nyra.");
+                File temp = File.createTempFile("nyra-export-", ".tmp", cacheRoot);
                 String token = UUID.randomUUID().toString();
                 transfers.put(token, new ExportTransfer(safe, mime, temp));
                 return token;
