@@ -164,7 +164,24 @@ if (modelToolsAssignmentStart < 0 || modelToolsLiteralEnd < 0) {
 }
 // Extract the quoted JavaScript string without evaluating the outer bootstrap.
 const literal = outerSourceForExecution.slice(modelToolsLiteralStart, modelToolsLiteralEnd + 1);
-const modelToolsHtml = vm.runInNewContext('(' + literal + ')', context, { filename: 'nyra-model-tools-literal.js' });
+function decodeJsStringLiteral(source) {
+  if (source[0] !== '"' || source[source.length - 1] !== '"') throw new Error('Expected a double-quoted modelTools literal');
+  let value = '';
+  for (let i = 1; i < source.length - 1; i++) {
+    const ch = source[i];
+    if (ch !== '\\\\') { value += ch; continue; }
+    const next = source[++i];
+    if (next === 'n') value += '\\n';
+    else if (next === 'r') value += '\\r';
+    else if (next === 't') value += '\\t';
+    else if (next === '"' || next === '\\\\' || next === "'") value += next;
+    else if (next === 'x') { value += String.fromCharCode(parseInt(source.slice(i + 1, i + 3), 16)); i += 2; }
+    else if (next === 'u') { value += String.fromCharCode(parseInt(source.slice(i + 1, i + 5), 16)); i += 4; }
+    else value += next;
+  }
+  return value;
+}
+const modelToolsHtml = decodeJsStringLiteral(literal);
 if (typeof modelToolsHtml !== 'string' || !modelToolsHtml.includes('id=\\\\"nyraModelIO\\\\"')) {
   throw new Error('Recovered modelTools payload is not the expected model I/O HTML');
 }
