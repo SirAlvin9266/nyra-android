@@ -156,22 +156,21 @@ const bootstrapForTest =
 const generatedEditorSource = outerSourceForExecution;
 vm.runInContext(bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
 
-const generated = {};
-// The host opens the Character editor during bootstrap. Capture that real iframe
-// document from appendChild instead of invoking its closure-scoped loadEditor.
-const characterFrame = frames.find(frame => typeof frame.srcdoc === 'string' && frame.srcdoc.includes('id="view"'));
-generated.character = characterFrame ? characterFrame.srcdoc : '';
-if (!generated.character) throw new Error('Host bootstrap did not produce the Character editor frame.srcdoc');
+const generated = vm.runInContext(`({
+  items: addAndroidExportAdapter(decodePage(pages.items), 'items'),
+  character: addAndroidExportAdapter(decodePage(pages.character), 'character'),
+  animation: addAndroidExportAdapter(decodePage(pages.animation), 'animation')
+})`, context);
 
-// Restore the exact serialized module in the generated Character document.
-// The VM bootstrap used an empty placeholder only to avoid evaluating module HTML.
+// Host composition inserts the serialized modelTools HTML immediately before
+// the Character panel's closing wrapper. Reproduce that exact operation after
+// the Android persistence/export adapter has transformed the source page.
 const modelToolsAssignmentStart = outerSourceForExecution.indexOf('const modelTools = "');
 const modelToolsLiteralStart = modelToolsAssignmentStart + 'const modelTools = '.length;
 const modelToolsLiteralEnd = outerSourceForExecution.indexOf('";', modelToolsLiteralStart);
 if (modelToolsAssignmentStart < 0 || modelToolsLiteralEnd < 0) {
   throw new Error('Could not recover the original modelTools literal');
 }
-// Extract the quoted JavaScript string without evaluating the outer bootstrap.
 const literal = outerSourceForExecution.slice(modelToolsLiteralStart, modelToolsLiteralEnd + 1);
 function decodeJsStringLiteral(source) {
   if (source[0] !== '"' || source[source.length - 1] !== '"') throw new Error('Expected a double-quoted modelTools literal');
@@ -198,11 +197,11 @@ if (typeof modelToolsHtml !== 'string' ||
   throw new Error('Recovered modelTools payload is not the expected model I/O HTML');
 }
 const characterPanelEnd = generated.character.indexOf('</div></section></main>');
-if (characterPanelEnd >= 0) {
-  generated.character = generated.character.slice(0, characterPanelEnd) + modelToolsHtml + generated.character.slice(characterPanelEnd);
-} else {
-  generated.character = generated.character.replace('</main>', modelToolsHtml + '</main>');
-}
+if (characterPanelEnd < 0) throw new Error('Character panel closing wrapper not found for modelTools insertion');
+generated.character =
+  generated.character.slice(0, characterPanelEnd) +
+  modelToolsHtml +
+  generated.character.slice(characterPanelEnd);
 const requiredByEditor = {
   items: ['/assets/www/vendor/jszip/jszip.min.js'],
   character: ['/assets/www/vendor/three/build/three.module.js'],
