@@ -42,10 +42,22 @@
 - A inspeção do APK passa a exigir nyra_personagem.json e marcadores da interface C.
 - Verificação CI deve ocorrer no PR do branch e permanecer verde antes de release.
 
-## Fechamento de release ainda necessário
-- Completar docs/NYRA_FRONT_C_VALIDACAO_FISICA.md num aparelho real.
-- Benchmark do modelo grande no mesmo aparelho/arquivo.
-- Revisão visual das 23 etapas e do robô no WebView real.
-- Não mesclar na main até a validação física e decisão explícita do usuário.
+## Fechamento técnico remoto — 2026-11-05
 
-**Frente B permanece integralmente fora deste branch/escopo:** topologia, seleção localizada, superfícies, extrusão/loft, roupas, operações avançadas de malha e avaliação/evolução do gerador JSON.
+**Resultado: implementação da Frente C e gates automatizados remotos concluídos. Validação de release em dispositivo real permanece aberta.**
+
+Evidência GitHub Actions:
+- Workflow run #401 / run ID `42110167560`, commit `bc7095a01ec56d58bc7d24c0d2fd6bb7dcbe2872`: conclusão `success`.
+- Auditoria Front C: PASS.
+- Todas as auditorias adicionais: PASS.
+- `./gradlew --no-daemon assembleDebug`: `BUILD SUCCESSFUL`.
+- Auditoria de recursos offline dentro do APK: PASS.
+- Artefato `nyra-android-debug-apk` publicado (artifact ID `13455080360`; 2.025.304 bytes).
+- SHA-256 do APK produzido no job: `5bede85602be02db01158da01d8cd2f5f908a047df9832c3844a031228af5373`.
+- PR #8 sem comentários nem threads de revisão pendentes na consulta de 2026-11-05.
+
+O que está fechado remotamente: código da Frente C descrito nas seções C1–C5, auditorias automatizadas e compilação/verificação do APK.
+
+O que não pode ser declarado aprovado pelo CI: compatibilidade prática de URIs e seletor Android, rotação/retomada, comportamento do WebView/WebGL, pressão de memória, limpeza segura em operações reais e benchmark do modelo grande no mesmo aparelho. Esses itens permanecem no roteiro físico abaixo. Não inventar aprovação nem substituir ensaio real por teste de código.
+
+**Status de integração:** PR #8 continua aberto em draft. A branch `main` não foi alterada. A Frente B continua fora do escopo desta branch.
