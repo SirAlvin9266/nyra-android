@@ -285,3 +285,15 @@ O trabalho deve ser organizado em **blocos de melhorias relacionadas**, não em 
 - Benchmark mede o mesmo arquivo no mesmo aparelho.
 - APK só é distribuído após CI verde, assets offline verificados e teste físico.
 - A main permanece protegida até validação e decisão explícita de integração.
+
+## Frente C — estado consolidado em 2026-11-05
+
+A implementação da Frente C foi consolidada na branch `work/nyra-front-c-closeout`. O arquivo `NYRA_FRONT_C_STATUS.md` registra as implementações e os limites; `docs/NYRA_FRONT_C_VALIDACAO_FISICA.md` contém o roteiro obrigatório de release. A Frente C não deve ser declarada integralmente fechada até o roteiro físico e benchmark real serem preenchidos.
+
+- C1: seletor original preservado; JSON Scene Project v1 separado de Character+Voxel v4; estados de exportação corrigidos após importação.
+- C2: 23 etapas do guia preservadas, com a documentação dos formatos e alvos reais.
+- C3: robô carrega a fonte oficial empacotada em `assets/www/nyra_personagem.json`, valida o esquema e mantém fallback 2D. Os arrays vazios `voxels` e `objects` significam que o modelo ainda usa partes proxy.
+- C4: instrumentação por estágios de leitura/parse e relatório de desempenho disponíveis; benchmark e otimização física continuam como gates de release.
+- C5: temporários de exportação isolados em `nyra-rebuildable`, com consulta/limpeza segura bloqueada durante operações ativas. Isso não equivale a armazenamento de projetos nem cache genérico de cenas.
+
+**Frente B permanece separada e pendente, conforme ordem definida pelo usuário.** A `main` continua protegida; não integrar automaticamente esta branch.
