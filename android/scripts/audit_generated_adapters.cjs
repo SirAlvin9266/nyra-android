@@ -141,7 +141,7 @@ if (modelToolsStart < 0 || panelEndStart < 0) {
 }
 const bootstrapForTest =
   outerSourceForExecution.slice(0, modelToolsStart) +
-  'const modelTools = "";\\nconst panelEnd = "";' +
+  'const modelTools = "";' + String.fromCharCode(10) + 'const panelEnd = "";' +
   outerSourceForExecution.slice(outerSourceForExecution.indexOf(';', panelEndStart) + 1);
 // Use the complete outer source to create the actual editor documents.
 // The no-op variant is only used to exercise host initialization in the VM.
