@@ -2,6 +2,14 @@
 
 **Este roteiro é uma validação de release.** Não marcar como aprovado apenas por CI ou build.
 
+## Evidência remota já concluída (2026-11-05)
+- [x] Workflow CI #401 (`42110167560`) aprovado no commit `bc7095a01ec56d58bc7d24c0d2fd6bb7dcbe2872`.
+- [x] Auditoria Front C e demais auditorias automatizadas aprovadas.
+- [x] APK debug compilado (`BUILD SUCCESSFUL`) e auditoria de assets offline aprovada.
+- [x] Artefato `nyra-android-debug-apk` publicado; SHA-256 do APK: `5bede85602be02db01158da01d8cd2f5f908a047df9832c3844a031228af5373`.
+
+Os itens abaixo continuam sem marcação até execução no aparelho físico. A evidência CI não os substitui.
+
 ## Identificação do ensaio
 - Commit/branch:
 - APK e SHA-256:
