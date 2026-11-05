@@ -188,7 +188,12 @@ if (typeof modelToolsHtml !== 'string' ||
     !modelToolsHtml.includes('nyraExportJSON')) {
   throw new Error('Recovered modelTools payload is not the expected model I/O HTML');
 }
-generated.character = generated.character.replace('</main>', modelToolsHtml + '</main>');
+const characterPanelEnd = generated.character.indexOf('</div></section></main>');
+if (characterPanelEnd >= 0) {
+  generated.character = generated.character.slice(0, characterPanelEnd) + modelToolsHtml + generated.character.slice(characterPanelEnd);
+} else {
+  generated.character = generated.character.replace('</main>', modelToolsHtml + '</main>');
+}
 const requiredByEditor = {
   items: ['/assets/www/vendor/jszip/jszip.min.js'],
   character: ['/assets/www/vendor/three/build/three.module.js'],
