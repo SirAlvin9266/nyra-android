@@ -36,7 +36,7 @@ for (const marker of [
   'function parseNyraSceneProject', 'async function parseNyraCharacterProject',
   "document.getElementById('nyraExportJSON').addEventListener",
   "nyraPerfRecord('import_started'", "nyraPerfRecord('import_completed'",
-  'import_stage', 'frameP95Ms'
+  'import_stage', 'frameP95Ms', 'nyraImportStartedAt', 'scene_build_and_commit', 'nyraDeserializeMaterial'
 ]) requireText(model, marker, 'Character Editor module');
 
 for (const marker of [
@@ -73,7 +73,7 @@ for (const marker of [
 for (const marker of [
   'new File(getCacheDir(), "nyra-rebuildable")',
   'getRebuildableCacheReport()',
-  'clearRebuildableCache()'
+  'clearRebuildableCache()', 'MAX_REBUILDABLE_CACHE_BYTES', 'REBUILDABLE_CACHE_RETENTION_MS', 'pruneRebuildableCache()', 'rebuildableCacheBytes() + data.length', 'limitBytes', 'retentionDays'
 ]) requireText(java, marker, 'Safe Android rebuildable cache');
 
 // Front B geometry symbols already exist in the shared Character editor.
