@@ -184,6 +184,12 @@ const blockbenchMarkers = [
   'nyraMapCompatibility',
 ];
 const requiredExportMarkers = [
+  'HTMLAnchorElement.prototype.click',
+  'beginExport',
+  'appendExportChunk',
+  'finishExport',
+];
+const requiredCharacterModelIOMarkers = [
   'nyraExportJSON',
   'function nyraCreateSceneJSON',
   'function parseNyraSceneProject',
@@ -191,10 +197,6 @@ const requiredExportMarkers = [
   'nyraCacheReport',
   'nyraCacheClear',
   'import_stage',
-  'HTMLAnchorElement.prototype.click',
-  'beginExport',
-  'appendExportChunk',
-  'finishExport',
 ];
 for (const [name, page] of Object.entries(generated)) {
   if (!page || page.length < 10000) {
@@ -214,7 +216,7 @@ for (const [name, page] of Object.entries(generated)) {
     }
   }
 
-  for (const marker of [...(name === 'character' ? requiredExportMarkers : []), ...(requiredByEditor[name] || []), ...(name === 'character' ? ['NyraModelIO', 'Importar modelo 3D', 'editor.selectModel(object)', 'previousModel=importedModel', 'candidateInScene=true', 'animations:importedAnimations', 'function validateMathDocument(', 'function buildMathModel(', 'function geometryForMathComponent(', 'function generateMathModel(', 'async function parseBBModel(file,files=[])', 'function bbCoordinate(', 'function bbEuler(', 'new THREE.TextureLoader()', 'new THREE.BufferGeometry()', 'new THREE.BoxGeometry(', 'bbImportedMeshes', 'bbModelAnimationCount', "extension==='bbmodel'", "extension==='json'", 'parseNyraCharacterProject', 'nyraExportBB', 'function createBBModelDocument()'] : [])]) {
+  for (const marker of [...requiredExportMarkers, ...(requiredByEditor[name] || []), ...(name === 'character' ? [...requiredCharacterModelIOMarkers, 'NyraModelIO', 'Importar modelo 3D', 'editor.selectModel(object)', 'previousModel=importedModel', 'candidateInScene=true', 'animations:importedAnimations', 'function validateMathDocument(', 'function buildMathModel(', 'function geometryForMathComponent(', 'function generateMathModel(', 'async function parseBBModel(file,files=[])', 'function bbCoordinate(', 'function bbEuler(', 'new THREE.TextureLoader()', 'new THREE.BufferGeometry()', 'new THREE.BoxGeometry(', 'bbImportedMeshes', 'bbModelAnimationCount', "extension==='bbmodel'", "extension==='json'", 'parseNyraCharacterProject', 'nyraExportBB', 'function createBBModelDocument()'] : [])]) {
     if (!page.includes(marker)) {
       console.error('FAIL: generated ' + name + ' document is missing ' + marker);
       process.exitCode = 1;
