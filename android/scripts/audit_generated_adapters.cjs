@@ -141,7 +141,7 @@ if (modelToolsStart < 0 || panelEndStart < 0) {
 }
 const bootstrapForTest =
   outerSourceForExecution.slice(0, modelToolsStart) +
-  'const modelTools = "";\\nconst panelEnd = "";' +
+  'const modelTools = "";\nconst panelEnd = "";' +
   outerSourceForExecution.slice(outerSourceForExecution.indexOf(';', panelEndStart) + 1);
 vm.runInContext(bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
 
