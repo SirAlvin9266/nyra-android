@@ -162,7 +162,19 @@ const modelToolsLiteralEnd = outerSourceForExecution.indexOf('";', modelToolsLit
 if (modelToolsAssignmentStart < 0 || modelToolsLiteralEnd < 0) {
   throw new Error('Could not recover the original modelTools literal');
 }
-const modelToolsHtml = vm.runInNewContext('(' + outerSourceForExecution.slice(modelToolsLiteralStart, modelToolsLiteralEnd + 1) + ')');
+let modelToolsHtml = '';
+try {
+  modelToolsHtml = vm.runInNewContext(
+    outerSourceForExecution.slice(0, modelToolsLiteralStart) +
+      'globalThis.__nyraModelToolsCapture = modelTools;' +
+      outerSourceForExecution.slice(modelToolsLiteralEnd + 1) +
+      '\\nglobalThis.__nyraModelToolsCapture;',
+    context,
+    { filename: 'nyra-model-tools-capture.js' }
+  );
+} catch (error) {
+  throw new Error('Could not capture modelTools from the actual host bootstrap: ' + error.message);
+}
 generated.character = generated.character.replace('</main>', modelToolsHtml + '</main>');
 const requiredByEditor = {
   items: ['/assets/www/vendor/jszip/jszip.min.js'],
