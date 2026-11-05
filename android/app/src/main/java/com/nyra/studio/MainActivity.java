@@ -44,6 +44,8 @@ public class MainActivity extends Activity {
     private static final int CREATE_DOCUMENT_REQUEST = 4207;
     private static final int FILE_CHOOSER_REQUEST = 4208;
     private static final long MAX_EXPORT_BYTES = 256L * 1024L * 1024L;
+    private static final long MAX_REBUILDABLE_CACHE_BYTES = 512L * 1024L * 1024L;
+    private static final long REBUILDABLE_CACHE_RETENTION_MS = 7L * 24L * 60L * 60L * 1000L;
 
     private WebView webView;
     private WebViewAssetLoader assetLoader;
@@ -70,6 +72,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        pruneRebuildableCache();
 
         assetLoader = new WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
@@ -204,6 +207,48 @@ public class MainActivity extends Activity {
         return name.isEmpty() ? fallback : name;
     }
 
+    private File rebuildableCacheDirectory() {
+        return new File(getCacheDir(), "nyra-rebuildable");
+    }
+
+    private long rebuildableCacheBytes() {
+        File directory = rebuildableCacheDirectory();
+        long bytes = 0L;
+        File[] entries = directory.listFiles();
+        if (entries != null) {
+            for (File entry : entries) {
+                if (entry.isFile()) bytes += entry.length();
+            }
+        }
+        return bytes;
+    }
+
+    private boolean isRebuildableExportActive(File candidate) {
+        for (ExportTransfer transfer : transfers.values()) {
+            if (transfer.file.equals(candidate)) return true;
+        }
+        synchronized (completedExports) {
+            for (ExportTransfer transfer : completedExports) {
+                if (transfer.file.equals(candidate)) return true;
+            }
+        }
+        return pendingDocument != null && pendingDocument.file.equals(candidate);
+    }
+
+    private void pruneRebuildableCache() {
+        File directory = rebuildableCacheDirectory();
+        if (!directory.isDirectory()) return;
+        long cutoff = System.currentTimeMillis() - REBUILDABLE_CACHE_RETENTION_MS;
+        File[] entries = directory.listFiles();
+        if (entries == null) return;
+        for (File entry : entries) {
+            if (entry.isFile() && entry.getName().startsWith("nyra-export-")
+                && entry.lastModified() < cutoff && !isRebuildableExportActive(entry)) {
+                entry.delete();
+            }
+        }
+    }
+
     private final class ExportBridge {
         @JavascriptInterface
         public String beginExport(String filename, String mimeType) {
@@ -212,6 +257,7 @@ public class MainActivity extends Activity {
                 String mime = (mimeType == null || mimeType.trim().isEmpty()) ? "application/octet-stream" : mimeType.trim();
                 if (mime.length() > 120 || mime.contains("\r") || mime.contains("\n")) mime = "application/octet-stream";
                 File cacheRoot = new File(getCacheDir(), "nyra-rebuildable");
+                pruneRebuildableCache();
                 if (!cacheRoot.exists() && !cacheRoot.mkdirs()) throw new IllegalStateException("Não foi possível criar o cache temporário Nyra.");
                 File temp = File.createTempFile("nyra-export-", ".tmp", cacheRoot);
                 String token = UUID.randomUUID().toString();
@@ -234,7 +280,8 @@ public class MainActivity extends Activity {
                 return false;
             }
             synchronized (transfer) {
-                if (transfer.bytes + data.length > MAX_EXPORT_BYTES) {
+                if (transfer.bytes + data.length > MAX_EXPORT_BYTES
+                    || rebuildableCacheBytes() + data.length > MAX_REBUILDABLE_CACHE_BYTES) {
                     discardTransfer(token, transfer);
                     return false;
                 }
