@@ -384,11 +384,15 @@ function nyraGuideRobotFallback(){
  for(const [name,x,y,w,h,color] of parts){ctx.fillStyle=color;ctx.strokeStyle='#9fefff';ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x-w/2,y-h/2,w,h,10);ctx.fill();ctx.stroke();}
  ctx.fillStyle='#102235';ctx.fillRect(165,93,10,8);ctx.fillRect(185,93,10,8);
 }
-function nyraInitGuideRobot(){
+async function nyraInitGuideRobot(){
  const canvas=document.getElementById('nyraGuideRobotCanvas');if(!canvas||nyraGuideRobotRuntime)return;
+ if(window.nyraGuideRobotLoading)return;window.nyraGuideRobotLoading=true;
  try{
-  const T=window.THREE;
-  if(!T){nyraGuideRobotFallback();return;}
+  const response=await fetch('nyra_personagem.json',{cache:'no-store'});
+  if(!response.ok)throw new Error('Fonte oficial do personagem indisponível ('+response.status+').');
+  const spec=await response.json();
+  if(spec.format!=='Nyra Character+Voxel Project v4'||!spec.parts||typeof spec.parts!=='object')throw new Error('Esquema do personagem oficial inválido.');
+  const T=window.THREE;if(!T)throw new Error('Three.js não está disponível.');
   const renderer=new T.WebGLRenderer({canvas,antialias:true,alpha:true});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));renderer.setSize(360,420,false);
   const scene=new T.Scene();scene.background=null;
@@ -397,20 +401,27 @@ function nyraInitGuideRobot(){
   const key=new T.DirectionalLight(0xffffff,2.2);key.position.set(4,7,6);scene.add(key);
   const fill=new T.DirectionalLight(0x35e5ff,.75);fill.position.set(-5,3,-3);scene.add(fill);
   const root=new T.Group();scene.add(root);
-  const definitions={"torso":{"position":[0,2.2,0],"scale":[1,1,1],"rotation":[0,0,0],"visible":true},"head":{"position":[0,0.88,0],"scale":[1,1,1],"rotation":[0,0,0],"visible":true},"armL":{"position":[-0.72,0.4,0],"scale":[1,1,1],"rotation":[0,0,0],"visible":true},"armR":{"position":[0.72,0.4,0],"scale":[1,1,1],"rotation":[0,0,0],"visible":true},"legL":{"position":[-0.28,1.55,0],"scale":[1,1,1],"rotation":[0,0,0],"visible":true},"legR":{"position":[0.28,1.55,0],"scale":[1,1,1],"rotation":[0,0,0],"visible":true}},colors={"torso":"#263548","head":"#35e5ff","armL":"#d5e2ed","armR":"#d5e2ed","legL":"#56677d","legR":"#56677d"};
-  const sizes={torso:[.9,1.1,.45],head:[.55,.55,.55],armL:[.28,.9,.3],armR:[.28,.9,.3],legL:[.32,.9,.34],legR:[.32,.9,.34]};
-  for(const [name,part] of Object.entries(definitions)){
-   const mesh=new T.Mesh(new T.BoxGeometry(...(sizes[name]||[.5,.5,.5])),new T.MeshStandardMaterial({color:colors[name]||'#8094a8',metalness:.48,roughness:.34}));
-   mesh.name=name;mesh.position.set(...part.position);mesh.rotation.set(...part.rotation);mesh.scale.set(...part.scale);mesh.visible=part.visible!==false;root.add(mesh);
+  const defaults={torso:[.9,1.1,.45],head:[.55,.55,.55],armL:[.28,.9,.3],armR:[.28,.9,.3],legL:[.32,.9,.34],legR:[.32,.9,.34]};
+  for(const [name,part] of Object.entries(spec.parts)){
+   if(!part||typeof part!=='object')continue;
+   const size=defaults[name]||[.5,.5,.5],scale=Array.isArray(part.scale)?part.scale:[1,1,1];
+   const mesh=new T.Mesh(new T.BoxGeometry(...size.map((n,i)=>Math.max(.01,n*Math.abs(Number(scale[i])||1)))),new T.MeshStandardMaterial({color:spec.colors?.[name]||'#8094a8',metalness:.48,roughness:.34}));
+   mesh.name=name;
+   mesh.position.fromArray(Array.isArray(part.position)?part.position:[0,0,0]);
+   if(Array.isArray(part.rotation))mesh.rotation.set(Number(part.rotation[0])||0,Number(part.rotation[1])||0,Number(part.rotation[2])||0);
+   mesh.visible=part.visible!==false;root.add(mesh);
   }
+  const head=root.children.find(x=>x.name==='head');
+  if(head&&Number(spec.headScaleY)>0)head.scale.y*=Number(spec.headScaleY);
   const eyeMat=new T.MeshStandardMaterial({color:'#06121d',emissive:'#35e5ff',emissiveIntensity:.8,metalness:.25,roughness:.25});
-  for(const x of [-.13,.13]){const eye=new T.Mesh(new T.SphereGeometry(.045,12,8),eyeMat);eye.position.set(x,2.49,.24);root.add(eye);}
+  for(const x of[-.13,.13]){const eye=new T.Mesh(new T.SphereGeometry(.045,12,8),eyeMat);eye.position.set(x,2.49,.24);root.add(eye);}
   const chest=new T.Mesh(new T.BoxGeometry(.23,.17,.035),new T.MeshStandardMaterial({color:'#35e5ff',emissive:'#087b91',emissiveIntensity:.4,metalness:.6}));chest.position.set(0,2.18,.245);root.add(chest);
   let frame=0,angle=0,last=0,active=true;
   const animate=t=>{if(!active)return;const visible=document.getElementById('nyraGuideRoot')?.style.display!=='none';if(visible){const delta=last?Math.min((t-last)/1000,.05):0;last=t;angle+=delta*.8;root.rotation.y=Math.sin(angle)*.22;renderer.render(scene,camera);}frame=requestAnimationFrame(animate);};
   renderer.render(scene,camera);frame=requestAnimationFrame(animate);
-  nyraGuideRobotRuntime={renderer,scene,root,stop(){active=false;cancelAnimationFrame(frame);renderer.dispose();}};
+  nyraGuideRobotRuntime={renderer,scene,root,stop(){active=false;cancelAnimationFrame(frame);renderer.dispose();root.traverse(node=>{node.geometry?.dispose?.();if(Array.isArray(node.material))node.material.forEach(x=>x.dispose?.());else node.material?.dispose?.();});}};
  }catch(error){console.warn('Nyra guide robot fallback:',error);nyraGuideRobotFallback();}
+ finally{window.nyraGuideRobotLoading=false;}
 }
 function nyraRefreshGuideRobot(){if(!nyraGuideRobotRuntime)nyraInitGuideRobot();}
 
