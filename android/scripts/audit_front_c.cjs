@@ -130,7 +130,7 @@ try {
   }
   const THREE={Group:TestGroup,Bone:TestBone,Mesh:TestMesh,BufferGeometry:TestGeometry,Float32BufferAttribute:TestAttribute,MeshStandardMaterial:TestMaterial};
   const context=vm.createContext({THREE,Map,Set,Number,String,Array,Object,Math,Error,JSON});
-  vm.runInContext(moduleSource.slice(serializerStart,parserEnd)+'\\nthis.nyraJsonApi={nyraCreateSceneJSON,nyraDeserializeObject};',context,{filename:'nyra-front-c-json-roundtrip.js'});
+  vm.runInContext(moduleSource.slice(serializerStart,parserEnd)+'\nthis.nyraJsonApi={nyraCreateSceneJSON,nyraDeserializeObject};',context,{filename:'nyra-front-c-json-roundtrip.js'});
   const root=new TestGroup();root.name='C1 round-trip';
   const geometry=new TestGeometry();
   geometry.setAttribute('position',new TestAttribute([0,0,0,1,0,0,0,1,0],3));
