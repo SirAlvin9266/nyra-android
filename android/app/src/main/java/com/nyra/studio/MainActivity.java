@@ -330,7 +330,9 @@ public class MainActivity extends Activity {
                 }
             }
         }
-        return "{\"files\":" + files + ",\"bytes\":" + bytes + "}";
+        return "{\"files\":" + files + ",\"bytes\":" + bytes
+            + ",\"limitBytes\":" + MAX_REBUILDABLE_CACHE_BYTES
+            + ",\"retentionDays\":7}";
     }
 
     @JavascriptInterface
