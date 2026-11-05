@@ -134,10 +134,20 @@ if (!html.includes("frame.style.cssText='display:block") ||
  // Its complete assembled module is syntax-checked below after the host adapters create it.
  // Check the shell bootstrap with only that nested payload neutralized.
 
-const bootstrapForTest = outerSourceForExecution.replace(
-  /const modelTools = [\\s\\S]*?;\\s*if \(html\.toLowerCase\(\)\.includes\(modelTools\)\) \{[\\s\\S]*?\\n \\}\\n/ ,
-  'const modelTools = "";\\n'
-);
+const modelToolsStart = outerSourceForExecution.indexOf('const modelTools = "');
+const modelToolsEnd = outerSourceForExecution.indexOf('";', modelToolsStart + 'const modelTools = "'.length);
+if (modelToolsStart < 0 || modelToolsEnd < 0) {
+  throw new Error('Could not isolate serialized modelTools assignment');
+}
+const afterModelTools = outerSourceForExecution.indexOf('\\n  if (html.toLowerCase().includes(modelTools)) {', modelToolsEnd);
+const endCondition = outerSourceForExecution.indexOf('\\n  }', afterModelTools);
+if (afterModelTools < 0 || endCondition < 0) {
+  throw new Error('Could not isolate modelTools host injection guard');
+}
+const bootstrapForTest =
+  outerSourceForExecution.slice(0, modelToolsStart) +
+  'const modelTools = "";' +
+  outerSourceForExecution.slice(endCondition + '\\n  }'.length);
 vm.runInContext(bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
 
 const generated = vm.runInContext(`({
