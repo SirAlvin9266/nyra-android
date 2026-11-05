@@ -141,8 +141,11 @@ if (modelToolsStart < 0 || panelEndStart < 0) {
 }
 const bootstrapForTest =
   outerSourceForExecution.slice(0, modelToolsStart) +
-  'const modelTools = "";\nconst panelEnd = "";' +
+  'const modelTools = "";\\nconst panelEnd = "";' +
   outerSourceForExecution.slice(outerSourceForExecution.indexOf(';', panelEndStart) + 1);
+// Use the complete outer source to create the actual editor documents.
+// The no-op variant is only used to exercise host initialization in the VM.
+const generatedEditorSource = outerSourceForExecution;
 vm.runInContext(bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
 
 const generated = vm.runInContext(`({
