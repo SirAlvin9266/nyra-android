@@ -157,16 +157,11 @@ const generatedEditorSource = outerSourceForExecution;
 vm.runInContext(bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
 
 const generated = {};
-const frameFactory = (key) => {
-  const frame = { style: {}, contentWindow: {}, addEventListener() {}, setAttribute() {} };
-  Object.defineProperty(frame, 'srcdoc', { set(value) { this._srcdoc = value; }, get() { return this._srcdoc || ''; } });
-  return frame;
-};
-vm.runInContext(`loadEditor('character')`, context);
-generated.character = frames[frames.length - 1] && frames[frames.length - 1].srcdoc
-  ? frames[frames.length - 1].srcdoc
-  : '';
-if (!generated.character) throw new Error('Character editor host did not produce frame.srcdoc');
+// The host opens the Character editor during bootstrap. Capture that real iframe
+// document from appendChild instead of invoking its closure-scoped loadEditor.
+const characterFrame = frames.find(frame => typeof frame.srcdoc === 'string' && frame.srcdoc.includes('id="view"'));
+generated.character = characterFrame ? characterFrame.srcdoc : '';
+if (!generated.character) throw new Error('Host bootstrap did not produce the Character editor frame.srcdoc');
 
 // Restore the exact serialized module in the generated Character document.
 // The VM bootstrap used an empty placeholder only to avoid evaluating module HTML.
