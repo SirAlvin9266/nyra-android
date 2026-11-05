@@ -33,3 +33,13 @@ O guia contém 23 etapas:
 ## Robô
 Fonte: `docs/sources/nyra_personagem.json`.
 O projeto Character+Voxel v4 define seis partes com transforms e cores. Como `voxels` e `objects` estão vazios, a visualização utiliza primitivas geométricas proxy construídas a partir da especificação. Essas caixas não devem ser descritas como um personagem final de voxel-art ou como malha fornecida pelo arquivo original.
+## Formatos JSON — distinção obrigatória
+- O botão Exportar modelo JSON grava o formato de cena editada Nyra Scene Project v1. Ele serializa hierarquia, transforms, malhas (posições/índices/UVs/normais/grupos) e propriedades básicas de material. Não deve ser descrito como exportador Character+Voxel v4 nem como pacote com imagens binárias de textura.
+- O importador também aceita projetos Character+Voxel v4 e converte as partes estruturais disponíveis em peças proxy. O arquivo oficial atual ainda tem arrays voxels e objects vazios.
+- Para preservar recursos gráficos externos, mantenha seus arquivos auxiliares junto do projeto; JSON Scene Project v1 ainda não incorpora imagens de textura como payload autossuficiente.
+
+## Cache Android — limite deliberado de segurança
+Os controles Estado do cache temporário e Limpar temporários seguros consultam e limpam somente o diretório privado nyra-rebuildable, utilizado para arquivos temporários de exportação. A limpeza é recusada enquanto houver exportação, fila de salvamento ou seletor nativo ativo. Não remove projetos do usuário, rascunhos do WebView, nem o cache geral do aplicativo. O diretório não é um gerenciador de projetos nem uma biblioteca de assets reconstruíveis de cenas.
+
+## C4 — leitura do diagnóstico
+O relatório contém tempo total e eventos de leitura/parse por formato (GLB/glTF, OBJ, FBX, STL, JSON e BBModel), além das métricas de cena/renderização já disponíveis. Uma medição automatizada não substitui o benchmark no mesmo aparelho. O caso de aproximadamente 25 MB deve ser repetido no dispositivo de referência para separar leitura, parse e construção/renderização da cena.
