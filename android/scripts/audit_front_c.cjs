@@ -3,7 +3,6 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
 const root = path.resolve(__dirname, '..');
@@ -129,8 +128,7 @@ try {
     constructor(geometry,material){super();this.isMesh=true;this.geometry=geometry;this.material=material;}
   }
   const THREE={Group:TestGroup,Bone:TestBone,Mesh:TestMesh,BufferGeometry:TestGeometry,Float32BufferAttribute:TestAttribute,MeshStandardMaterial:TestMaterial};
-  const context=vm.createContext({THREE,Map,Set,Number,String,Array,Object,Math,Error,JSON});
-  vm.runInContext(moduleSource.slice(serializerStart,parserEnd)+'\nthis.nyraJsonApi={nyraCreateSceneJSON,nyraDeserializeObject};',context,{filename:'nyra-front-c-json-roundtrip.js'});
+  const api=new Function('THREE',moduleSource.slice(serializerStart,parserEnd)+'\nreturn {nyraCreateSceneJSON,nyraDeserializeObject};')(THREE);
   const root=new TestGroup();root.name='C1 round-trip';
   const geometry=new TestGeometry();
   geometry.setAttribute('position',new TestAttribute([0,0,0,1,0,0,0,1,0],3));
@@ -139,16 +137,16 @@ try {
   geometry.setIndex([0,1,2]);geometry.addGroup(0,3,0);
   const mesh=new TestMesh(geometry,new TestMaterial({name:'Steel',color:'#aabbcc',roughness:.7,metalness:.2}));
   mesh.name='Triangle';root.add(mesh);
-  const project=context.nyraJsonApi.nyraCreateSceneJSON(root);
+  const project=api.nyraCreateSceneJSON(root);
   assert.equal(project.format,'Nyra Scene Project v1');
   assert.equal(project.vertices,3);
-  const restored=context.nyraJsonApi.nyraDeserializeObject(project.scene,{vertices:0,maxVertices:600000});
+  const restored=api.nyraDeserializeObject(project.scene,{vertices:0,maxVertices:600000});
   assert.equal(restored.children[0].name,'Triangle');
   assert.equal(restored.children[0].geometry.attributes.uv.count,3);
   assert.equal(restored.children[0].geometry.index.count,3);
   assert.equal(restored.children[0].geometry.groups.length,1);
   assert.equal(Array.isArray(restored.children[0].material),false,'single-material meshes must restore one material, not a one-item array');
-  assert.throws(()=>context.nyraJsonApi.nyraDeserializeObject({type:'mesh',geometry:{positions:[0,0,0]}},{vertices:0,maxVertices:600000}),/Geometria inválida/);
+  assert.throws(()=>api.nyraDeserializeObject({type:'mesh',geometry:{positions:[0,0,0]}},{vertices:0,maxVertices:600000}),/Geometria inválida/);
 } catch (error) {
   failures.push('Nyra Scene Project JSON round-trip: ' + (error && error.message ? error.message : String(error)));
 }
