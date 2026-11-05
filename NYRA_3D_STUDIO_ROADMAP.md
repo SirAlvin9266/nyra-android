@@ -162,6 +162,18 @@ Objetivo: verificar se o gerador matemático/IA baseado no formato JSON da Nyra 
 - Não enviar assets binários grandes no DSL; referenciar recursos.
 - Testar documentos inválidos, limites, hierarquias, superfícies degeneradas e geometria resultante.
 
+### B9. Avaliação e evolução do gerador automático via JSON
+- **Problema observado pelo usuário:** personagens e objetos produzidos pelo gerador atual parecem limitados; em diversos casos, a edição manual permite resultados melhores.
+- Avaliar a qualidade e a capacidade criativa do gerador, não apenas se produz JSON válido ou um personagem básico.
+- Comparar resultados manuais e gerados em casos como humanoide simples, personagem estilizado, proporções não convencionais, roupas/acessórios/camadas, criaturas, objetos não humanoides e modelos complexos inspirados em Minecraft.
+- Avaliar variedade de formas, proporções, detalhes, hierarquia/peças, materiais/cores, editabilidade posterior e fidelidade ao pedido.
+- Distinguir limitações do esquema JSON, do algoritmo matemático/IA que gera o documento e do motor que interpreta o JSON.
+- Investigar se primitivas, composição, transforms, hierarquia, superfícies, peças, materiais, UVs e recursos do formato atual limitam os resultados.
+- Verificar em especial se modelos complexos (incluindo modelos Minecraft) exigem mais granularidade de peças, volumes, texturas/UVs ou hierarquia.
+- Definir melhorias após identificar os gargalos; não presumir que basta ampliar o JSON ou reescrever o gerador antes dessa avaliação.
+- Garantir que exportar e reimportar JSON preserve o conteúdo e permita continuar a edição.
+- Este bloco pertence à **Frente B**, junto ao trabalho de geração paramétrica/DSL. Não é uma nova Frente V nem parte isolada da Frente C.
+
 # Frente C — Experiência de uso, guia, desempenho e robustez Android
 
 Objetivo: fazer as capacidades serem compreensíveis, utilizáveis no telefone e confiáveis em modelos pequenos e grandes.
