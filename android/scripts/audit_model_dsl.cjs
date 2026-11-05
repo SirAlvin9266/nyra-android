@@ -20,7 +20,15 @@ function extractModelTools(source) {
   // before the newline introducing panelEnd, not before a semicolon.
   const closingQuote = source.lastIndexOf('"', boundary);
   if (closingQuote < literalStart) throw new Error('Closing quote for modelTools was not found.');
-  return JSON.parse(source.slice(literalStart, closingQuote + 1));
+  const literal = source.slice(literalStart, closingQuote + 1);
+  try {
+    return JSON.parse(literal);
+  } catch {
+    // The outer HTML can contain one additional JavaScript-string escape layer.
+    return vm.runInNewContext('(' + literal + ')', {}, {
+      filename: 'nyra-model-tools-literal.js'
+    });
+  }
 }
 const modelToolsHtml=extractModelTools(html);
 
