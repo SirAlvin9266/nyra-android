@@ -198,6 +198,15 @@ const requiredCharacterModelIOMarkers = [
   'nyraCacheClear',
   'import_stage',
 ];
+const requiredCharacterModelIOMarkers = [
+  'nyraExportJSON',
+  'function nyraCreateSceneJSON',
+  'function parseNyraSceneProject',
+  "document.getElementById('nyraExportJSON').addEventListener",
+  'nyraCacheReport',
+  'nyraCacheClear',
+  'import_stage',
+];
 for (const [name, page] of Object.entries(generated)) {
   if (!page || page.length < 10000) {
     console.error('FAIL: generated ' + name + ' editor document is unexpectedly short');
