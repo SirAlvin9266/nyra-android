@@ -162,18 +162,11 @@ const modelToolsLiteralEnd = outerSourceForExecution.indexOf('";', modelToolsLit
 if (modelToolsAssignmentStart < 0 || modelToolsLiteralEnd < 0) {
   throw new Error('Could not recover the original modelTools literal');
 }
-let modelToolsHtml = '';
-try {
-  modelToolsHtml = vm.runInNewContext(
-    outerSourceForExecution.slice(0, modelToolsLiteralStart) +
-      'globalThis.__nyraModelToolsCapture = modelTools;' +
-      outerSourceForExecution.slice(modelToolsLiteralEnd + 1) +
-      '\\nglobalThis.__nyraModelToolsCapture;',
-    context,
-    { filename: 'nyra-model-tools-capture.js' }
-  );
-} catch (error) {
-  throw new Error('Could not capture modelTools from the actual host bootstrap: ' + error.message);
+// Extract the quoted JavaScript string without evaluating the outer bootstrap.
+const literal = outerSourceForExecution.slice(modelToolsLiteralStart, modelToolsLiteralEnd + 1);
+const modelToolsHtml = vm.runInNewContext('(' + literal + ')', context, { filename: 'nyra-model-tools-literal.js' });
+if (typeof modelToolsHtml !== 'string' || !modelToolsHtml.includes('id=\\\\"nyraModelIO\\\\"')) {
+  throw new Error('Recovered modelTools payload is not the expected model I/O HTML');
 }
 generated.character = generated.character.replace('</main>', modelToolsHtml + '</main>');
 const requiredByEditor = {
