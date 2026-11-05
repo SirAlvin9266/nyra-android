@@ -155,7 +155,7 @@ Objetivo: fazer as capacidades serem compreensíveis, utilizáveis no telefone e
 - Conferir quebra de linha, acessibilidade, tamanho de toque e ordem visual no Android.
 
 ### C2. Guia interativo específico e contextual
-- **Parcial.** Texto do passo de importação corrigido para apontar ao seletor funcional existente; ainda validar alvos e cobertura na WebView. O guia já foi ampliado em texto na branch, mas precisa validar seus alvos na WebView e cobrir cada função.
+- **Implementado na branch:** 23 etapas detalhadas, com explicações conceituais, operação, resultado esperado, limites, estados e alvos de interface. Validação de alvos WebView fica para o teste final.
 - Diferenciar objeto, grupo, malha, vértice, aresta, face e superfície.
 - Ensinar primitivas, perfis e superfícies; subdividir e selecionar elementos.
 - Ensinar movimentação/deformação local, extrusão, loft, espessura, camadas e pregas quando implementados.
@@ -169,14 +169,15 @@ Objetivo: fazer as capacidades serem compreensíveis, utilizáveis no telefone e
 - Guia não deve ensinar uma função futura como se ela já estivesse no app.
 
 ### C3. Robô-guia oficial
-- **Planejado.** Fonte de identidade: `nyra_personagem.json` (incluído nesta branch em `docs/sources/nyra_personagem.json`).
+- **Implementado na branch:** canvas do guia renderiza um robô 3D com Three.js a partir de `docs/sources/nyra_personagem.json`; usa cuboides proxy porque `voxels` e `objects` estão vazios. Texto e navegação continuam disponíveis se WebGL falhar.
 - O arquivo enviado contém seis partes principais (`torso`, `head`, `armL`, `armR`, `legL`, `legR`), cores, posições, escalas, rotações e visibilidade. Os arrays `voxels` e `objects` estão vazios; portanto, é uma especificação estrutural, não uma malha 3D pronta.
 - A base é Character+Voxel v4, com seis partes principais, cores e transforms, mas `voxels` e `objects` vazios.
 - Construir o visual oficial a partir dessa base; não confundir o arquivo estrutural com um personagem finalizado.
 - Manter o guia operável mesmo se o modelo 3D do robô falhar; fallback e erros isolados.
 
 ### C4. Performance de modelos grandes
-- **Pendente/sem benchmark concluído.** Existe relato de modelo de aproximadamente 25 MB com lentidão no telefone.
+- **Instrumentação adicionada ao editor:** eventos de seleção/importação, duração total do carregamento, contagem de malhas, vértices, triângulos, grupos, ossos, materiais e texturas; métricas do renderer (draw calls, geometrias e texturas); amostras de frame time, detecção de long tasks e memória JS quando exposta pelo WebView. O botão `Diagnóstico de desempenho` exporta `nyra-performance-report.json`.
+- **Validação física reservada para o teste final do usuário:** comparar o mesmo arquivo no mesmo aparelho antes/depois das otimizações. Existe relato de modelo de aproximadamente 25 MB com lentidão no telefone.
 - Instrumentar leitura, parse, construção de cena, vértices, triângulos, materiais, texturas, draw calls e frame time.
 - Medir memória se WebView/Android permitir.
 - Benchmark comparável no mesmo arquivo e dispositivo antes/depois.
@@ -187,7 +188,7 @@ Objetivo: fazer as capacidades serem compreensíveis, utilizáveis no telefone e
 - Feedback de progresso, cancelamento e limites explícitos para importações grandes.
 
 ### C5. Robustez Android, armazenamento e regressões
-- **Parcial.** Inicialização eager foi restaurada e confirmada pelo usuário em APK anterior.
+- **Parcial em código / ensaio físico reservado para o fechamento:** o host trata `ClipData` e URI múltiplos, tenta persistir permissões e exporta via `ACTION_CREATE_DOCUMENT`; CI executa auditorias, build e verificação de assets offline. Instalação, seleção real, retomada, rotação e pressão de memória serão validadas pelo usuário no teste integrado final. Inicialização eager foi restaurada e confirmada pelo usuário em APK anterior.
 - Preservar o carregamento funcional dos três editores e os assets offline.
 - Testar seleção de múltiplos arquivos, URIs, ClipData, permissões e exportação via seletor Android.
 - Verificar rotação de tela, retomada do app, falta de memória e erros de WebView.
