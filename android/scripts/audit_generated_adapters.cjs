@@ -184,6 +184,13 @@ const blockbenchMarkers = [
   'nyraMapCompatibility',
 ];
 const requiredExportMarkers = [
+  'nyraExportJSON',
+  'function nyraCreateSceneJSON',
+  'function parseNyraSceneProject',
+  "document.getElementById('nyraExportJSON').addEventListener",
+  'nyraCacheReport',
+  'nyraCacheClear',
+  'import_stage',
   'HTMLAnchorElement.prototype.click',
   'beginExport',
   'appendExportChunk',
