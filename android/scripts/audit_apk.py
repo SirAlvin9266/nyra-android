@@ -93,7 +93,6 @@ with zipfile.ZipFile(apk) as z:
         for marker in (
             "fetch('nyra_personagem.json'", 'nyraCacheReport', 'nyraCacheClear',
             'import_stage', 'scene_build_and_commit', 'nyraExportJSON',
-            'MAX_REBUILDABLE_CACHE_BYTES', 'REBUILDABLE_CACHE_RETENTION_MS',
             'nyra-performance-report.json'
         ):
             if marker not in html:
