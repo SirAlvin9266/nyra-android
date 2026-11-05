@@ -17,7 +17,7 @@ function requireText(source, marker, label) {
 }
 
 const modelStart = html.indexOf('const modelTools = ');
-const modelEnd = html.indexOf('\\n  const panelEnd', modelStart);
+const modelEnd = html.indexOf('const panelEnd', modelStart);
 if (modelStart < 0 || modelEnd <= modelStart) {
   failures.push('Could not isolate the existing model I/O module');
 }
@@ -45,7 +45,7 @@ for (const marker of [
 ]) requireText(html, marker, 'Guide shell');
 
 const robotStart = html.indexOf('let nyraGuideRobotRuntime=null');
-const robotEnd = html.indexOf('\\nlet nyraGuideIndex=', robotStart);
+const robotEnd = html.indexOf('let nyraGuideIndex=', robotStart);
 const robot = robotStart >= 0 && robotEnd > robotStart ? html.slice(robotStart, robotEnd) : '';
 for (const marker of [
   "fetch('nyra_personagem.json'", 'Nyra Character+Voxel Project v4',
