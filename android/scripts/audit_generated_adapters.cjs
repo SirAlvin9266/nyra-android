@@ -197,12 +197,12 @@ if (typeof modelToolsHtml !== 'string' ||
   throw new Error('Recovered modelTools payload is not the expected model I/O HTML');
 }
 const panelEndMarker = '</div></section></main>';
-const characterPanelEnd = generated.character.indexOf(panelEndMarker);
-if (characterPanelEnd < 0) throw new Error('Character panelEnd marker not found in adapted editor document');
-generated.character =
-  generated.character.slice(0, characterPanelEnd) +
-  modelToolsHtml +
-  generated.character.slice(characterPanelEnd);
+if (generated.character.toLowerCase().includes(panelEndMarker)) {
+  generated.character = generated.character.replace(panelEndMarker, modelToolsHtml + panelEndMarker);
+} else {
+  generated.character = generated.character.replace('</body>', modelToolsHtml + '</body>');
+}
+
 const requiredByEditor = {
   items: ['/assets/www/vendor/jszip/jszip.min.js'],
   character: ['/assets/www/vendor/three/build/three.module.js'],
