@@ -135,6 +135,24 @@ Objetivo: evoluir o Nyra de um editor centrado em primitivas para um ambiente em
 - Garantir UVs/atlas, materiais, nomes e exportação Blockbench/GLB.
 - Simulação física de tecido (gravidade, tensão e colisão) é projeto posterior, separado da modelagem manual.
 
+
+# Frente B — Avaliação e evolução do gerador automático de personagens via JSON
+
+Objetivo: verificar se o gerador matemático/IA baseado no formato JSON da Nyra realmente produz personagens e objetos com qualidade, liberdade geométrica e complexidade compatíveis com o que o editor permite construir manualmente.
+
+- **Problema observado pelo usuário:** personagens e outros objetos produzidos pelo gerador atual parecem muito limitados; em vários casos, a construção manual no editor permite resultados consideravelmente melhores.
+- Não considerar o gerador satisfatório apenas porque produz um JSON válido ou porque consegue montar um personagem básico. A qualidade visual, a expressividade, a complexidade e a editabilidade do resultado precisam ser avaliadas.
+- Criar uma bateria comparativa de casos: personagem humanoide simples, personagem estilizado, personagem com proporções não convencionais, personagem com acessórios/roupas/camadas, criatura ou modelo inspirado em Minecraft e objetos não humanoides.
+- Para cada caso, comparar: resultado manual de referência, resultado gerado, variedade de formas, proporções, detalhes, hierarquia/peças, materiais/cores, capacidade de edição posterior e fidelidade ao pedido.
+- Auditar os limites do esquema JSON atual e do gerador matemático: primitivas disponíveis, parâmetros, composição, transforms, hierarquia, superfícies, peças, materiais, UVs e recursos. Distinguir limitações do formato JSON das limitações do algoritmo que escreve esse JSON e das limitações do motor que o interpreta.
+- Avaliar em que ponto a assistência de IA ajuda de fato e em que ponto restringe a criação a combinações repetitivas ou simplificadas.
+- Investigar personagens complexos, incluindo modelos Minecraft: granularidade de peças, blocos, volumes, texturas/UVs e hierarquia. Não assumir suporte completo antes de validar exemplos reais.
+- Definir melhorias a partir dos resultados comparativos; não ampliar o esquema ou reescrever o gerador por suposição antes de identificar os gargalos.
+- Exportar e reimportar JSON deve preservar o conteúdo gerado e permitir continuidade de edição.
+- Este bloco da Frente B deve ser tratado como avaliação de qualidade e capacidade do gerador, não como simples pendência de importação/exportação da Frente C1.
+
+
+
 ### B8. DSL/gerador paramétrico
 - **Parcial.** JSON v1 documentado e testado para primitivas e hierarquia; atualmente não aplica contratos futuros de material/texture/UV.
 - Evoluir com versionamento e compatibilidade retroativa.
@@ -204,21 +222,6 @@ Objetivo: fazer as capacidades serem compreensíveis, utilizáveis no telefone e
 - Automatizar sintaxe do host e dos módulos incorporados; validar serialização HTML antes de modificar o template.
 - Rodar auditorias, build APK, verificação dos assets offline e testes de regressão em importação, geração, edição, salvamento, reabertura e exportação.
 - Não mergear na main sem CI verde e ensaio Android real.
-
-# Frente V — Avaliação e evolução do gerador automático de personagens via JSON
-
-Objetivo: verificar se o gerador matemático/IA baseado no formato JSON da Nyra realmente produz personagens e objetos com qualidade, liberdade geométrica e complexidade compatíveis com o que o editor permite construir manualmente.
-
-- **Problema observado pelo usuário:** personagens e outros objetos produzidos pelo gerador atual parecem muito limitados; em vários casos, a construção manual no editor permite resultados consideravelmente melhores.
-- Não considerar o gerador satisfatório apenas porque produz um JSON válido ou porque consegue montar um personagem básico. A qualidade visual, a expressividade, a complexidade e a editabilidade do resultado precisam ser avaliadas.
-- Criar uma bateria comparativa de casos: personagem humanoide simples, personagem estilizado, personagem com proporções não convencionais, personagem com acessórios/roupas/camadas, criatura ou modelo inspirado em Minecraft e objetos não humanoides.
-- Para cada caso, comparar: resultado manual de referência, resultado gerado, variedade de formas, proporções, detalhes, hierarquia/peças, materiais/cores, capacidade de edição posterior e fidelidade ao pedido.
-- Auditar os limites do esquema JSON atual e do gerador matemático: primitivas disponíveis, parâmetros, composição, transforms, hierarquia, superfícies, peças, materiais, UVs e recursos. Distinguir limitações do formato JSON das limitações do algoritmo que escreve esse JSON e das limitações do motor que o interpreta.
-- Avaliar em que ponto a assistência de IA ajuda de fato e em que ponto restringe a criação a combinações repetitivas ou simplificadas.
-- Investigar personagens complexos, incluindo modelos Minecraft: granularidade de peças, blocos, volumes, texturas/UVs e hierarquia. Não assumir suporte completo antes de validar exemplos reais.
-- Definir melhorias a partir dos resultados comparativos; não ampliar o esquema ou reescrever o gerador por suposição antes de identificar os gargalos.
-- Exportar e reimportar JSON deve preservar o conteúdo gerado e permitir continuidade de edição.
-- Esta frente deve ser tratada como avaliação de qualidade e capacidade do gerador, não como simples pendência de importação/exportação da Frente C1.
 
 
 ## Prioridade definida pelo usuário
