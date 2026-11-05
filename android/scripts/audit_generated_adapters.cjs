@@ -135,19 +135,14 @@ if (!html.includes("frame.style.cssText='display:block") ||
  // Check the shell bootstrap with only that nested payload neutralized.
 
 const modelToolsStart = outerSourceForExecution.indexOf('const modelTools = "');
-const modelToolsEnd = outerSourceForExecution.indexOf('";', modelToolsStart + 'const modelTools = "'.length);
-if (modelToolsStart < 0 || modelToolsEnd < 0) {
-  throw new Error('Could not isolate serialized modelTools assignment');
-}
-const afterModelTools = outerSourceForExecution.indexOf('\\n  if (html.toLowerCase().includes(modelTools)) {', modelToolsEnd);
-const endCondition = outerSourceForExecution.indexOf('\\n  }', afterModelTools);
-if (afterModelTools < 0 || endCondition < 0) {
-  throw new Error('Could not isolate modelTools host injection guard');
+const panelEndStart = outerSourceForExecution.indexOf('const panelEnd', modelToolsStart);
+if (modelToolsStart < 0 || panelEndStart < 0) {
+  throw new Error('Could not isolate serialized modelTools block');
 }
 const bootstrapForTest =
   outerSourceForExecution.slice(0, modelToolsStart) +
-  'const modelTools = "";' +
-  outerSourceForExecution.slice(endCondition + '\\n  }'.length);
+  'const modelTools = "";\\nconst panelEnd = "";' +
+  outerSourceForExecution.slice(outerSourceForExecution.indexOf(';', panelEndStart) + 1);
 vm.runInContext(bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
 
 const generated = vm.runInContext(`({
