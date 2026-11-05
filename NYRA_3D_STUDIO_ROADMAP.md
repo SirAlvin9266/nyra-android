@@ -148,11 +148,15 @@ Objetivo: evoluir o Nyra de um editor centrado em primitivas para um ambiente em
 
 Objetivo: fazer as capacidades serem compreensíveis, utilizáveis no telefone e confiáveis em modelos pequenos e grandes.
 
-### C1. Corrigir layout e ações duplicadas
-- **Correção de escopo:** o botão `Importar modelo 3D` e o seletor `nyraModelFiles` já são o fluxo funcional principal e já aceitam `.bbmodel` e `.json` Nyra. A alteração necessária é somente remover o botão antigo/obsoleto, sem recriar, substituir ou alterar a lógica do seletor atual.
-- Mover exportação `.bbmodel` para o grupo de exportação 3D perto de GLB/OBJ/STL.
-- Deixar Exportar personagem JSON separado, pois é outro formato/fluxo.
-- Conferir quebra de linha, acessibilidade, tamanho de toque e ordem visual no Android.
+### C1. Interface, importação e exportação de formatos
+- **Correção de escopo:** preservar o botão funcional `Importar modelo 3D` e o seletor `nyraModelFiles`; não recriar nem substituir a lógica existente.
+- O fluxo principal de importação deve aceitar modelos 3D já suportados e também modelos de personagem/projeto no formato JSON da Nyra. A importação JSON é requisito explícito, não apenas compatibilidade incidental.
+- Adicionar/manter uma ação explícita de exportação de modelo/personagem JSON. Esse formato é importante para o gerador matemático e para o intercâmbio com o modelo de dados da Nyra.
+- Diferenciar JSON de personagem/projeto Nyra de JSON genérico: validar versão/esquema e estrutura antes de carregar; rejeitar ou explicar arquivos incompatíveis sem corromper a cena atual.
+- Manter os exportadores GLB, OBJ, STL e BBModel; organizar o BBModel junto aos formatos 3D e preservar a ação JSON claramente identificada.
+- Remover somente eventual botão de importação antigo/obsoleto, sem remover funcionalidades do seletor atual.
+- Revisar visualmente organização e acessibilidade no Android na validação integrada; não inventar requisitos de interface não confirmados.
+- A capacidade atual do gerador matemático para personagens complexos não é considerada resolvida pela existência de importação/exportação JSON. Avaliação de qualidade do gerador foi movida para a Frente V.
 
 ### C2. Guia interativo específico e contextual
 - **Implementado na branch:** 23 etapas detalhadas, com explicações conceituais, operação, resultado esperado, limites, estados e alvos de interface. Validação de alvos WebView fica para o teste final.
@@ -160,7 +164,7 @@ Objetivo: fazer as capacidades serem compreensíveis, utilizáveis no telefone e
 - Ensinar primitivas, perfis e superfícies; subdividir e selecionar elementos.
 - Ensinar movimentação/deformação local, extrusão, loft, espessura, camadas e pregas quando implementados.
 - Explicar mapeamentos e inspeção de geometria, UV, materiais, pivôs e animações.
-- Importação `.bbmodel`/`.json` pelo botão funcional atual `Importar modelo 3D`, arquivos auxiliares e resolução de texturas.
+- Importação `.bbmodel` e JSON Nyra pelo botão funcional atual `Importar modelo 3D`, arquivos auxiliares e resolução de texturas.
 - Diferenciar Converter para BBModel de Exportar.
 - Explicar perdas/limitações de GLB, OBJ, STL e BBModel.
 - Incluir salvamento, backup, undo/redo e operações destrutivas.
@@ -177,24 +181,45 @@ Objetivo: fazer as capacidades serem compreensíveis, utilizáveis no telefone e
 
 ### C4. Performance de modelos grandes
 - **Instrumentação adicionada ao editor:** eventos de seleção/importação, duração total do carregamento, contagem de malhas, vértices, triângulos, grupos, ossos, materiais e texturas; métricas do renderer (draw calls, geometrias e texturas); amostras de frame time, detecção de long tasks e memória JS quando exposta pelo WebView. O botão `Diagnóstico de desempenho` exporta `nyra-performance-report.json`.
-- **Validação física reservada para o teste final do usuário:** comparar o mesmo arquivo no mesmo aparelho antes/depois das otimizações. Existe relato de modelo de aproximadamente 25 MB com lentidão no telefone.
+- **Problema reproduzível relatado pelo usuário:** travamentos ao importar pacotes pesados, incluindo um pacote em torno de 25 MB. O tamanho do arquivo é uma referência do caso observado, não um limite técnico fixo.
+- Investigar separadamente tempo de leitura, descompressão, parse, construção de cena, texturas, geometria, consumo de memória e renderização; identificar a etapa que trava antes de escolher a otimização.
+- Comparar o mesmo arquivo no mesmo aparelho antes/depois; benchmark físico fica reservado ao teste final do usuário.
 - Instrumentar leitura, parse, construção de cena, vértices, triângulos, materiais, texturas, draw calls e frame time.
 - Medir memória se WebView/Android permitir.
-- Benchmark comparável no mesmo arquivo e dispositivo antes/depois.
 - Pixel ratio adaptativo e qualidade escolhível, sem downgrade silencioso.
 - Renderização sob demanda quando possível.
 - Compartilhar geometria/material, instancing e merge apenas quando não alterarem semântica/seleção.
 - Descartar buffers, texturas e URLs quando não utilizados.
 - Feedback de progresso, cancelamento e limites explícitos para importações grandes.
 
-### C5. Robustez Android, armazenamento e regressões
+### C5. Robustez Android, cache local e regressões
 - **Parcial em código / ensaio físico reservado para o fechamento:** o host trata `ClipData` e URI múltiplos, tenta persistir permissões e exporta via `ACTION_CREATE_DOCUMENT`; CI executa auditorias, build e verificação de assets offline. Instalação, seleção real, retomada, rotação e pressão de memória serão validadas pelo usuário no teste integrado final. Inicialização eager foi restaurada e confirmada pelo usuário em APK anterior.
+- Implementar uma estratégia explícita de **cache local gerenciável** para dados derivados e temporários dos projetos, como cópias de trabalho, previews, thumbnails, geometrias processadas e recursos reconstruíveis. O objetivo é evitar crescimento descontrolado do armazenamento do aparelho e permitir limpeza do cache.
+- A limpeza do cache deve liberar apenas dados temporários/reconstruíveis; não pode apagar silenciosamente os projetos que o usuário espera manter. Projetos e estado editável precisam de persistência local durável separada do cache, ou mecanismo equivalente de recuperação/salvamento. A interface deve distinguir claramente limpar cache de apagar projetos/dados.
+- Verificar existência e integridade dos arquivos em cache antes de reutilizá-los, pois o Android pode removê-los quando precisar de espaço. A limpeza de cache não pode ser requisito para recuperar um projeto.
+- Criar política de tamanho/retensão/limpeza para cache, com métricas de espaço utilizado e opção de limpeza pelo usuário; avaliar limpeza automática segura de temporários antigos sem tocar em projetos ativos.
 - Preservar o carregamento funcional dos três editores e os assets offline.
 - Testar seleção de múltiplos arquivos, URIs, ClipData, permissões e exportação via seletor Android.
 - Verificar rotação de tela, retomada do app, falta de memória e erros de WebView.
 - Automatizar sintaxe do host e dos módulos incorporados; validar serialização HTML antes de modificar o template.
-- Rodar auditorias, build APK, verificação dos assets offline e instalar/testar no dispositivo físico.
+- Rodar auditorias, build APK, verificação dos assets offline e testes de regressão em importação, geração, edição, salvamento, reabertura e exportação.
 - Não mergear na main sem CI verde e ensaio Android real.
+
+# Frente V — Avaliação e evolução do gerador automático de personagens via JSON
+
+Objetivo: verificar se o gerador matemático/IA baseado no formato JSON da Nyra realmente produz personagens e objetos com qualidade, liberdade geométrica e complexidade compatíveis com o que o editor permite construir manualmente.
+
+- **Problema observado pelo usuário:** personagens e outros objetos produzidos pelo gerador atual parecem muito limitados; em vários casos, a construção manual no editor permite resultados consideravelmente melhores.
+- Não considerar o gerador satisfatório apenas porque produz um JSON válido ou porque consegue montar um personagem básico. A qualidade visual, a expressividade, a complexidade e a editabilidade do resultado precisam ser avaliadas.
+- Criar uma bateria comparativa de casos: personagem humanoide simples, personagem estilizado, personagem com proporções não convencionais, personagem com acessórios/roupas/camadas, criatura ou modelo inspirado em Minecraft e objetos não humanoides.
+- Para cada caso, comparar: resultado manual de referência, resultado gerado, variedade de formas, proporções, detalhes, hierarquia/peças, materiais/cores, capacidade de edição posterior e fidelidade ao pedido.
+- Auditar os limites do esquema JSON atual e do gerador matemático: primitivas disponíveis, parâmetros, composição, transforms, hierarquia, superfícies, peças, materiais, UVs e recursos. Distinguir limitações do formato JSON das limitações do algoritmo que escreve esse JSON e das limitações do motor que o interpreta.
+- Avaliar em que ponto a assistência de IA ajuda de fato e em que ponto restringe a criação a combinações repetitivas ou simplificadas.
+- Investigar personagens complexos, incluindo modelos Minecraft: granularidade de peças, blocos, volumes, texturas/UVs e hierarquia. Não assumir suporte completo antes de validar exemplos reais.
+- Definir melhorias a partir dos resultados comparativos; não ampliar o esquema ou reescrever o gerador por suposição antes de identificar os gargalos.
+- Exportar e reimportar JSON deve preservar o conteúdo gerado e permitir continuidade de edição.
+- Esta frente deve ser tratada como avaliação de qualidade e capacidade do gerador, não como simples pendência de importação/exportação da Frente C1.
+
 
 ## Prioridade definida pelo usuário
 
