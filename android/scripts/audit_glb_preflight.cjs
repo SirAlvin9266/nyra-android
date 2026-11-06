@@ -7,18 +7,35 @@ const vm=require('node:vm');
 const assert=require('node:assert/strict');
 
 const html=fs.readFileSync(path.resolve(__dirname,'../app/src/main/assets/www/index.html'),'utf8');
+function decodeJsStringLiteral(source) {
+  if (source[0] !== '"' || source[source.length - 1] !== '"') throw new Error('Expected a double-quoted modelTools literal');
+  let value = '';
+  for (let i = 1; i < source.length - 1; i++) {
+    const ch = source[i];
+    if (ch !== '\\') { value += ch; continue; }
+    const next = source[++i];
+    if (next === 'n') value += '\n';
+    else if (next === 'r') value += '\r';
+    else if (next === 't') value += '\t';
+    else if (next === '"' || next === "'" || next === '\\') value += next;
+    else if (next === 'x') { value += String.fromCharCode(parseInt(source.slice(i + 1, i + 3), 16)); i += 2; }
+    else if (next === 'u') { value += String.fromCharCode(parseInt(source.slice(i + 1, i + 5), 16)); i += 4; }
+    else value += next;
+  }
+  return value.replace(/\\\\(["'])/g, '$1').replace(/\\\\\\\\/g, '\\\\');
+}
 function extractModelTools(source) {
+  const scriptStart = source.indexOf('<script>');
+  const scriptEnd = source.indexOf('</script>', scriptStart);
+  const script = scriptStart >= 0 && scriptEnd > scriptStart
+    ? source.slice(scriptStart + '<script>'.length, scriptEnd) : '';
   const assignment = 'const modelTools = ';
-  const start = source.indexOf(assignment);
-  if (start < 0) throw new Error('Model I/O template is missing from the Android host page.');
-  const literalStart = start + assignment.length;
-  const boundary = source.indexOf('const panelEnd = ', literalStart);
-  if (boundary < 0) throw new Error('Host template boundary after modelTools was not found.');
-  // The host uses automatic semicolon insertion: the string closes immediately
-  // before the newline introducing panelEnd, not before a semicolon.
-  const closingQuote = source.lastIndexOf('"', boundary);
-  if (closingQuote < literalStart) throw new Error('Closing quote for modelTools was not found.');
-  return JSON.parse(source.slice(literalStart, closingQuote + 1));
+  const literalStart = script.indexOf(assignment) + assignment.length;
+  const literalEnd = script.indexOf('";', literalStart);
+  if (literalStart < assignment.length || literalEnd < literalStart) {
+    throw new Error('Could not decode modelTools from the host script.');
+  }
+  return decodeJsStringLiteral(script.slice(literalStart, literalEnd + 1));
 }
 const modelTools=extractModelTools(html);
 const moduleStart=modelTools.indexOf('<script type="module">');
