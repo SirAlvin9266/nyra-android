@@ -7,13 +7,44 @@ const vm=require('node:vm');
 const assert=require('node:assert/strict');
 
 const html=fs.readFileSync(path.resolve(__dirname,'../app/src/main/assets/www/index.html'),'utf8');
-const assignment='const modelTools = ';
-const start=html.indexOf(assignment);
-const end=html.indexOf('";',start);
-assert.ok(start>=0&&end>start,'Android modelTools adapter must exist');
-const modelTools=JSON.parse(html.slice(start+assignment.length,end+1));
+function decodeJsStringLiteral(source) {
+  if (source[0] !== '"' || source[source.length - 1] !== '"') throw new Error('Expected a double-quoted modelTools literal');
+  let value = '';
+  for (let i = 1; i < source.length - 1; i++) {
+    const ch = source[i];
+    if (ch !== '\\') { value += ch; continue; }
+    const next = source[++i];
+    if (next === 'n') value += '\n';
+    else if (next === 'r') value += '\r';
+    else if (next === 't') value += '\t';
+    else if (next === '"' || next === "'" || next === '\\') value += next;
+    else if (next === 'x') { value += String.fromCharCode(parseInt(source.slice(i + 1, i + 3), 16)); i += 2; }
+    else if (next === 'u') { value += String.fromCharCode(parseInt(source.slice(i + 1, i + 5), 16)); i += 4; }
+    else value += next;
+  }
+  return value.replace(/\\\\(["'])/g, '$1').replace(/\\\\\\\\/g, '\\\\');
+}
+function extractModelTools(source) {
+  const scriptStart = source.indexOf('<script>');
+  const scriptEnd = source.indexOf('</script>', scriptStart);
+  const script = scriptStart >= 0 && scriptEnd > scriptStart
+    ? source.slice(scriptStart + '<script>'.length, scriptEnd) : '';
+  const assignment = 'const modelTools = ';
+  const literalStart = script.indexOf(assignment) + assignment.length;
+  const literalEnd = script.indexOf('";', literalStart);
+  if (literalStart < assignment.length || literalEnd < literalStart) {
+    throw new Error('Could not decode modelTools from the host script.');
+  }
+  return decodeJsStringLiteral(script.slice(literalStart, literalEnd + 1));
+}
+const modelTools=extractModelTools(html);
 const moduleStart=modelTools.indexOf('<script type="module">');
-const moduleEnd=modelTools.indexOf('</script>',moduleStart);
+// The outer HTML stores this nested module close escaped so it does not
+// terminate the shell script. JSON.parse restores the backslash in this string.
+const escapedClose='<'+String.fromCharCode(92)+'/script>';
+const escapedModuleEnd=modelTools.indexOf(escapedClose,moduleStart);
+const literalModuleEnd=modelTools.indexOf('</script>',moduleStart);
+const moduleEnd=escapedModuleEnd>=0?escapedModuleEnd:literalModuleEnd;
 assert.ok(moduleStart>=0&&moduleEnd>moduleStart,'Model I/O module must exist');
 const moduleSource=modelTools.slice(moduleStart+'<script type="module">'.length,moduleEnd);
 const preflightStart=moduleSource.indexOf('async function inspectGLBFile');

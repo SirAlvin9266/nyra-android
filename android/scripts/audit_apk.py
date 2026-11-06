@@ -12,6 +12,7 @@ if not apk.is_file():
 
 required = {
     "assets/www/index.html": None,
+    "assets/www/nyra_personagem.json": None,
     "assets/www/nyra-guide-robot.webp": None,
     "res/mipmap-anydpi-v26/ic_launcher.xml": None,
     "res/mipmap-anydpi-v26/ic_launcher_round.xml": None,
@@ -82,6 +83,20 @@ with zipfile.ZipFile(apk) as z:
             errors.append("AndroidManifest.xml is not compiled binary XML")
         if not icon_manifest or not round_manifest or not foreground_candidates:
             errors.append("compiled manifest cannot resolve both adaptive launcher icon resources")
+    if "assets/www/nyra_personagem.json" in names:
+        character_source = z.read("assets/www/nyra_personagem.json").decode("utf-8")
+        for marker in ('Nyra Character+Voxel Project v4', '"parts"', '"voxels"', '"objects"'):
+            if marker not in character_source:
+                errors.append(f"official guide character asset missing marker: {marker}")
+    if "assets/www/index.html" in names:
+        html = z.read("assets/www/index.html").decode("utf-8")
+        for marker in (
+            "fetch('nyra_personagem.json'", 'nyraCacheReport', 'nyraCacheClear',
+            'import_stage', 'scene_build_and_commit', 'nyraExportJSON',
+            'nyra-performance-report.json'
+        ):
+            if marker not in html:
+                errors.append(f"packaged HTML missing Front C marker: {marker}")
     if "assets/www/index.html" in names:
         html = z.read("assets/www/index.html").decode("utf-8")
         for marker in (

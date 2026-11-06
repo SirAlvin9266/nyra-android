@@ -54,6 +54,9 @@ jobs:
       - name: Audit generated editor adapters
         run: node android/scripts/audit_generated_adapters.cjs
 
+      - name: Audit Front C integration and Android cache safety
+        run: node android/scripts/audit_front_c.cjs
+
       - name: Test mathematical model DSL
         run: node android/scripts/audit_model_dsl.cjs
 

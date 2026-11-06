@@ -77,14 +77,22 @@ const document = {
   },
   querySelectorAll() { return []; },
   createElement(tag) {
-    return {
+    const element = {
       tagName: String(tag).toUpperCase(),
       style: {},
       dataset: {},
       classList: { toggle() {} },
       setAttribute() {},
       addEventListener() {},
+      contentWindow: {},
     };
+    if (String(tag).toLowerCase() === 'iframe') {
+      Object.defineProperty(element, 'srcdoc', {
+        get() { return this._srcdoc || ''; },
+        set(value) { this._srcdoc = value; },
+      });
+    }
+    return element;
   },
   addEventListener() {},
 };
@@ -130,11 +138,22 @@ if (!html.includes("frame.style.cssText='display:block") ||
 // template string. Replace only that template with a no-op for VM bootstrap
 // evaluation; the adapter source itself is inspected through markers below and
 // its assembled generated editor module is syntax-checked further down.
-checkJs('outer app bootstrap', outerSourceForExecution);
-const bootstrapForTest = outerSourceForExecution.replace(
-  /const modelTools = [\\s\\S]*?;\\s*if \(html\.toLowerCase\(\)\.includes\(modelTools\)\) \{[\\s\\S]*?\\n \\}\\n/ ,
-  'const modelTools = "";\\n'
-);
+// The nested modelTools payload is a serialized HTML document containing a module script.
+ // Its complete assembled module is syntax-checked below after the host adapters create it.
+ // Check the shell bootstrap with only that nested payload neutralized.
+
+const modelToolsStart = outerSourceForExecution.indexOf('const modelTools = "');
+const panelEndStart = outerSourceForExecution.indexOf('const panelEnd', modelToolsStart);
+if (modelToolsStart < 0 || panelEndStart < 0) {
+  throw new Error('Could not isolate serialized modelTools block');
+}
+const bootstrapForTest =
+  outerSourceForExecution.slice(0, modelToolsStart) +
+  'const modelTools = "";' + String.fromCharCode(10) + 'const panelEnd = "";' +
+  outerSourceForExecution.slice(outerSourceForExecution.indexOf(';', panelEndStart) + 1);
+// Use the complete outer source to create the actual editor documents.
+// The no-op variant is only used to exercise host initialization in the VM.
+const generatedEditorSource = outerSourceForExecution;
 vm.runInContext(bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
 
 const generated = vm.runInContext(`({
@@ -143,8 +162,60 @@ const generated = vm.runInContext(`({
   animation: addAndroidExportAdapter(decodePage(pages.animation), 'animation')
 })`, context);
 
-// The sanitized bootstrap uses an empty modelTools placeholder for evaluation.
-// Reattach the exact model I/O HTML source extracted from the host adapter.
+// Host composition inserts the serialized modelTools HTML immediately before
+// the Character panel's closing wrapper. Reproduce that exact operation after
+// the Android persistence/export adapter has transformed the source page.
+const modelToolsAssignmentStart = outerSourceForExecution.indexOf('const modelTools = "');
+const modelToolsLiteralStart = modelToolsAssignmentStart + 'const modelTools = '.length;
+const modelToolsLiteralEnd = outerSourceForExecution.indexOf('";', modelToolsLiteralStart);
+if (modelToolsAssignmentStart < 0 || modelToolsLiteralEnd < 0) {
+  throw new Error('Could not recover the original modelTools literal');
+}
+const literal = outerSourceForExecution.slice(modelToolsLiteralStart, modelToolsLiteralEnd + 1);
+function decodeJsStringLiteral(source) {
+  if (source[0] !== '"' || source[source.length - 1] !== '"') {
+    throw new Error('Expected a double-quoted modelTools literal');
+  }
+  let value = '';
+  for (let i = 1; i < source.length - 1; i++) {
+    const ch = source[i];
+    if (ch !== '\\') {
+      value += ch;
+      continue;
+    }
+    const next = source[++i];
+    if (next === 'n') value += '\n';
+    else if (next === 'r') value += '\r';
+    else if (next === 't') value += '\t';
+    else if (next === '"' || next === "'" || next === '\\') value += next;
+    else if (next === 'x') {
+      value += String.fromCharCode(parseInt(source.slice(i + 1, i + 3), 16));
+      i += 2;
+    } else if (next === 'u') {
+      value += String.fromCharCode(parseInt(source.slice(i + 1, i + 5), 16));
+      i += 4;
+    } else {
+      value += next;
+    }
+  }
+  // The host stores HTML inside a string embedded in a second script string.
+  // Decode one more escape layer so the assembled HTML has normal attribute quotes.
+  return value.replace(/\\\\(["'])/g, '$1').replace(/\\\\\\\\/g, '\\\\');
+}
+const modelToolsHtml = decodeJsStringLiteral(literal);
+if (typeof modelToolsHtml !== 'string' ||
+    !modelToolsHtml.includes('nyraModelIO') ||
+    !modelToolsHtml.includes('nyraImport3D') ||
+    !modelToolsHtml.includes('nyraExportJSON')) {
+  throw new Error('Recovered modelTools payload is not the expected model I/O HTML');
+}
+const panelEndMarker = '</div></section></main>';
+if (generated.character.toLowerCase().includes(panelEndMarker)) {
+  generated.character = generated.character.replace(panelEndMarker, modelToolsHtml + panelEndMarker);
+} else {
+  generated.character = generated.character.replace('</body>', modelToolsHtml + '</body>');
+}
+
 const requiredByEditor = {
   items: ['/assets/www/vendor/jszip/jszip.min.js'],
   character: ['/assets/www/vendor/three/build/three.module.js'],
@@ -164,6 +235,24 @@ const blockbenchMarkers = [
   'bbImportedMeshes',
   'bbModelAnimationCount',
   "extension==='bbmodel'",
+  "extension==='json'",
+  'parseNyraCharacterProject',
+  'nyraExportBB',
+  'function createBBModelDocument()',
+  'function validateBBModelDocument(documentData)',
+  'function createRoundTripAuditDocument()',
+  'function exportBBModelBlob()',
+  'function refreshModelInspector()',
+  'id="nyraInspector"',
+  'nyraMapHierarchy',
+  'nyraMapMetadata',
+  'nyraMapGeometry',
+  'nyraMapUV',
+  'nyraMapMaterials',
+  'nyraMapTransforms',
+  'nyraMapRig',
+  'nyraMapDependencies',
+  'nyraMapCompatibility',
 ];
 const requiredExportMarkers = [
   'HTMLAnchorElement.prototype.click',
@@ -171,6 +260,17 @@ const requiredExportMarkers = [
   'appendExportChunk',
   'finishExport',
 ];
+const requiredCharacterModelIOMarkers = [
+  'nyraExportJSON',
+  'function nyraCreateSceneJSON',
+  'function parseNyraSceneProject',
+  "document.getElementById('nyraExportJSON').addEventListener",
+  'nyraCacheReport',
+  'nyraCacheClear',
+  'import_stage',
+];
+
+
 for (const [name, page] of Object.entries(generated)) {
   if (!page || page.length < 10000) {
     console.error('FAIL: generated ' + name + ' editor document is unexpectedly short');
@@ -189,7 +289,7 @@ for (const [name, page] of Object.entries(generated)) {
     }
   }
 
-  for (const marker of [...(requiredByEditor[name] || []), ...requiredExportMarkers, ...(name === 'character' ? ['NyraModelIO', 'Importar modelo 3D', 'editor.selectModel(object)', 'previousModel=importedModel', 'candidateInScene=true', 'animations:importedAnimations', 'function validateMathDocument(', 'function buildMathModel(', 'function geometryForMathComponent(', 'function generateMathModel(', 'async function parseBBModel(file,files=[])', 'function bbCoordinate(', 'function bbEuler(', 'new THREE.TextureLoader()', 'new THREE.BufferGeometry()', 'new THREE.BoxGeometry(', 'bbImportedMeshes', 'bbModelAnimationCount', "extension==='bbmodel'"] : [])]) {
+  for (const marker of [...requiredExportMarkers, ...(requiredByEditor[name] || []), ...(name === 'character' ? [...requiredCharacterModelIOMarkers, 'NyraModelIO', 'Importar modelo 3D', 'editor.selectModel(object)', 'previousModel=importedModel', 'candidateInScene=true', 'animations:importedAnimations', 'function validateMathDocument(', 'function buildMathModel(', 'function geometryForMathComponent(', 'function generateMathModel(', 'async function parseBBModel(file,files=[])', 'function bbCoordinate(', 'function bbEuler(', 'new THREE.TextureLoader()', 'new THREE.BufferGeometry()', 'new THREE.BoxGeometry(', 'bbImportedMeshes', 'bbModelAnimationCount', "extension==='bbmodel'", "extension==='json'", 'parseNyraCharacterProject', 'nyraExportBB', 'function createBBModelDocument()'] : [])]) {
     if (!page.includes(marker)) {
       console.error('FAIL: generated ' + name + ' document is missing ' + marker);
       process.exitCode = 1;
@@ -227,7 +327,7 @@ for (const [name, page] of Object.entries(generated)) {
   }
   if (name === 'character' && moduleIndex >= 0) {
     const moduleStart = page.lastIndexOf('<script type="module">', moduleIndex);
-    const moduleEnd = page.indexOf('</script>', moduleIndex);
+    const moduleEnd = page.indexOf('<\\/script>', moduleIndex);
     if (moduleStart < 0 || moduleEnd < 0) {
       console.error('FAIL: final Character Editor model I/O module block is incomplete');
       process.exitCode = 1;
