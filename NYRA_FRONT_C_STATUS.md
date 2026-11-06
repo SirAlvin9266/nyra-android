@@ -26,9 +26,9 @@ Esta revisão elevou o plano de texto para um plano técnico comparando código 
 - `getCacheDir()/nyra-rebuildable` armazena temporários de exportação, não modelos importados permanentes.
 - O teste estático do audit não substitui integração real WebView/Android.
 
-## Próximo passo obrigatório
+## Estado atual da implementação
 
-Executar C1: mapear o evento real do botão principal até o parser, criar fixtures dos JSONs reais e adicionar classificador testável. Em seguida, C5: localizar o mecanismo verdadeiro de save/load do editor onde os modelos criados ficam persistidos.
+O plano técnico foi convertido em mudanças de código nesta branch. Consulte a seção **Implementação integrada nesta branch** abaixo e os gates físicos em aberto; as afirmações de constatação histórica acima continuam válidas como diagnóstico anterior, não como estado atual.
 
 ## Regra de integração
 
