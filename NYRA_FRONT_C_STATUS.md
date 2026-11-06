@@ -33,3 +33,20 @@ Executar C1: mapear o evento real do botão principal até o parser, criar fixtu
 ## Regra de integração
 
 Manter PR draft. Não alterar main, não mesclar, não marcar ready e não alterar Frente B sem aprovação explícita.
+
+
+## Implementação integrada nesta branch
+- C1: importação principal permanece no seletor existente; JSON separa Scene v1, DSL Nyra v1 (validador e construtor do painel matemático) e projetos de personagem. JSON arbitrário com components não é aceito; BBModel exige elements, outliner e meta.
+- C1: serializador Scene v1 passa a preservar a cadeia interna de pivô/geometria da DSL; o deserializador rejeita tipos de nó desconhecidos.
+- C3: canvas do robô-guia é substituído ao reabrir após dispose do renderer.
+- C5: cópia local da cena importada no armazenamento privado Android, transferência por blocos, limite 240 MiB, fsync e troca de arquivo temporário; restauração no boot e exclusão explícita. A cópia mantém geometria/hierarquia/material básico, mas não texturas externas ou clips de animação.
+- C4: nenhuma otimização foi inventada sem benchmark; o parse JSON síncrono ainda não é cancelável e requer medição no dispositivo.
+
+## Gates de validação física
+- CI de auditoria/build no HEAD integrado.
+- Round-trip DSL no Three.js real incluindo todas as primitivas, tubo, hierarquia e pivôs.
+- Cold start, interrupção de gravação, espaço insuficiente e limpeza segura de cache no Android.
+- C2: todos os 23 alvos e acessibilidade no WebView.
+- C3: reabertura WebGL/2D no aparelho.
+- C4: benchmark antes/depois no mesmo dispositivo/arquivo.
+- glTF/FBX com recursos externos exigem reanexação; a cópia Scene JSON não é backup integral do arquivo original.

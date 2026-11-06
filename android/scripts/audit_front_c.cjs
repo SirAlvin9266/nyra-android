@@ -32,6 +32,9 @@ if (guideCount !== 23) failures.push('Expected 23 guide steps, found ' + guideCo
 
 for (const marker of [
   'nyraImport3D', 'nyraModelFiles', 'nyraExportGLB', 'nyraExportBB',
+  'nyraProjectScheduleSave', 'nyraProjectRestore', 'nyraSavedProjectClear',
+  'validateMathDocument(documentData)', 'buildMathModel(normalized)',
+  'Array.isArray(documentData.outliner)'
   'nyraExportOBJ', 'nyraExportSTL', 'nyraExportJSON', 'nyraPerfReport',
   'nyraCacheReport', 'nyraCacheClear', 'function nyraCreateSceneJSON',
   'function parseNyraSceneProject', 'async function parseNyraCharacterProject',
@@ -81,6 +84,12 @@ for (const marker of [
 
 for (const marker of [
   'new File(getCacheDir(), "nyra-rebuildable")',
+  'new File(getFilesDir(), "nyra-projects")',
+  'beginProjectSave(String filename)',
+  'appendProjectSaveChunk(String token, String encodedChunk)',
+  'finishProjectSave(String token)',
+  'readSavedProjectChunk(long offset, int length)',
+  'deleteSavedProject()'
   'getRebuildableCacheReport()',
   'clearRebuildableCache()', 'MAX_REBUILDABLE_CACHE_BYTES', 'REBUILDABLE_CACHE_RETENTION_MS', 'pruneRebuildableCache()', 'rebuildableCacheBytes() + data.length', 'limitBytes', 'retentionDays'
 ]) requireText(java, marker, 'Safe Android rebuildable cache');
@@ -165,6 +174,15 @@ try {
  // set and the separate roadmap/status record instead of brittle symbol absence.
 
 
+// C1 contract: only explicit Nyra DSL/character and fully marked BBModel JSON are routed.
+for (const marker of [
+  'documentData.version===1&&Array.isArray(documentData.components)',
+  'const normalized=validateMathDocument(documentData);',
+  'const object=buildMathModel(normalized);',
+  "documentData&&Array.isArray(documentData.elements)&&Array.isArray(documentData.outliner)"
+]) requireText(model, marker, 'C1 JSON classification');
+if (model.includes("||Array.isArray(documentData.components)||Array.isArray(documentData.objects)")) failures.push('C1 permissive classifier remains');
+if (!java.includes('new File(getFilesDir(), "nyra-projects")') || !java.includes('new File(getCacheDir(), "nyra-rebuildable")')) failures.push('Persistent project and temporary cache namespaces must be separate');
 if (failures.length) {
   failures.forEach(message => console.error('FAIL: ' + message));
   process.exit(1);

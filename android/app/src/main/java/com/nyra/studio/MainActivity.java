@@ -46,6 +46,10 @@ public class MainActivity extends Activity {
     private static final long MAX_EXPORT_BYTES = 256L * 1024L * 1024L;
     private static final long MAX_REBUILDABLE_CACHE_BYTES = 512L * 1024L * 1024L;
     private static final long REBUILDABLE_CACHE_RETENTION_MS = 7L * 24L * 60L * 60L * 1000L;
+    private static final long MAX_SAVED_PROJECT_BYTES = 240L * 1024L * 1024L;
+    private static final int PROJECT_CHUNK_BYTES = 48 * 1024;
+    private static final String SAVED_PROJECT_FILE = "scene-model.json";
+    private final Map<String, File> projectWrites = new ConcurrentHashMap<>();
 
     private WebView webView;
     private WebViewAssetLoader assetLoader;
@@ -251,6 +255,81 @@ public class MainActivity extends Activity {
 
     private final class ExportBridge {
         @JavascriptInterface
+        public String beginProjectSave(String filename) {
+            try {
+                if (!SAVED_PROJECT_FILE.equals(safeFilename(filename, SAVED_PROJECT_FILE))) return "";
+                File dir = new File(getFilesDir(), "nyra-projects");
+                if (!dir.exists() && !dir.mkdirs()) return "";
+                File pending = File.createTempFile("scene-model-", ".pending", dir);
+                String token = UUID.randomUUID().toString();
+                projectWrites.put(token, pending);
+                return token;
+            } catch (Exception ex) { return ""; }
+        }
+
+        @JavascriptInterface
+        public boolean appendProjectSaveChunk(String token, String encodedChunk) {
+            File pending = projectWrites.get(token);
+            if (pending == null || encodedChunk == null) return false;
+            byte[] bytes;
+            try { bytes = Base64.decode(encodedChunk, Base64.DEFAULT); }
+            catch (IllegalArgumentException ex) { cancelProjectSave(token); return false; }
+            synchronized (pending) {
+                if (pending.length() + bytes.length > MAX_SAVED_PROJECT_BYTES) { cancelProjectSave(token); return false; }
+                try (FileOutputStream out = new FileOutputStream(pending, true)) {
+                    out.write(bytes); out.getFD().sync(); return true;
+                } catch (Exception ex) { cancelProjectSave(token); return false; }
+            }
+        }
+
+        @JavascriptInterface
+        public boolean finishProjectSave(String token) {
+            File pending = projectWrites.remove(token);
+            if (pending == null || !pending.isFile() || pending.length() < 2) return false;
+            File target = new File(pending.getParentFile(), SAVED_PROJECT_FILE);
+            File backup = new File(pending.getParentFile(), SAVED_PROJECT_FILE + ".previous");
+            if (target.exists() && !target.renameTo(backup)) { pending.delete(); return false; }
+            if (!pending.renameTo(target)) {
+                if (backup.exists()) backup.renameTo(target);
+                pending.delete(); return false;
+            }
+            if (backup.exists()) backup.delete();
+            return true;
+        }
+
+        @JavascriptInterface
+        public void cancelProjectSave(String token) {
+            File pending = projectWrites.remove(token);
+            if (pending != null) pending.delete();
+        }
+
+        @JavascriptInterface
+        public String getSavedProjectInfo() {
+            File target = new File(new File(getFilesDir(), "nyra-projects"), SAVED_PROJECT_FILE);
+            return target.isFile()
+                ? "{\\"exists\\":true,\\"bytes\\":" + target.length() + "}"
+                : "{\\"exists\\":false}";
+        }
+
+        @JavascriptInterface
+        public String readSavedProjectChunk(long offset, int length) {
+            if (offset < 0 || length < 1 || length > PROJECT_CHUNK_BYTES) return "";
+            File target = new File(new File(getFilesDir(), "nyra-projects"), SAVED_PROJECT_FILE);
+            if (!target.isFile() || offset >= target.length()) return "";
+            byte[] bytes = new byte[(int)Math.min(length, target.length() - offset)];
+            try (java.io.RandomAccessFile file = new java.io.RandomAccessFile(target, "r")) {
+                file.seek(offset); file.readFully(bytes); return Base64.encodeToString(bytes, Base64.NO_WRAP);
+            } catch (Exception ex) { return ""; }
+        }
+
+        @JavascriptInterface
+        public boolean deleteSavedProject() {
+            if (!projectWrites.isEmpty()) return false;
+            File target = new File(new File(getFilesDir(), "nyra-projects"), SAVED_PROJECT_FILE);
+            return !target.exists() || target.delete();
+        }
+
+        @JavascriptInterface
         public String beginExport(String filename, String mimeType) {
             try {
                 String safe = safeFilename(filename, "nyra-export.bin");
@@ -378,6 +457,8 @@ public class MainActivity extends Activity {
             startActivityForResult(intent, CREATE_DOCUMENT_REQUEST);
         } catch (Exception ex) {
             if (pendingDocument != null) pendingDocument.file.delete();
+        for (File pending : projectWrites.values()) pending.delete();
+        projectWrites.clear();
             pendingDocument = null;
             documentPickerOpen = false;
             Toast.makeText(this, "Não foi possível abrir o seletor de arquivos.", Toast.LENGTH_LONG).show();
