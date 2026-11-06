@@ -34,7 +34,7 @@ for (const marker of [
   'nyraImport3D', 'nyraModelFiles', 'nyraExportGLB', 'nyraExportBB',
   'nyraProjectScheduleSave', 'nyraProjectRestore', 'nyraSavedProjectClear',
   'validateMathDocument(documentData)', 'buildMathModel(normalized)',
-  'Array.isArray(documentData.outliner)'
+  'Array.isArray(documentData.outliner)',
   'nyraExportOBJ', 'nyraExportSTL', 'nyraExportJSON', 'nyraPerfReport',
   'nyraCacheReport', 'nyraCacheClear', 'function nyraCreateSceneJSON',
   'function parseNyraSceneProject', 'async function parseNyraCharacterProject',
