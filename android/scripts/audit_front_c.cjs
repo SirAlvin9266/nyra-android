@@ -89,7 +89,7 @@ for (const marker of [
   'appendProjectSaveChunk(String token, String encodedChunk)',
   'finishProjectSave(String token)',
   'readSavedProjectChunk(long offset, int length)',
-  'deleteSavedProject()'
+  'deleteSavedProject()',
   'getRebuildableCacheReport()',
   'clearRebuildableCache()', 'MAX_REBUILDABLE_CACHE_BYTES', 'REBUILDABLE_CACHE_RETENTION_MS', 'pruneRebuildableCache()', 'rebuildableCacheBytes() + data.length', 'limitBytes', 'retentionDays'
 ]) requireText(java, marker, 'Safe Android rebuildable cache');
