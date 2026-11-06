@@ -45,6 +45,14 @@ for (const marker of [
   'function renderNyraGuide', 'nyraGuideHighlight'
 ]) requireText(html, marker, 'Guide shell');
 
+const guideCloseStart = html.indexOf('function closeNyraGuide()');
+const guideCloseEnd = html.indexOf('function renderNyraGuide()', guideCloseStart);
+const guideClose = guideCloseStart >= 0 && guideCloseEnd > guideCloseStart
+  ? html.slice(guideCloseStart, guideCloseEnd) : '';
+for (const marker of ['nyraGuideRobotRuntime.stop()', 'nyraGuideRobotRuntime=null']) {
+  requireText(guideClose, marker, 'Guide robot lifecycle on close');
+}
+
 const robotStart = html.indexOf('let nyraGuideRobotRuntime=null');
 const robotEnd = html.indexOf('let nyraGuideIndex=', robotStart);
 const robot = robotStart >= 0 && robotEnd > robotStart ? html.slice(robotStart, robotEnd) : '';
