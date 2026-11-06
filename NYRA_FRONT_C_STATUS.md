@@ -42,22 +42,31 @@
 - A inspeção do APK passa a exigir nyra_personagem.json e marcadores da interface C.
 - Verificação CI deve ocorrer no PR do branch e permanecer verde antes de release.
 
-## Fechamento técnico remoto — 2026-11-05
+## Auditoria honesta de fechamento — 2026-11-05
 
-**Resultado: implementação da Frente C e gates automatizados remotos concluídos. Validação de release em dispositivo real permanece aberta.**
+**Conclusão: a branch passou pelos gates remotos, mas a Frente C ainda NÃO está integralmente implementada nem pronta para release.** O CI #403 (commit `a06d5ec0937a691375fcf3680a8dfa77965d0a50`) passou nas auditorias, compilação e inspeção de APK. Isso comprova integridade de build e testes automatizados existentes; não comprova os requisitos funcionais abaixo que ainda não foram construídos.
 
-Evidência GitHub Actions:
-- Workflow run #401 / run ID `42110167560`, commit `bc7095a01ec56d58bc7d24c0d2fd6bb7dcbe2872`: conclusão `success`.
-- Auditoria Front C: PASS.
-- Todas as auditorias adicionais: PASS.
-- `./gradlew --no-daemon assembleDebug`: `BUILD SUCCESSFUL`.
-- Auditoria de recursos offline dentro do APK: PASS.
-- Artefato `nyra-android-debug-apk` publicado (artifact ID `13455080360`; 2.025.304 bytes).
-- SHA-256 do APK produzido no job: `5bede85602be02db01158da01d8cd2f5f908a047df9832c3844a031228af5373`.
-- PR #8 sem comentários nem threads de revisão pendentes na consulta de 2026-11-05.
+### O que está implementado e coberto parcialmente
+- C1: seletor existente preservado; importação de formatos listados; exportação/reimportação básica `Nyra Scene Project v1`; teste automatizado round-trip cobre uma malha triangular simples, UV, índices, grupo e material único.
+- C2: 23 etapas com explicações, estados e alvos. A auditoria automatizada verifica a quantidade e marcadores; a navegação/alvos reais ainda precisam de ensaio.
+- C3: robô renderizado a partir da estrutura Character+Voxel v4 e fallback 2D. Como `voxels` e `objects` estão vazios, as partes são cuboides proxy, não um personagem voxel final.
+- C5: temporários de exportação em `getCacheDir()/nyra-rebuildable`, com limite individual/agregado, retenção e limpeza protegida. Isto é gestão de temporários de exportação, não a estratégia ampla de cache derivado de projetos descrita no roadmap.
 
-O que está fechado remotamente: código da Frente C descrito nas seções C1–C5, auditorias automatizadas e compilação/verificação do APK.
+### Pendências de implementação (não são resolvidas apenas testando no celular)
+1. **C1 — interoperabilidade JSON:** `Nyra Scene Project v1` é um esquema diferente da DSL v1 do Gerador Matemático (`components`) e de Character+Voxel v4 (`parts/voxels/objects`). Não há evidência de adaptador de ida/volta entre esses esquemas. O exportador de cena também não serializa clips de animação, dados de skinning/skeleton ou payload binário de texturas/imagens. O round-trip automatizado atual não cobre rigs, animações, múltiplos materiais, texturas ou modelos complexos.
+2. **C4 — otimização:** a instrumentação foi adicionada, mas não há benchmark comparativo concluído nem otimizações demonstradas a partir de medições. A estratégia de pixel ratio adaptativo, renderização sob demanda e redução de custo de geometria/material/draw calls ainda precisa ser avaliada e implementada quando os dados justificarem.
+3. **C4 — importação grande:** há mensagens de estado e confirmações antes de tentar arquivos pesados, mas não há progresso percentual nem cancelamento efetivo durante o parse/import em andamento. O cancelamento existente é anterior ao início da carga.
+4. **C5 — cache derivado:** ainda não existe o cache gerenciável de cópias de trabalho, previews, thumbnails e geometrias processadas descrito no roadmap, nem política completa de validação de integridade/reconstrução desses itens. O código atual cobre somente temporários de exportação.
+5. **C1/C2/C5 — integração real:** layout móvel/acessibilidade, alvos do guia, URIs/ClipData, permissões, rotação, retomada, pressão de memória e fluxos de salvamento precisam de testes no aparelho.
 
-O que não pode ser declarado aprovado pelo CI: compatibilidade prática de URIs e seletor Android, rotação/retomada, comportamento do WebView/WebGL, pressão de memória, limpeza segura em operações reais e benchmark do modelo grande no mesmo aparelho. Esses itens permanecem no roteiro físico abaixo. Não inventar aprovação nem substituir ensaio real por teste de código.
+### Correção de ciclo de vida do robô
+- Identificado que fechar o guia escondia a janela, mas deixava a animação 3D ativa.
+- Corrigido em `d9cb38c79f4704ee3b3d7801ed2497085afbe3da`: fechar o guia agora interrompe a animação, descarta renderer/recursos e permite inicialização limpa na próxima abertura.
+- Auditoria automatizada ampliada em `020fe8a04beb7a5fb7a6f1176f138727eb1ba684` para impedir regressão. A execução CI desse HEAD ainda precisa concluir.
 
-**Status de integração:** PR #8 continua aberto em draft. A branch `main` não foi alterada. A Frente B continua fora do escopo desta branch.
+### Estado de release
+- CI #403 no commit anterior: PASS, incluindo APK debug e auditoria de assets offline.
+- CI #405 no HEAD com a correção de ciclo de vida: em execução no momento deste registro.
+- PR #8 permanece draft; não mesclar na `main`.
+- A Frente B permanece separada.
+- O roteiro físico em `docs/NYRA_FRONT_C_VALIDACAO_FISICA.md` continua obrigatório, mas não é a única pendência: os itens de implementação acima também precisam ser resolvidos antes de declarar a Frente C concluída.
