@@ -286,14 +286,15 @@ O trabalho deve ser organizado em **blocos de melhorias relacionadas**, não em 
 - APK só é distribuído após CI verde, assets offline verificados e teste físico.
 - A main permanece protegida até validação e decisão explícita de integração.
 
-## Frente C — estado consolidado em 2026-11-05
+## Frente C — auditoria de estado em 2026-11-05
 
-A implementação da Frente C foi consolidada na branch `work/nyra-front-c-closeout`. O arquivo `NYRA_FRONT_C_STATUS.md` registra as implementações e os limites; `docs/NYRA_FRONT_C_VALIDACAO_FISICA.md` contém o roteiro obrigatório de release. A Frente C não deve ser declarada integralmente fechada até o roteiro físico e benchmark real serem preenchidos.
+A branch `work/nyra-front-c-closeout` contém uma implementação parcial importante e passou pelo CI #403 no commit `a06d5ec0937a691375fcf3680a8dfa77965d0a50`. Isso não encerra a Frente C. O fechamento técnico exige resolver as pendências abaixo, além do ensaio físico:
 
-- C1: seletor original preservado; JSON Scene Project v1 separado de Character+Voxel v4; estados de exportação corrigidos após importação.
-- C2: 23 etapas do guia preservadas, com a documentação dos formatos e alvos reais.
-- C3: robô carrega a fonte oficial empacotada em `assets/www/nyra_personagem.json`, valida o esquema e mantém fallback 2D. Os arrays vazios `voxels` e `objects` significam que o modelo ainda usa partes proxy.
-- C4: instrumentação por estágios de leitura/parse, construção/commit da cena e duração total; relatório de desempenho disponível. Benchmark e otimização física continuam como gates de release.
-- C5: temporários de exportação isolados em `nyra-rebuildable`, com consulta/limpeza segura bloqueada durante operações ativas, orçamento agregado de 512 MiB, limite individual de 256 MiB e retenção automática de 7 dias para temporários abandonados. Isso não equivale a armazenamento de projetos nem cache genérico de cenas.
+- C1: exportação `Nyra Scene Project v1` é distinta da DSL v1 (`components`) e de Character+Voxel v4 (`parts/voxels/objects`). Falta validar/implementar interoperabilidade explícita. O serializer não inclui animações, skinning/skeleton nem imagens binárias de textura; o teste round-trip cobre somente malha simples, UV, índice, grupo e material único.
+- C2: 23 etapas detalhadas presentes; ainda falta verificar no WebView os alvos, destaques, navegação e acessibilidade.
+- C3: robô lê a especificação oficial e usa cuboides proxy porque os arrays `voxels` e `objects` da fonte estão vazios. Foi encontrado e corrigido o ciclo de vida que mantinha o render loop após fechar o guia; aguardar CI do teste de regressão.
+- C4: instrumentação presente, mas benchmark e otimização ainda não foram concluídos. Falta também progresso percentual e cancelamento efetivo durante importação; o fluxo atual só permite cancelar antes de começar a carga.
+- C5: política de 512 MiB/256 MiB/7 dias cobre somente temporários de exportação. Falta cache derivado gerenciável (cópias de trabalho, previews, thumbnails, geometrias processadas), verificação de integridade e comportamento de reconstrução descritos no escopo original.
+- C1/C2/C5: layout/acessibilidade móvel, file picker/URIs, rotação, retomada, pressão de memória, WebView/WebGL e salvamento exigem ensaio físico.
 
-**Frente B permanece separada e pendente, conforme ordem definida pelo usuário.** A `main` continua protegida; não integrar automaticamente esta branch.
+A Frente C só poderá ser declarada concluída quando as lacunas de implementação forem resolvidas, os testes automatizados cobrirem os novos fluxos, o CI estiver verde e o roteiro físico/benchmark tiver evidências registradas. Não integrar automaticamente à `main`.
