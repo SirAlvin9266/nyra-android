@@ -326,8 +326,8 @@ public class MainActivity extends Activity {
         public String getSavedProjectInfo() {
             File target = recoverSavedProjectFile();
             return target.isFile()
-                ? "{\\"exists\\":true,\\"bytes\\":" + target.length() + "}"
-                : "{\\"exists\\":false}";
+                ? "{\"exists\":true,\"bytes\":" + target.length() + "}"
+                : "{\"exists\":false}";
         }
 
         @JavascriptInterface
