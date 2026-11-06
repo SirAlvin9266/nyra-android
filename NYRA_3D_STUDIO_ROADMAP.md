@@ -286,15 +286,6 @@ O trabalho deve ser organizado em **blocos de melhorias relacionadas**, não em 
 - APK só é distribuído após CI verde, assets offline verificados e teste físico.
 - A main permanece protegida até validação e decisão explícita de integração.
 
-## Frente C — auditoria de estado em 2026-11-05
+## Frente C — plano vinculante de execução
 
-A branch `work/nyra-front-c-closeout` contém uma implementação parcial importante e passou pelo CI #403 no commit `a06d5ec0937a691375fcf3680a8dfa77965d0a50`. Isso não encerra a Frente C. O fechamento técnico exige resolver as pendências abaixo, além do ensaio físico:
-
-- C1: exportação `Nyra Scene Project v1` é distinta da DSL v1 (`components`) e de Character+Voxel v4 (`parts/voxels/objects`). Falta validar/implementar interoperabilidade explícita. O serializer não inclui animações, skinning/skeleton nem imagens binárias de textura; o teste round-trip cobre somente malha simples, UV, índice, grupo e material único.
-- C2: 23 etapas detalhadas presentes; ainda falta verificar no WebView os alvos, destaques, navegação e acessibilidade.
-- C3: robô lê a especificação oficial e usa cuboides proxy porque os arrays `voxels` e `objects` da fonte estão vazios. Foi encontrado e corrigido o ciclo de vida que mantinha o render loop após fechar o guia; aguardar CI do teste de regressão.
-- C4: instrumentação presente, mas benchmark e otimização ainda não foram concluídos. Falta também progresso percentual e cancelamento efetivo durante importação; o fluxo atual só permite cancelar antes de começar a carga.
-- C5: política de 512 MiB/256 MiB/7 dias cobre somente temporários de exportação. Falta cache derivado gerenciável (cópias de trabalho, previews, thumbnails, geometrias processadas), verificação de integridade e comportamento de reconstrução descritos no escopo original.
-- C1/C2/C5: layout/acessibilidade móvel, file picker/URIs, rotação, retomada, pressão de memória, WebView/WebGL e salvamento exigem ensaio físico.
-
-A Frente C só poderá ser declarada concluída quando as lacunas de implementação forem resolvidas, os testes automatizados cobrirem os novos fluxos, o CI estiver verde e o roteiro físico/benchmark tiver evidências registradas. Não integrar automaticamente à `main`.
+O detalhamento executável e a instrução de continuidade estão em `NYRA_FRONT_C_EXECUTION_PLAN.md`. A definição de C1 é importação JSON pelo botão principal existente; C5 é persistência dos modelos importados e limpeza segura de cache temporário. Não retomar a antiga interpretação de interoperabilidade JSON ampla nem o cache genérico de previews como objetivo central.
