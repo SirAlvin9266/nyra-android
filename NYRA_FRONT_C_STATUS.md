@@ -1,29 +1,35 @@
-# Nyra 3D Studio — Estado da Frente C
+# Estado de engenharia — Frente C
 
 **Branch:** `work/nyra-front-c-closeout`  
-**PR:** #8 (draft)  
-**HEAD auditado:** `b4e699ea21a7724abdf5fb05e1ab3fed5834f1ef`  
-**Main:** não alterada; nenhum merge autorizado.
+**PR:** [#8](https://github.com/SirAlvin9266/nyra-android/pull/8) (aberto, draft, não integrado)  
+**HEAD-base da revisão técnica:** `96ddb300bc14a1598b6b3a55eb81b88ca9b58eb5`
 
-## Escopo corrigido pelo usuário
+## Estado real nesta revisão
 
-- **C1:** fazer o botão principal **Importar modelo 3D** carregar também os JSONs Nyra suportados, reutilizando o fluxo e parsers existentes e lendo estruturas/blocos predefinidos. Não é uma iniciativa ampla de conversão/interoperabilidade entre DSLs.
-- **C5:** salvar no armazenamento persistente do app os modelos importados, tal como os modelos criados internamente já persistem; permitir limpeza automática e manual dos dados temporários sem apagar projetos salvos.
+Esta revisão elevou o plano de texto para um plano técnico comparando código atual, propostas de implementação, alternativas, testes e referências externas. **A revisão documental não implementou as mudanças funcionais C1–C5.**
 
-O plano executável completo, a ordem de implementação, os critérios de conclusão e a instrução para o próximo chat estão em `NYRA_FRONT_C_EXECUTION_PLAN.md`.
+| Área | Base existente | Pendência |
+|---|---|---|
+| C1 JSON | input aceita .json; parsers Scene v1 e Character JSON; despacho por assinatura/estrutura | provar rota do botão, definir schemas realmente suportados e testar parser correto |
+| C2 guia | 23 etapas, navegação e destaque implementados | teste DOM/WebView, alvos, acessibilidade e fallback |
+| C3 robô | runtime stop ao fechar e fallback 2D; proxy baseado em seis partes | prova comportamental RAF/dispose/reopen e ensaio WebGL |
+| C4 desempenho | eventos de import, etapas e relatório | baseline comparativo, progresso/cancelamento verdadeiros e otimização medida |
+| C5 persistência | Scene Project serializador; cache temporário de exportação; SAF para export | localizar save/load real de modelos nativos e implementar persistência de importados |
+| Android | ClipData, URI e tentativa de permissão persistente | validação de provider, cold start, rotação, retomada, pressão de memória e storage |
 
-## Estado técnico auditado
+## Constatações técnicas que não devem ser confundidas
 
-- **CI do HEAD b4e699e:** workflow #406 (`42147173128`) concluído com sucesso. Build/automação remotos não substituem validação física.
-- **C1:** input principal já contém `.json`; `importFileList` já inclui JSON; há parser para Nyra Scene Project v1 e parser para JSON de personagem/voxels. Ainda precisa rastrear/corrigir o roteamento entre botão → `loadSelectedFiles` → `importFileList` → `parseModel` e cobrir os formatos previstos com teste. Não alegar que C1 já está concluída só porque `.json` aparece no accept.
-- **C2:** guia com 23 etapas presente; verificar navegação, alvos, acessibilidade e conteúdo em WebView.
-- **C3:** ciclo do robô corrigido em `d9cb38c`; teste anti-regressão em `020fe8a`; workflow do HEAD passou. Fonte tem `voxels=[]` e `objects=[]`, portanto partes são cuboides proxy. Ensaio físico de abrir/fechar/reabrir ainda falta.
-- **C4:** instrumentação e relatório presentes; falta benchmark comparativo no aparelho, otimizações justificadas, progresso percentual verdadeiro e cancelamento efetivo durante parse/import. O fluxo atual oferece confirmação/cancelamento antes de iniciar, não interrupção real durante o processamento.
-- **C5:** `MainActivity.java` cobre somente temporários de exportação em `getCacheDir()/nyra-rebuildable`, com limites e retenção. Ainda falta persistência de modelos importados como os modelos criados no app e uma política de limpeza que preserve projetos persistentes.
-- **Android físico:** permissões/URIs, ClipData, retomada, rotação, cold start, memória, persistência e limpeza continuam por validar.
+- A extensão .json no input não prova que qualquer JSON seja suportado.
+- A presença do campo `components` no predicado não prova que o DSL matemático seja interpretado corretamente.
+- A presença de `nyraCreateSceneJSON()` prova serialização, não gravação/restauração.
+- O `localStorage` encontrado para `nyra.items.draft.v1` refere-se ao editor de itens, não comprova persistência do editor 3D.
+- `getCacheDir()/nyra-rebuildable` armazena temporários de exportação, não modelos importados permanentes.
+- O teste estático do audit não substitui integração real WebView/Android.
 
-## Regras
-- Frente B fora de escopo.
-- Não mudar `main`.
-- Não mesclar PR #8 nem marcar ready sem autorização explícita e conclusão dos critérios do plano.
-- Não declarar a Frente C pronta apenas com CI/build verde.
+## Próximo passo obrigatório
+
+Executar C1: mapear o evento real do botão principal até o parser, criar fixtures dos JSONs reais e adicionar classificador testável. Em seguida, C5: localizar o mecanismo verdadeiro de save/load do editor onde os modelos criados ficam persistidos.
+
+## Regra de integração
+
+Manter PR draft. Não alterar main, não mesclar, não marcar ready e não alterar Frente B sem aprovação explícita.
