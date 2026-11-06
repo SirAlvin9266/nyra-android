@@ -303,9 +303,28 @@ public class MainActivity extends Activity {
             if (pending != null) pending.delete();
         }
 
+        private File savedProjectDirectory() {
+            return new File(getFilesDir(), "nyra-projects");
+        }
+
+        private File recoverSavedProjectFile() {
+            File directory = savedProjectDirectory();
+            File target = new File(directory, SAVED_PROJECT_FILE);
+            File backup = new File(directory, SAVED_PROJECT_FILE + ".previous");
+            if (!target.isFile() && backup.isFile()) backup.renameTo(target);
+            if (target.isFile() && backup.exists()) backup.delete();
+            File[] entries = directory.listFiles();
+            if (entries != null) {
+                for (File entry : entries) {
+                    if (entry.isFile() && entry.getName().startsWith("scene-model-") && entry.getName().endsWith(".pending")) entry.delete();
+                }
+            }
+            return target;
+        }
+
         @JavascriptInterface
         public String getSavedProjectInfo() {
-            File target = new File(new File(getFilesDir(), "nyra-projects"), SAVED_PROJECT_FILE);
+            File target = recoverSavedProjectFile();
             return target.isFile()
                 ? "{\\"exists\\":true,\\"bytes\\":" + target.length() + "}"
                 : "{\\"exists\\":false}";
@@ -314,7 +333,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String readSavedProjectChunk(long offset, int length) {
             if (offset < 0 || length < 1 || length > PROJECT_CHUNK_BYTES) return "";
-            File target = new File(new File(getFilesDir(), "nyra-projects"), SAVED_PROJECT_FILE);
+            File target = recoverSavedProjectFile();
             if (!target.isFile() || offset >= target.length()) return "";
             byte[] bytes = new byte[(int)Math.min(length, target.length() - offset)];
             try (java.io.RandomAccessFile file = new java.io.RandomAccessFile(target, "r")) {
@@ -325,8 +344,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public boolean deleteSavedProject() {
             if (!projectWrites.isEmpty()) return false;
-            File target = new File(new File(getFilesDir(), "nyra-projects"), SAVED_PROJECT_FILE);
-            return !target.exists() || target.delete();
+            File target = recoverSavedProjectFile();
+            File backup = new File(savedProjectDirectory(), SAVED_PROJECT_FILE + ".previous");
+            return (!target.exists() || target.delete()) && (!backup.exists() || backup.delete());
         }
 
         @JavascriptInterface
