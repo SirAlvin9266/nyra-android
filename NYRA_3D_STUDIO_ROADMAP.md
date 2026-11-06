@@ -288,4 +288,4 @@ O trabalho deve ser organizado em **blocos de melhorias relacionadas**, não em 
 
 ## Frente C — plano vinculante de execução
 
-O detalhamento executável e a instrução de continuidade estão em `NYRA_FRONT_C_EXECUTION_PLAN.md`. A definição de C1 é importação JSON pelo botão principal existente; C5 é persistência dos modelos importados e limpeza segura de cache temporário. Não retomar a antiga interpretação de interoperabilidade JSON ampla nem o cache genérico de previews como objetivo central.
+O plano de engenharia atualizado está em `NYRA_FRONT_C_EXECUTION_PLAN.md`. Ele contém comparação com o código real, propostas de alteração, pseudocódigo, alternativas técnicas, testes e referências. O estado real está em `NYRA_FRONT_C_STATUS.md`. A inclusão do plano não declara as funcionalidades implementadas.
