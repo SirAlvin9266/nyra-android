@@ -9,26 +9,35 @@ const assert = require('node:assert/strict');
 
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
-function extractModelTools(source) {
-  const assignment = 'const modelTools = ';
-  const start = source.indexOf(assignment);
-  if (start < 0) throw new Error('Model I/O template is missing from the Android host page.');
-  const literalStart = start + assignment.length;
-  const boundary = source.indexOf('const panelEnd = ', literalStart);
-  if (boundary < 0) throw new Error('Host template boundary after modelTools was not found.');
-  // The host uses automatic semicolon insertion: the string closes immediately
-  // before the newline introducing panelEnd, not before a semicolon.
-  const closingQuote = source.lastIndexOf('"', boundary);
-  if (closingQuote < literalStart) throw new Error('Closing quote for modelTools was not found.');
-  const literal = source.slice(literalStart, closingQuote + 1);
-  try {
-    return JSON.parse(literal);
-  } catch {
-    // The outer HTML can contain one additional JavaScript-string escape layer.
-    return vm.runInNewContext('(' + literal + ')', {}, {
-      filename: 'nyra-model-tools-literal.js'
-    });
+function decodeJsStringLiteral(source) {
+  if (source[0] !== '"' || source[source.length - 1] !== '"') throw new Error('Expected a double-quoted modelTools literal');
+  let value = '';
+  for (let i = 1; i < source.length - 1; i++) {
+    const ch = source[i];
+    if (ch !== '\\') { value += ch; continue; }
+    const next = source[++i];
+    if (next === 'n') value += '\n';
+    else if (next === 'r') value += '\r';
+    else if (next === 't') value += '\t';
+    else if (next === '"' || next === "'" || next === '\\') value += next;
+    else if (next === 'x') { value += String.fromCharCode(parseInt(source.slice(i + 1, i + 3), 16)); i += 2; }
+    else if (next === 'u') { value += String.fromCharCode(parseInt(source.slice(i + 1, i + 5), 16)); i += 4; }
+    else value += next;
   }
+  return value.replace(/\\\\(["'])/g, '$1').replace(/\\\\\\\\/g, '\\\\');
+}
+function extractModelTools(source) {
+  const outerScriptStart = source.indexOf('<script>');
+  const outerScriptEnd = source.indexOf('</script>', outerScriptStart);
+  const outerSource = outerScriptStart >= 0 && outerScriptEnd > outerScriptStart
+    ? source.slice(outerScriptStart + '<script>'.length, outerScriptEnd) : '';
+  const assignment = 'const modelTools = ';
+  const literalStart = outerSource.indexOf(assignment) + assignment.length;
+  const literalEnd = outerSource.indexOf('";', literalStart);
+  if (literalStart < assignment.length || literalEnd < literalStart) {
+    throw new Error('Could not decode the model I/O template for DSL tests.');
+  }
+  return decodeJsStringLiteral(outerSource.slice(literalStart, literalEnd + 1));
 }
 const modelToolsHtml=extractModelTools(html);
 
