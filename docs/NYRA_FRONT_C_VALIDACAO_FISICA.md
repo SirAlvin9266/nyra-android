@@ -10,6 +10,8 @@
 
 Os itens abaixo continuam sem marcação até execução no aparelho físico. A evidência CI não os substitui.
 
+**Atenção:** este roteiro físico não cobre todas as pendências de implementação. Consulte `NYRA_FRONT_C_STATUS.md`: interoperabilidade JSON, serialização de animações/skinning, progresso/cancelamento de importação, otimizações C4 e cache derivado C5 precisam ser resolvidos no código antes do encerramento.
+
 ## Identificação do ensaio
 - Commit/branch:
 - APK e SHA-256:
