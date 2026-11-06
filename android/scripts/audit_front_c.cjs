@@ -13,6 +13,24 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 const java = fs.readFileSync(javaPath, 'utf8');
 const failures = [];
 
+function decodeJsStringLiteral(source) {
+  if (source[0] !== '"' || source[source.length - 1] !== '"') throw new Error('Expected a double-quoted modelTools literal');
+  let value = '';
+  for (let i = 1; i < source.length - 1; i++) {
+    const ch = source[i];
+    if (ch !== '\\') { value += ch; continue; }
+    const next = source[++i];
+    if (next === 'n') value += '\n';
+    else if (next === 'r') value += '\r';
+    else if (next === 't') value += '\t';
+    else if (next === '"' || next === "'" || next === '\\') value += next;
+    else if (next === 'x') { value += String.fromCharCode(parseInt(source.slice(i + 1, i + 3), 16)); i += 2; }
+    else if (next === 'u') { value += String.fromCharCode(parseInt(source.slice(i + 1, i + 5), 16)); i += 4; }
+    else value += next;
+  }
+  return value.replace(/\\\\(["'])/g, '$1').replace(/\\\\\\\\/g, '\\\\');
+}
+
 function requireText(source, marker, label) {
   if (!source.includes(marker)) failures.push(label + ': missing ' + marker);
 }
@@ -96,14 +114,18 @@ for (const marker of [
 
 // Execute the actual Nyra Scene Project serializer/deserializer against a minimal Three.js test double.
 try {
+  const outerScriptStart = html.indexOf('<script>');
+  const outerScriptEnd = html.indexOf('</script>', outerScriptStart);
+  const outerSource = outerScriptStart >= 0 && outerScriptEnd > outerScriptStart
+    ? html.slice(outerScriptStart + '<script>'.length, outerScriptEnd) : '';
   const assignment = 'const modelTools = ';
-  const literalStart = html.indexOf(assignment) + assignment.length;
-  const boundary = html.indexOf('const panelEnd = ', literalStart);
-  const closingQuote = html.lastIndexOf('"', boundary);
-  if (literalStart < assignment.length || boundary < 0 || closingQuote < literalStart) {
+  const literalStart = outerSource.indexOf(assignment) + assignment.length;
+  const literalEnd = outerSource.indexOf('";', literalStart);
+  if (literalStart < assignment.length || literalEnd < literalStart) {
     throw new Error('Could not decode the model I/O template for JSON round-trip testing.');
   }
-  const modelHtml = JSON.parse(html.slice(literalStart, closingQuote + 1));
+  const literal = outerSource.slice(literalStart, literalEnd + 1);
+  const modelHtml = decodeJsStringLiteral(literal);
   const markerIndex = modelHtml.indexOf('/* NyraModelIO:');
   const moduleStart = modelHtml.lastIndexOf('<script type="module">', markerIndex);
   const moduleEnd = modelHtml.indexOf('<\\/script>', markerIndex);
