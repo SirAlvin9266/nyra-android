@@ -143,14 +143,15 @@ if pages_start < 0:
     outer_source = ""
 else:
     pages_end = text.find("};", pages_start)
-    script_open = text.find("<script>", pages_end)
-    script_open_end = script_open + len("<script>") if script_open >= 0 else -1
-    script_close = text.find("</script>", script_open_end) if script_open_end >= 0 else -1
-    if pages_end < 0 or script_open < 0 or script_close < 0:
+    shell_marker = "const host=document.getElementById('editorHost');"
+    shell_start = text.find(shell_marker, pages_end)
+    script_close = text.find("</script>", shell_start) if shell_start >= 0 else -1
+    if pages_end < 0 or shell_start < 0 or script_close < 0:
         errors.append("could not isolate executable shell bootstrap after editor payload map")
         outer_source = ""
     else:
-        outer_source = text[script_open_end:script_close]
+        # Extract from the first shell binding, which is a stable unique marker.
+        outer_source = text[shell_start:script_close]
 
 if "function addAndroidExportAdapter" not in outer_source or "function ensureEditor" not in outer_source:
     errors.append("outer app bootstrap is missing its editor map or adapter structure")
