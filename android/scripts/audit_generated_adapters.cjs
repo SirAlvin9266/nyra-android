@@ -35,12 +35,13 @@ for (const [needle, expected] of [
 // terminates the outer script on a literal </script>, even inside that string.
 // Extract only the final closing tag that is part of the outer document.
 const pagesDeclaration = html.indexOf('const pages = {items:');
-const scriptOpenTag = pagesDeclaration >= 0 ? html.indexOf('<script>') : -1;
-const scriptOpen = scriptOpenTag >= 0 ? scriptOpenTag + '<script>'.length : -1;
-const scriptEnd = scriptOpen >= 0 ? html.indexOf('</script>', scriptOpen) : -1;
-let outerSource = scriptEnd > scriptOpen ? html.slice(scriptOpen, scriptEnd) : '';
-if (!outerSource || pagesDeclaration < scriptOpenTag) {
-  console.error('FAIL: could not isolate the single outer bootstrap script after embedded source pages');
+const pagesEnd = pagesDeclaration >= 0 ? html.indexOf('};', pagesDeclaration) : -1;
+const shellStartMarker = "const host=document.getElementById('editorHost');";
+const shellStart = pagesEnd >= 0 ? html.indexOf(shellStartMarker, pagesEnd) : -1;
+const scriptEnd = shellStart >= 0 ? html.indexOf('</script>', shellStart) : -1;
+let outerSource = scriptEnd > shellStart ? html.slice(shellStart, scriptEnd) : '';
+if (!outerSource) {
+  console.error('FAIL: could not isolate executable shell bootstrap after embedded editor payloads');
   process.exit(1);
 }
 // The outer bootstrap is source-checked by audit_reference.py. To exercise
