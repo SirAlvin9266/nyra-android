@@ -163,7 +163,7 @@ const panelEndSemicolon = outerSourceForExecution.indexOf(';', panelEndStart);
 if (panelEndSemicolon < 0) throw new Error('Could not isolate serialized panelEnd block');
 const bootstrapForTest =
   outerSourceForExecution.slice(0, modelToolsStart) +
-  'const modelTools = "";\\nconst panelEnd = "";' +
+  'const modelTools = "";' + String.fromCharCode(10) + 'const panelEnd = "";' +
   outerSourceForExecution.slice(panelEndSemicolon + 1);
 const generatedEditorSource = outerSourceForExecution;
 
