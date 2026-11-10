@@ -148,13 +148,13 @@ const embeddedPagesEnd = html.indexOf('};', embeddedPagesStart);
 if (embeddedPagesStart < 0 || embeddedPagesEnd < 0) {
   throw new Error('Could not isolate embedded editor payload map');
 }
-const pagesDeclaration = html.slice(embeddedPagesStart, embeddedPagesEnd + 2);
+const editorPayloadDeclaration = html.slice(embeddedPagesStart, embeddedPagesEnd + 2);
 const adapterStart = outerSourceForExecution.indexOf('function addAndroidExportAdapter');
 const bootstrapForTest = outerSourceForExecution.slice(adapterStart);
 if (adapterStart < 0) throw new Error('Could not isolate editor adapter functions');
 const generatedEditorSource = outerSourceForExecution;
 
-vm.runInContext(pagesDeclaration + '\\n' + bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
+vm.runInContext(editorPayloadDeclaration + '\\n' + bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
 
 const generated = vm.runInContext(`({
   items: addAndroidExportAdapter(decodePage(pages.items), 'items'),
