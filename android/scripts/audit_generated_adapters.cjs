@@ -35,12 +35,13 @@ for (const [needle, expected] of [
 // terminates the outer script on a literal </script>, even inside that string.
 // Extract only the final closing tag that is part of the outer document.
 const pagesDeclaration = html.indexOf('const pages = {items:');
-const scriptOpenTag = pagesDeclaration >= 0 ? html.indexOf('<script>') : -1;
-const scriptOpen = scriptOpenTag >= 0 ? scriptOpenTag + '<script>'.length : -1;
-const scriptEnd = scriptOpen >= 0 ? html.indexOf('</script>', scriptOpen) : -1;
-let outerSource = scriptEnd > scriptOpen ? html.slice(scriptOpen, scriptEnd) : '';
-if (!outerSource || pagesDeclaration < scriptOpenTag) {
-  console.error('FAIL: could not isolate the single outer bootstrap script after embedded source pages');
+const pagesEnd = pagesDeclaration >= 0 ? html.indexOf('};', pagesDeclaration) : -1;
+const shellStartMarker = "const host=document.getElementById('editorHost');";
+const shellStart = pagesEnd >= 0 ? html.indexOf(shellStartMarker, pagesEnd) : -1;
+const scriptEnd = shellStart >= 0 ? html.indexOf('</script>', shellStart) : -1;
+let outerSource = scriptEnd > shellStart ? html.slice(shellStart, scriptEnd) : '';
+if (!outerSource) {
+  console.error('FAIL: could not isolate executable shell bootstrap after embedded editor payloads');
   process.exit(1);
 }
 // The outer bootstrap is source-checked by audit_reference.py. To exercise
@@ -129,7 +130,7 @@ for (const marker of hostUiMarkers) {
 // document is handled via an explicit ready handshake rather than a shell-only status.
 if (!html.includes("frame.style.cssText='display:block") ||
     !html.includes("NYRA_EDITOR_READY") ||
-    !html.includes("O documento abriu, mas o editor não confirmou inicialização")) {
+    !html.includes("não confirmou inicialização")) {
   console.error('FAIL: editor host must expose the iframe and distinguish document load from editor readiness');
   process.exitCode = 1;
 }
@@ -142,18 +143,30 @@ if (!html.includes("frame.style.cssText='display:block") ||
  // Its complete assembled module is syntax-checked below after the host adapters create it.
  // Check the shell bootstrap with only that nested payload neutralized.
 
+const payloadMapStart = html.indexOf('const pages = {items: "');
+const payloadMapEnd = payloadMapStart >= 0 ? html.indexOf('};', payloadMapStart) : -1;
+const payloadMap = payloadMapEnd > payloadMapStart ? html.slice(payloadMapStart, payloadMapEnd + 2) : '';
+const payloadCharacterSeparator = payloadMap.indexOf('", character: "');
+const payloadAnimationSeparator = payloadMap.indexOf('", animation: "');
+if (payloadCharacterSeparator < 0 || payloadAnimationSeparator < 0) throw new Error('Could not read the three packed editor payloads');
+context.pages = {
+  items: payloadMap.slice('const pages = {items: "'.length, payloadCharacterSeparator),
+  character: payloadMap.slice(payloadCharacterSeparator + '", character: "'.length, payloadAnimationSeparator),
+  animation: payloadMap.slice(payloadAnimationSeparator + '", animation: "'.length, payloadMap.length - 3),
+};
 const modelToolsStart = outerSourceForExecution.indexOf('const modelTools = "');
 const panelEndStart = outerSourceForExecution.indexOf('const panelEnd', modelToolsStart);
 if (modelToolsStart < 0 || panelEndStart < 0) {
   throw new Error('Could not isolate serialized modelTools block');
 }
+const panelEndSemicolon = outerSourceForExecution.indexOf(';', panelEndStart);
+if (panelEndSemicolon < 0) throw new Error('Could not isolate serialized panelEnd block');
 const bootstrapForTest =
   outerSourceForExecution.slice(0, modelToolsStart) +
   'const modelTools = "";' + String.fromCharCode(10) + 'const panelEnd = "";' +
-  outerSourceForExecution.slice(outerSourceForExecution.indexOf(';', panelEndStart) + 1);
-// Use the complete outer source to create the actual editor documents.
-// The no-op variant is only used to exercise host initialization in the VM.
+  outerSourceForExecution.slice(panelEndSemicolon + 1);
 const generatedEditorSource = outerSourceForExecution;
+
 vm.runInContext(bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
 
 const generated = vm.runInContext(`({

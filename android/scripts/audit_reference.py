@@ -134,9 +134,30 @@ if len(re.findall(r"</script>", text, flags=re.IGNORECASE)) != 1:
 if len(re.findall(r"<\\\\/script>", text, flags=re.IGNORECASE)) != 1:
     errors.append("root HTML must contain exactly one escaped inner module script close")
 
-# Parse the outer bootstrap safely: the embedded Character Editor module's
-# closing tag is escaped as <\\/script> inside the JavaScript string.
-# This is syntax-only validation; WebGL still requires a real Android device.
+# Parse the outer bootstrap safely. The embedded editor documents are Base64
+# values declared in the root shell before its executable script block. Do not
+# use the first <script> tag in the file: the embedded templates may contain one.
+pages_start = text.find("const pages = {")
+if pages_start < 0:
+    errors.append("could not locate editor page map in shell bootstrap")
+    outer_source = ""
+else:
+    pages_end = text.find("};", pages_start)
+    shell_marker = "const host=document.getElementById('editorHost');"
+    shell_start = text.find(shell_marker, pages_end)
+    script_close = text.find("</script>", shell_start) if shell_start >= 0 else -1
+    if pages_end < 0 or shell_start < 0 or script_close < 0:
+        errors.append("could not isolate executable shell bootstrap after editor payload map")
+        outer_source = ""
+    else:
+        # Extract from the first shell binding, which is a stable unique marker.
+        outer_source = text[shell_start:script_close]
+
+if "function addAndroidExportAdapter" not in outer_source or "function ensureEditor" not in outer_source:
+    errors.append("outer app bootstrap is missing its editor map or adapter structure")
+
+
+# Parse and syntax-check JavaScript modules without executing them.
 def node_syntax_check(label: str, source: str) -> None:
     if not source.strip():
         return
@@ -149,32 +170,6 @@ def node_syntax_check(label: str, source: str) -> None:
     )
     if result.returncode:
         errors.append(f"JavaScript syntax error in {label}: {result.stderr.strip() or result.stdout.strip()}")
-
-# The outer document contains an HTML document template embedded inside
-# the JavaScript export-adapter string. The three editor scripts are syntax-
-# checked independently above; generated Android adapters have their own
-# dedicated audit, so avoid feeding serialized nested HTML to Node as a script.
-# Keep a structural guard for the actual outer script wrapper.
-script_open = text.lower().find("<script>")
-script_open_end = script_open + len("<script>") if script_open >= 0 else -1
-script_close = text.lower().find("</script>", script_open_end) if script_open_end >= 0 else -1
-if script_open < 0 or script_open_end < 0 or script_close <= script_open_end:
-    errors.append("could not isolate the outer app bootstrap script")
-else:
-    # The bootstrap script contains the serialized editor template after its shell logic.
-    # Locate the pages map first; do not include the embedded template in shell checks.
-    pages_start = text.find("const pages = {", script_open_end, script_close)
-    if pages_start < 0:
-        errors.append("could not locate editor page map in shell bootstrap")
-        outer_source = ""
-    else:
-        outer_source = text[script_open_end:pages_start]
-    shell_source = text[script_open_end:script_close]
-    # The serialized pages map is located after helper functions and remains inside the
-    # same root script; verify shell helpers and the map independently.
-    if "const pages = {" not in text or "function addAndroidExportAdapter" not in shell_source or "function ensureEditor" not in shell_source:
-        errors.append("outer app bootstrap is missing its editor map or adapter structure")
-
 
 # Decode and parse each original editor's own scripts independently.
 for key, page in pages.items():
