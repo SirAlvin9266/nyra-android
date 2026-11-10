@@ -209,18 +209,11 @@ Objetivo: fazer as capacidades serem compreensíveis, utilizáveis no telefone e
 - Construir o visual oficial a partir dessa base; não confundir o arquivo estrutural com um personagem finalizado.
 - Manter o guia operável mesmo se o modelo 3D do robô falhar; fallback e erros isolados.
 
-### C4. Performance de modelos grandes
-- **Instrumentação adicionada ao editor:** eventos de seleção/importação, duração total do carregamento, contagem de malhas, vértices, triângulos, grupos, ossos, materiais e texturas; métricas do renderer (draw calls, geometrias e texturas); amostras de frame time, detecção de long tasks e memória JS quando exposta pelo WebView. O botão `Diagnóstico de desempenho` exporta `nyra-performance-report.json`.
-- **Problema reproduzível relatado pelo usuário:** travamentos ao importar pacotes pesados, incluindo um pacote em torno de 25 MB. O tamanho do arquivo é uma referência do caso observado, não um limite técnico fixo.
-- Investigar separadamente tempo de leitura, descompressão, parse, construção de cena, texturas, geometria, consumo de memória e renderização; identificar a etapa que trava antes de escolher a otimização.
-- Comparar o mesmo arquivo no mesmo aparelho antes/depois; benchmark físico fica reservado ao teste final do usuário.
-- Instrumentar leitura, parse, construção de cena, vértices, triângulos, materiais, texturas, draw calls e frame time.
-- Medir memória se WebView/Android permitir.
-- Pixel ratio adaptativo e qualidade escolhível, sem downgrade silencioso.
-- Renderização sob demanda quando possível.
-- Compartilhar geometria/material, instancing e merge apenas quando não alterarem semântica/seleção.
-- Descartar buffers, texturas e URLs quando não utilizados.
-- Feedback de progresso, cancelamento e limites explícitos para importações grandes.
+### C4. Desempenho de modelos grandes — retirado do escopo atual
+- Por decisão explícita do usuário em 2026-11-10, C4 não é requisito de fechamento da Frente C.
+- Não implementar benchmark comparativo, otimizações de parse/geometria/renderização, progresso real por fases, cancelamento cooperativo, workers, pixel ratio adaptativo ou instancing nesta frente.
+- Instrumentação e relatório que já existem podem permanecer como diagnóstico incidental, sem gate.
+- Qualidade gráfica configurável fica reservada à Frente B.
 
 ### C5. Robustez Android, cache local e regressões
 - **Parcial em código / ensaio físico reservado para o fechamento:** o host trata `ClipData` e URI múltiplos, tenta persistir permissões e exporta via `ACTION_CREATE_DOCUMENT`; CI executa auditorias, build e verificação de assets offline. Instalação, seleção real, retomada, rotação e pressão de memória serão validadas pelo usuário no teste integrado final. Inicialização eager foi restaurada e confirmada pelo usuário em APK anterior.
@@ -289,3 +282,8 @@ O trabalho deve ser organizado em **blocos de melhorias relacionadas**, não em 
 ## Frente C — plano vinculante de execução
 
 O plano de engenharia atualizado está em `NYRA_FRONT_C_EXECUTION_PLAN.md`. Ele contém comparação com o código real, propostas de alteração, pseudocódigo, alternativas técnicas, testes e referências. O estado real está em `NYRA_FRONT_C_STATUS.md`. A inclusão do plano não declara as funcionalidades implementadas.
+
+
+## Atualização de escopo da Frente C — 2026-11-10
+
+C4 foi retirada do escopo de entrega e validação da Frente C por decisão do usuário. A validação física concentra-se em C1, C2, C3, C5 e integração Android. Não reabrir C4 nesta rodada. Qualidade gráfica configurável permanece reservada à Frente B.
