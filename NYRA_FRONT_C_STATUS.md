@@ -2,51 +2,31 @@
 
 **Branch:** `work/nyra-front-c-closeout`  
 **PR:** [#8](https://github.com/SirAlvin9266/nyra-android/pull/8) (aberto, draft, não integrado)  
-**HEAD-base da revisão técnica:** `96ddb300bc14a1598b6b3a55eb81b88ca9b58eb5`
+**Revisão:** 2026-11-10
 
-## Estado real nesta revisão
+## Estado atual
 
-Esta revisão elevou o plano de texto para um plano técnico comparando código atual, propostas de implementação, alternativas, testes e referências externas. **A revisão documental não implementou as mudanças funcionais C1–C5.**
+A implementação de C1, C3 e C5 está integrada na branch. C2 possui 23 etapas implementadas e passou pela auditoria estática. A Frente C está na etapa de validação física; auditorias e build não substituem os testes no WebView e no Android real.
 
-| Área | Base existente | Pendência |
+| Área | Implementação nesta branch | O que falta |
 |---|---|---|
-| C1 JSON | input aceita .json; parsers Scene v1 e Character JSON; despacho por assinatura/estrutura | provar rota do botão, definir schemas realmente suportados e testar parser correto |
-| C2 guia | 23 etapas, navegação e destaque implementados | teste DOM/WebView, alvos, acessibilidade e fallback |
-| C3 robô | runtime stop ao fechar e fallback 2D; proxy baseado em seis partes | prova comportamental RAF/dispose/reopen e ensaio WebGL |
-| C4 desempenho | eventos de import, etapas e relatório | baseline comparativo, progresso/cancelamento verdadeiros e otimização medida |
-| C5 persistência | Scene Project serializador; cache temporário de exportação; SAF para export | localizar save/load real de modelos nativos e implementar persistência de importados |
-| Android | ClipData, URI e tentativa de permissão persistente | validação de provider, cold start, rotação, retomada, pressão de memória e storage |
+| C1 — JSON | Classificador para Scene Project v1, DSL Nyra v1, personagem Nyra e BBModel com assinatura explícita; serialização preserva cadeia interna de pivô/geometria; tipos de nó desconhecidos são rejeitados. | Teste físico da rota pelo botão principal, preservação de propriedades, JSON inválido sem substituir a cena e regressão dos formatos 3D/recursos auxiliares. |
+| C2 — Guia | 23 etapas, navegação e destaque implementados; auditoria estática aprovada. | Percorrer etapas no WebView, conferir os alvos nos três editores, fechamento, foco e acessibilidade/TalkBack; confirmar fallback sem WebGL. |
+| C3 — Robô-guia | Runtime usa `nyra_personagem.json`, fallback 2D e substituição do canvas ao reabrir. A geometria continua sendo proxy, pois o JSON não contém voxels/objetos preenchidos. | Conferir asset no APK, seis partes/transforms, abrir-fechar-reabrir, lifecycle da animação e fallback no aparelho. |
+| C4 — Desempenho | **Retirada do escopo de fechamento da Frente C por decisão do usuário em 2026-11-10.** Instrumentação/relatórios que já existem podem permanecer como diagnóstico. | Nenhuma entrega C4 pendente; não realizar benchmark comparativo, otimizações, progresso real, cancelamento cooperativo, workers ou pixel ratio adaptativo nesta frente. Qualidade gráfica configurável fica reservada à Frente B. |
+| C5 — Persistência/cache | Projetos em `files/nyra-projects`, separados de temporários em `cache/nyra-rebuildable`; escrita em blocos, limite de projeto, fsync, publicação por rename, recuperação e exclusão explícita; limpeza temporária separada. | Testes físicos de cold start, persistência, interrupção/falha de escrita, armazenamento insuficiente, providers/URIs e garantia de que a limpeza não apaga projetos. |
 
-## Constatações técnicas que não devem ser confundidas
+## Limites conhecidos
 
-- A extensão .json no input não prova que qualquer JSON seja suportado.
-- A presença do campo `components` no predicado não prova que o DSL matemático seja interpretado corretamente.
-- A presença de `nyraCreateSceneJSON()` prova serialização, não gravação/restauração.
-- O `localStorage` encontrado para `nyra.items.draft.v1` refere-se ao editor de itens, não comprova persistência do editor 3D.
-- `getCacheDir()/nyra-rebuildable` armazena temporários de exportação, não modelos importados permanentes.
-- O teste estático do audit não substitui integração real WebView/Android.
+- A cópia durável de projeto preserva geometria, hierarquia e material básico; não é backup integral de texturas externas, auxiliares glTF/FBX ou clips de animação.
+- O robô atual é uma representação proxy baseada nas seis partes estruturais, não o personagem voxel-art final.
+- Testes de auditoria com doubles e verificações estáticas comprovam contratos selecionados, não o comportamento integral do WebView/Android.
 
-## Estado atual da implementação
+## Conferências pré-teste concluídas
 
-O plano técnico foi convertido em mudanças de código nesta branch. Consulte a seção **Implementação integrada nesta branch** abaixo e os gates físicos em aberto; as afirmações de constatação histórica acima continuam válidas como diagnóstico anterior, não como estado atual.
+1. Revisão de coerência entre status, plano, roteiro físico e PR: referências históricas foram distinguidas do estado atual.
+2. Fechamento documental de C4: nenhum benchmark/otimização C4 será exigido para testar ou encerrar C nesta rodada; instrumentação já existente não bloqueia.
 
 ## Regra de integração
 
-Manter PR draft. Não alterar main, não mesclar, não marcar ready e não alterar Frente B sem aprovação explícita.
-
-
-## Implementação integrada nesta branch
-- C1: importação principal permanece no seletor existente; JSON separa Scene v1, DSL Nyra v1 (validador e construtor do painel matemático) e projetos de personagem. JSON arbitrário com components não é aceito; BBModel exige elements, outliner e meta.
-- C1: serializador Scene v1 passa a preservar a cadeia interna de pivô/geometria da DSL; o deserializador rejeita tipos de nó desconhecidos.
-- C3: canvas do robô-guia é substituído ao reabrir após dispose do renderer.
-- C5: cópia local da cena importada no armazenamento privado Android, transferência por blocos, limite 240 MiB, fsync e troca de arquivo temporário; restauração no boot e exclusão explícita. A cópia mantém geometria/hierarquia/material básico, mas não texturas externas ou clips de animação.
-- C4: nenhuma otimização foi inventada sem benchmark; o parse JSON síncrono ainda não é cancelável e requer medição no dispositivo.
-
-## Gates de validação física
-- CI de auditoria/build no HEAD integrado.
-- Round-trip DSL no Three.js real incluindo todas as primitivas, tubo, hierarquia e pivôs.
-- Cold start, interrupção de gravação, espaço insuficiente e limpeza segura de cache no Android.
-- C2: todos os 23 alvos e acessibilidade no WebView.
-- C3: reabertura WebGL/2D no aparelho.
-- C4: benchmark antes/depois no mesmo dispositivo/arquivo.
-- glTF/FBX com recursos externos exigem reanexação; a cópia Scene JSON não é backup integral do arquivo original.
+Manter PR draft e aberta. Não alterar `main`, não mesclar e não marcar ready sem decisão explícita. Não antecipar a Frente B; apenas registrar qualidade gráfica configurável como item futuro dessa frente.
