@@ -156,6 +156,20 @@ if "function addAndroidExportAdapter" not in outer_source or "function ensureEdi
     errors.append("outer app bootstrap is missing its editor map or adapter structure")
 
 
+# Parse and syntax-check JavaScript modules without executing them.
+def node_syntax_check(label: str, source: str) -> None:
+    if not source.strip():
+        return
+    result = subprocess.run(
+        ["node", "--check", "--input-type=module"],
+        input=source,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        errors.append(f"JavaScript syntax error in {label}: {result.stderr.strip() or result.stdout.strip()}")
+
 # Decode and parse each original editor's own scripts independently.
 for key, page in pages.items():
     blocks = re.findall(r"<script\b([^>]*)>([\s\S]*?)</script>", page, flags=re.IGNORECASE)
