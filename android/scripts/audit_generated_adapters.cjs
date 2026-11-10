@@ -143,7 +143,7 @@ if (!html.includes("frame.style.cssText='display:block") ||
  // Its complete assembled module is syntax-checked below after the host adapters create it.
  // Check the shell bootstrap with only that nested payload neutralized.
 
-const payloadMatch = html.match(/const pages = \\{items: "([^"]+)", character: "([^"]+)", animation: "([^"]+)"\\};/);
+const payloadMatch = html.match(/const pages = \{items: "([^"]+)", character: "([^"]+)", animation: "([^"]+)"\};/);
 if (!payloadMatch) throw new Error('Could not read the three packed editor payloads');
 context.pages = {
   items: payloadMatch[1],
