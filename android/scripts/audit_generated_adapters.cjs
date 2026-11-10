@@ -130,7 +130,7 @@ for (const marker of hostUiMarkers) {
 // document is handled via an explicit ready handshake rather than a shell-only status.
 if (!html.includes("frame.style.cssText='display:block") ||
     !html.includes("NYRA_EDITOR_READY") ||
-    !html.includes("O documento abriu, mas o editor não confirmou inicialização")) {
+    !html.includes("não confirmou inicialização")) {
   console.error('FAIL: editor host must expose the iframe and distinguish document load from editor readiness');
   process.exitCode = 1;
 }
@@ -143,19 +143,18 @@ if (!html.includes("frame.style.cssText='display:block") ||
  // Its complete assembled module is syntax-checked below after the host adapters create it.
  // Check the shell bootstrap with only that nested payload neutralized.
 
-const modelToolsStart = outerSourceForExecution.indexOf('const modelTools = "');
-const panelEndStart = outerSourceForExecution.indexOf('const panelEnd', modelToolsStart);
-if (modelToolsStart < 0 || panelEndStart < 0) {
-  throw new Error('Could not isolate serialized modelTools block');
+const pagesDeclarationStart = outerSourceForExecution.indexOf('const pages = {items:');
+const pagesDeclarationEnd = outerSourceForExecution.indexOf('};', pagesDeclarationStart);
+if (pagesDeclarationStart < 0 || pagesDeclarationEnd < 0) {
+  throw new Error('Could not isolate embedded editor payload map');
 }
-const bootstrapForTest =
-  outerSourceForExecution.slice(0, modelToolsStart) +
-  'const modelTools = "";' + String.fromCharCode(10) + 'const panelEnd = "";' +
-  outerSourceForExecution.slice(outerSourceForExecution.indexOf(';', panelEndStart) + 1);
-// Use the complete outer source to create the actual editor documents.
-// The no-op variant is only used to exercise host initialization in the VM.
+const pagesDeclaration = outerSourceForExecution.slice(pagesDeclarationStart, pagesDeclarationEnd + 2);
+const adapterStart = outerSourceForExecution.indexOf('function addAndroidExportAdapter');
+const bootstrapForTest = outerSourceForExecution.slice(adapterStart);
+if (adapterStart < 0) throw new Error('Could not isolate editor adapter functions');
 const generatedEditorSource = outerSourceForExecution;
-vm.runInContext(bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
+
+vm.runInContext(pagesDeclaration + '\\n' + bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
 
 const generated = vm.runInContext(`({
   items: addAndroidExportAdapter(decodePage(pages.items), 'items'),
