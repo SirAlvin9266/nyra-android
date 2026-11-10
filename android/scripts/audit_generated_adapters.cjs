@@ -143,12 +143,12 @@ if (!html.includes("frame.style.cssText='display:block") ||
  // Its complete assembled module is syntax-checked below after the host adapters create it.
  // Check the shell bootstrap with only that nested payload neutralized.
 
-const pagesDeclarationStart = outerSourceForExecution.indexOf('const pages = {items:');
-const pagesDeclarationEnd = outerSourceForExecution.indexOf('};', pagesDeclarationStart);
-if (pagesDeclarationStart < 0 || pagesDeclarationEnd < 0) {
+const embeddedPagesStart = html.indexOf('const pages = {items:');
+const embeddedPagesEnd = html.indexOf('};', embeddedPagesStart);
+if (embeddedPagesStart < 0 || embeddedPagesEnd < 0) {
   throw new Error('Could not isolate embedded editor payload map');
 }
-const pagesDeclaration = outerSourceForExecution.slice(pagesDeclarationStart, pagesDeclarationEnd + 2);
+const pagesDeclaration = html.slice(embeddedPagesStart, embeddedPagesEnd + 2);
 const adapterStart = outerSourceForExecution.indexOf('function addAndroidExportAdapter');
 const bootstrapForTest = outerSourceForExecution.slice(adapterStart);
 if (adapterStart < 0) throw new Error('Could not isolate editor adapter functions');
