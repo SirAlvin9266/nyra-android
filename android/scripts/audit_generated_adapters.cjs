@@ -149,12 +149,21 @@ if (embeddedPagesStart < 0 || embeddedPagesEnd < 0) {
   throw new Error('Could not isolate embedded editor payload map');
 }
 const editorPayloadDeclaration = html.slice(embeddedPagesStart, embeddedPagesEnd + 2);
-const adapterStart = outerSourceForExecution.indexOf('function addAndroidExportAdapter');
-const bootstrapForTest = outerSourceForExecution.slice(adapterStart);
-if (adapterStart < 0) throw new Error('Could not isolate editor adapter functions');
+const modelToolsStart = outerSourceForExecution.indexOf('const modelTools = "');
+const panelEndStart = outerSourceForExecution.indexOf('const panelEnd', modelToolsStart);
+if (modelToolsStart < 0 || panelEndStart < 0) {
+  throw new Error('Could not isolate serialized modelTools block');
+}
+const panelEndSemicolon = outerSourceForExecution.indexOf(';', panelEndStart);
+if (panelEndSemicolon < 0) throw new Error('Could not isolate serialized panelEnd block');
+const bootstrapForTest =
+  editorPayloadDeclaration + '\\n' +
+  outerSourceForExecution.slice(0, modelToolsStart) +
+  'const modelTools = "";\\nconst panelEnd = "";' +
+  outerSourceForExecution.slice(panelEndSemicolon + 1);
 const generatedEditorSource = outerSourceForExecution;
 
-vm.runInContext(editorPayloadDeclaration + '\\n' + bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
+vm.runInContext(bootstrapForTest, context, { filename: 'nyra-outer-bootstrap.js' });
 
 const generated = vm.runInContext(`({
   items: addAndroidExportAdapter(decodePage(pages.items), 'items'),
