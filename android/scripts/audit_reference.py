@@ -155,7 +155,11 @@ def node_syntax_check(label: str, source: str) -> None:
 # checked independently above; generated Android adapters have their own
 # dedicated audit, so avoid feeding serialized nested HTML to Node as a script.
 # Keep a structural guard for the actual outer script wrapper.
-script_open = text.lower().find("<script>")
+# Editor payloads are Base64 values inside the root shell. The first literal
+# <script> can occur in earlier UI/template content; the shell bootstrap is the
+# script block that begins after the complete pages map.
+pages_map_end = text.find("};", text.find("const pages = {"))
+script_open = text.lower().find("<script>", pages_map_end)
 script_open_end = script_open + len("<script>") if script_open >= 0 else -1
 script_close = text.lower().find("</script>", script_open_end) if script_open_end >= 0 else -1
 if script_open < 0 or script_open_end < 0 or script_close <= script_open_end:
