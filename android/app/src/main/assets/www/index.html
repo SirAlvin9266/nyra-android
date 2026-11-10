@@ -220,15 +220,18 @@ function ensureEditor(key){
    }
    message.textContent='Documento de '+names[key]+' carregado; aguardando inicialização do editor…';
    const ready=event=>{
-     if(event.source!==frame.contentWindow||!event.data||event.data.type!=='NYRA_EDITOR_READY')return;
+     if(event.source!==frame.contentWindow||!event.data||event.data.type!=='NYRA_EDITOR_READY'||event.data.app!==key)return;
      window.removeEventListener('message',ready);
-     message.textContent='Editor '+names[key]+' pronto.';
+     frame.dataset.nyraReady='true';
+     if(editorFrames[key]===frame&&frame.style.display!=='none')message.textContent='Editor '+names[key]+' pronto.';
    };
    window.addEventListener('message',ready);
+   frame.dataset.nyraReady='false';
+   frame.dataset.nyraLoadStarted=String(Date.now());
    setTimeout(()=>{
      window.removeEventListener('message',ready);
-     if(message.textContent==='Documento de '+names[key]+' carregado; aguardando inicialização do editor…'){
-       message.textContent='O documento abriu, mas o editor não confirmou inicialização. Consulte o diagnóstico do WebView.';
+     if(frame.dataset.nyraReady!=='true'&&editorFrames[key]===frame&&frame.style.display!=='none'){
+       message.textContent='O documento abriu, mas '+names[key]+' não confirmou inicialização. Consulte o diagnóstico do WebView.';
      }
    },12000);
  },{once:true});
@@ -338,7 +341,11 @@ async function nyraInitGuideRobot(){
   if(!response.ok)throw new Error('Fonte oficial do personagem indisponível ('+response.status+').');
   const spec=await response.json();
   if(spec.format!=='Nyra Character+Voxel Project v4'||!spec.parts||typeof spec.parts!=='object')throw new Error('Esquema do personagem oficial inválido.');
-  const T=window.THREE;if(!T)throw new Error('Three.js não está disponível.');
+  const T=await import('./vendor/three/build/three.module.js');
+  const robotSlot=document.getElementById('nyraGuideRobotSlot');
+  if(robotSlot)robotSlot.setAttribute('aria-label','Robô tridimensional Nyra renderizado em 3D');
+  const oldNotice=document.getElementById('nyraGuideRobotNotice');
+  if(oldNotice)oldNotice.remove();
   const renderer=new T.WebGLRenderer({canvas,antialias:true,alpha:true});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));renderer.setSize(360,420,false);
   const scene=new T.Scene();scene.background=null;
@@ -366,7 +373,17 @@ async function nyraInitGuideRobot(){
   const animate=t=>{if(!active)return;const visible=document.getElementById('nyraGuideRoot')?.style.display!=='none';if(visible){const delta=last?Math.min((t-last)/1000,.05):0;last=t;angle+=delta*.8;root.rotation.y=Math.sin(angle)*.22;renderer.render(scene,camera);}frame=requestAnimationFrame(animate);};
   renderer.render(scene,camera);frame=requestAnimationFrame(animate);
   nyraGuideRobotRuntime={renderer,scene,root,stop(){active=false;cancelAnimationFrame(frame);renderer.dispose();root.traverse(node=>{node.geometry?.dispose?.();if(Array.isArray(node.material))node.material.forEach(x=>x.dispose?.());else node.material?.dispose?.();});}};
- }catch(error){console.warn('Nyra guide robot fallback:',error);nyraGuideRobotFallback();}
+ }catch(error){
+  console.warn('Nyra guide robot fallback:',error);
+  nyraGuideRobotFallback();
+  const slot=document.getElementById('nyraGuideRobotSlot');
+  if(slot){
+    slot.setAttribute('aria-label','Representação 2D de fallback do robô Nyra; renderização 3D indisponível');
+    let notice=document.getElementById('nyraGuideRobotNotice');
+    if(!notice){notice=document.createElement('small');notice.id='nyraGuideRobotNotice';notice.style.cssText='color:#ffcf8c;font-size:10px;text-align:center';slot.parentElement?.appendChild(notice);}
+    notice.textContent='Visualização 2D: '+String(error?.message||error).slice(0,120);
+  }
+ }
  finally{window.nyraGuideRobotLoading=false;}
 }
 function nyraRefreshGuideRobot(){if(!nyraGuideRobotRuntime)nyraInitGuideRobot();}
@@ -427,7 +444,7 @@ function openEditor(key){
  document.querySelectorAll('[data-app]').forEach(btn=>btn.classList.toggle('active',btn.dataset.app===key));
  Object.entries(editorFrames).forEach(([app,editorFrame])=>editorFrame.style.display=app===key?'block':'none');
  frame.style.display='block';
- message.textContent='Editor atual: '+names[key]+'.';
+ message.textContent=frame.dataset.nyraReady==='true'?'Editor '+names[key]+' pronto.':'Carregando '+names[key]+'…';
  try{localStorage.setItem('nyra_active_editor',key)}catch(_){}
 }
 document.querySelectorAll('[data-app]').forEach(btn=>btn.addEventListener('click',()=>openEditor(btn.dataset.app)));
@@ -439,7 +456,7 @@ window.addEventListener('message',event=>{
 });
 let initial='items';
 try{const saved=localStorage.getItem('nyra_active_editor');if(saved&&pages[saved])initial=saved}catch(_){}
-try{Object.keys(pages).forEach(key=>ensureEditor(key));openEditor(initial);message.textContent='Todos os editores foram preparados e estão prontos.';}
+try{Object.keys(pages).forEach(key=>ensureEditor(key));openEditor(initial);}
 catch(error){console.error('Nyra editor bootstrap failed',error);message.textContent='Falha ao preparar os editores: '+(error?.message||String(error));}
 </script>
 </body>
