@@ -143,12 +143,13 @@ if (!html.includes("frame.style.cssText='display:block") ||
  // Its complete assembled module is syntax-checked below after the host adapters create it.
  // Check the shell bootstrap with only that nested payload neutralized.
 
-const embeddedPagesStart = html.indexOf('const pages = {items:');
-const embeddedPagesEnd = html.indexOf('};', embeddedPagesStart);
-if (embeddedPagesStart < 0 || embeddedPagesEnd < 0) {
-  throw new Error('Could not isolate embedded editor payload map');
-}
-const editorPayloadDeclaration = html.slice(embeddedPagesStart, embeddedPagesEnd + 2);
+const payloadMatch = html.match(/const pages = \\{items: "([^"]+)", character: "([^"]+)", animation: "([^"]+)"\\};/);
+if (!payloadMatch) throw new Error('Could not read the three packed editor payloads');
+context.pages = {
+  items: payloadMatch[1],
+  character: payloadMatch[2],
+  animation: payloadMatch[3],
+};
 const modelToolsStart = outerSourceForExecution.indexOf('const modelTools = "');
 const panelEndStart = outerSourceForExecution.indexOf('const panelEnd', modelToolsStart);
 if (modelToolsStart < 0 || panelEndStart < 0) {
@@ -157,7 +158,6 @@ if (modelToolsStart < 0 || panelEndStart < 0) {
 const panelEndSemicolon = outerSourceForExecution.indexOf(';', panelEndStart);
 if (panelEndSemicolon < 0) throw new Error('Could not isolate serialized panelEnd block');
 const bootstrapForTest =
-  editorPayloadDeclaration + '\\n' +
   outerSourceForExecution.slice(0, modelToolsStart) +
   'const modelTools = "";\\nconst panelEnd = "";' +
   outerSourceForExecution.slice(panelEndSemicolon + 1);
