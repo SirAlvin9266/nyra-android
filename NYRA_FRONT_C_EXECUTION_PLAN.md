@@ -3,11 +3,11 @@
 **Fonte de verdade:** este documento.  
 **Repositório:** `SirAlvin9266/nyra-android` · **PR:** [#8](https://github.com/SirAlvin9266/nyra-android/pull/8)  
 **Branch isolada:** `work/nyra-front-c-closeout`  
-**HEAD-base desta revisão:** `96ddb300bc14a1598b6b3a55eb81b88ca9b58eb5`  
+**HEAD-base da revisão:** atualizado no commit desta rodada  
 **Estado do PR:** aberto, draft, mergeable, não integrado.  
 **Regra:** não alterar `main`, não mesclar, não marcar o PR ready e não tocar na Frente B sem autorização explícita.
 
-> Este documento agora é um plano técnico de implementação, e não apenas uma lista textual. Ele compara a estrutura observada no código, apresenta pontos concretos de alteração, pseudocódigo, decisões condicionais, testes e referências externas. Pseudocódigo não é código já implementado. Cada pendência só muda de estado quando existir evidência de teste.
+> Este documento registra arquitetura, decisões e limites da Frente C. A implementação atual está descrita em `NYRA_FRONT_C_STATUS.md`; os ensaios que dependem de aparelho estão em `docs/NYRA_FRONT_C_VALIDACAO_FISICA.md`. Não trate diagnósticos históricos ou pseudocódigo como pendências atuais sem conferir o status.
 
 ## 1. Escopo confirmado
 
@@ -519,3 +519,10 @@ Na próxima sessão, confirmar HEAD e continuar diretamente com:
 5. Android, gates e checklist físico.
 
 Não pedir ao usuário para repetir contexto ou reabrir escopo. Não declarar as propostas deste documento como funcionalidades prontas. Não mexer na Frente B, não alterar `main`, não marcar PR ready e não mesclar sem autorização explícita.
+
+
+## Decisão de escopo — C4 retirada (2026-11-10)
+
+A C4 não integra os gates de conclusão da Frente C. Os seguintes trabalhos não devem ser executados nesta frente: benchmark comparativo com cinco execuções, otimização de JSON.parse, progresso real por fases, cancelamento cooperativo, processamento em workers, pixel ratio adaptativo, qualidade gráfica configurável, instancing/compartilhamento de geometria/material e otimização de draw calls/construção geométrica. Qualidade gráfica configurável permanece reservada à Frente B. Instrumentação e relatório já existentes podem permanecer sem gerar obrigação de entrega.
+
+O teste físico final da Frente C cobre C1, C2, C3, C5 e integração Android, conforme `docs/NYRA_FRONT_C_VALIDACAO_FISICA.md`.
