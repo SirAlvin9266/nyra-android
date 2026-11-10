@@ -143,12 +143,16 @@ if (!html.includes("frame.style.cssText='display:block") ||
  // Its complete assembled module is syntax-checked below after the host adapters create it.
  // Check the shell bootstrap with only that nested payload neutralized.
 
-const payloadMatch = html.match(/const pages = \{items: "([^"]+)", character: "([^"]+)", animation: "([^"]+)"\};/);
-if (!payloadMatch) throw new Error('Could not read the three packed editor payloads');
+const payloadMapStart = html.indexOf('const pages = {items: "');
+const payloadMapEnd = payloadMapStart >= 0 ? html.indexOf('};', payloadMapStart) : -1;
+const payloadMap = payloadMapEnd > payloadMapStart ? html.slice(payloadMapStart, payloadMapEnd + 2) : '';
+const payloadCharacterSeparator = payloadMap.indexOf('", character: "');
+const payloadAnimationSeparator = payloadMap.indexOf('", animation: "');
+if (payloadCharacterSeparator < 0 || payloadAnimationSeparator < 0) throw new Error('Could not read the three packed editor payloads');
 context.pages = {
-  items: payloadMatch[1],
-  character: payloadMatch[2],
-  animation: payloadMatch[3],
+  items: payloadMap.slice('const pages = {items: "'.length, payloadCharacterSeparator),
+  character: payloadMap.slice(payloadCharacterSeparator + '", character: "'.length, payloadAnimationSeparator),
+  animation: payloadMap.slice(payloadAnimationSeparator + '", animation: "'.length, payloadMap.length - 3),
 };
 const modelToolsStart = outerSourceForExecution.indexOf('const modelTools = "');
 const panelEndStart = outerSourceForExecution.indexOf('const panelEnd', modelToolsStart);
