@@ -248,6 +248,7 @@ function normalizeAnimations(animations, byId) {
 }
 function normalizeSceneTransfer(input) {
   if (!object(input)) throw new TypeError('O documento de transferência deve ser um objeto JSON.');
+  assertJsonSafe(input, 'documento de transferência');
   if (input.schema !== SCHEMA) throw new Error('Schema de transferência não reconhecido.');
   if (input.schemaVersion !== VERSION) throw new Error('Versão de transferência não suportada: ' + input.schemaVersion);
   const project=normalizeProject(input.project??{});
