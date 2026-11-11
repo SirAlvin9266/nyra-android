@@ -63,6 +63,9 @@ jobs:
       - name: Test Blockbench model importer
         run: node android/scripts/audit_bbmodel_import.cjs
 
+      - name: Test Blockbench to RoboTV transfer mapping
+        run: node android/scripts/audit_bbmodel_transfer.cjs
+
       - name: Test GLB structural preflight
         run: node android/scripts/audit_glb_preflight.cjs
 
