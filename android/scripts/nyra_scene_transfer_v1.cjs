@@ -207,10 +207,9 @@ function normalizeAnimations(animations, byId) {
         if(typeof frame.time!=='number'||!Number.isFinite(frame.time)||frame.time<0) {
           throw new Error(flabel+'.time inválido.');
         }
-        const value=Array.isArray(frame.value)
+        const value=PLAYABLE_PROPERTIES.has(property)
           ? finiteVector(frame.value,3,flabel+'.value')
-          : (typeof frame.value==='number'&&Number.isFinite(frame.value)
-            ? frame.value : serializableClone(frame.value,flabel+'.value'));
+          : serializableClone(frame.value,flabel+'.value');
         return {
           time:frame.time,value,
           interpolation:String(frame.interpolation??'linear'),
