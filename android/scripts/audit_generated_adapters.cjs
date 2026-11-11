@@ -110,6 +110,19 @@ function checkJs(label, source) {
   }
 }
 
+for (const marker of [
+  "NYRA_SCENE_TRANSFER_SUBMIT",
+  "NYRA_SCENE_TRANSFER_IMPORT_BBMODEL",
+  "NYRA_SCENE_TRANSFER_ACK",
+  "event.data.glb instanceof ArrayBuffer",
+  "target.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT',requestId:event.data.requestId,transfer:doc,glb:event.data.glb||null}",
+]) {
+  if (!html.includes(marker)) {
+    console.error('FAIL: outer Android shell lacks the model-transfer bridge marker ' + marker);
+    process.exitCode = 1;
+  }
+}
+
 for (const marker of hostUiMarkers) {
   if (!html.includes(marker)) {
     console.error('FAIL: outer Android host is missing responsive UI marker ' + marker);
@@ -179,8 +192,8 @@ for (const [name, page] of Object.entries(generated)) {
   }
   const editorSpecificMarkers = {
     items: ['nyra.items.draft.v1'],
-    character: ['nyra.character.draft.v1', 'nyra.character.draft.mode.v1', 'Rascunho JSON local restaurado automaticamente.', 'NyraModelIO', 'id="nyraModelTree"', 'id="nyraDeleteNode"', 'id="nyraRestoreNode"', 'function refreshModelTree()', 'function deleteSelectedComponent()', 'function restoreLastDeleted()', 'getSelected:()=>selectedObject', 'Gerar modelo por instruções matemáticas', 'id="nyraMathDslInput"', 'nyra.mathDsl.v1', 'nyraMathematicalModel', 'nyraDslId', 'nyraPivot'],
-    animation: ['nyra3d-robotv-project'],
+    character: ['nyra.character.draft.v1', 'nyra.character.draft.mode.v1', 'Rascunho JSON local restaurado automaticamente.', 'NyraModelIO', 'id="nyraModelTree"', 'id="nyraDeleteNode"', 'id="nyraRestoreNode"', 'function refreshModelTree()', 'function deleteSelectedComponent()', 'function restoreLastDeleted()', 'getSelected:()=>selectedObject', 'Gerar modelo por instruções matemáticas', 'id="nyraMathDslInput"', 'nyra.mathDsl.v1', 'nyraMathematicalModel', 'nyraDslId', 'nyraPivot', 'id="sendRoboTv"', 'function nyraBuildSceneTransferFromBBModel', 'NYRA_SCENE_TRANSFER_SUBMIT', 'new GLTFExporter()', 'animations:parsed.animations||[]', 'await importBBModelFile(event.data.file)'],
+    animation: ['nyra3d-robotv-project', 'id="nyraImportBBModel"', 'id="nyraTransferFile"', 'new GLTFLoader()', 'NYRA_SCENE_TRANSFER_IMPORT', 'nyraGltfMixer.stopAllAction()', 'function nyraLoadTransfer(doc,glb)'],
   };
   for (const marker of editorSpecificMarkers[name] || []) {
     if (!page.includes(marker)) {
