@@ -32,18 +32,6 @@ check(items.includes("addEventListener('pointerdown',editPixel)"), 'Oficina sem 
 for (const id of ['view','partColor','hue','sat','lum','shapeType','addShape','deleteSelected','restorePart','save','load','file','saveBBModel','status']) check(character.includes('id="' + id + '"'), 'Criador sem controle ' + id);
 for (const fn of ['project','apply','importBBModelFile','buildBBModel','pushUndo','undoLast','addVoxel','setVoxelMode']) check(new RegExp('function\\s+' + fn + '\\s*\\(').test(character), 'Criador sem função ' + fn);
 for (const id of ['viewport','joint','rx','ry','rz','addFrame','duplicateFrame','deleteFrame','play','stop','saveProject','loadProject','exportProject','exportAnim']) check(animation.includes('id="' + id + '"'), 'RoboTV sem controle ' + id);
-for (const fn of ['getPose','setPose','interpolate','projectData','renderFrames','playLoop','stopPlayback']) check(new RegExp('function\\s+' + fn + '\\s*\\(').test(animation), 'RoboTV sem função ' + fn);
-check(html.includes('function addAndroidExportAdapter'), 'Shell sem adaptador Android');
-check(html.includes('function ensureEditor'), 'Shell sem bootstrap dos iframes');
-check(html.includes('nyraGuideSteps'), 'Shell sem etapas do Guia');
-
-const requiredItemIds = ['texture','preview','paintColor','erasePixel','resetTexture','download','toggleGrid','downloadJson','downloadAddon','gridResolution','itemId'];
-for (const id of requiredItemIds) check(items.includes('id="' + id + '"'), 'Oficina sem controle ' + id);
-for (const fn of ['paintMatrix','editPixel','saveMatrix','downloadBlob','render']) check(new RegExp('function\\s+' + fn + '\\s*\\(').test(items), 'Oficina sem função ' + fn);
-check(/addEventListener\\(['"]pointerdown['"]\\s*,\\s*editPixel/.test(items), 'Oficina sem pointerdown ligado diretamente a editPixel');
-check(!/addEventListener\\(['"]pointermove['"]/.test(items), 'Inventário mudou: atualizar status da pintura por arraste.');
-const requiredCharacterIds = ['view','partColor','hue','sat','lum','shapeType','addShape','deleteSelected','restorePart','save','load','file','saveBBModel','status'];
-for (const id of requiredCharacterIds) check(character.includes('id="' + id + '"'), 'Criador sem controle ' + id);
 for (const fn of ['project','apply','importBBModelFile','buildBBModel','pushUndo','undoLast','addVoxel','setVoxelMode']) check(new RegExp('function\\s+' + fn + '\\s*\\(').test(character), 'Criador sem função ' + fn);
 const requiredAnimationIds = ['viewport','joint','rx','ry','rz','addFrame','duplicateFrame','deleteFrame','play','stop','saveProject','loadProject','exportProject','exportAnim'];
 for (const id of requiredAnimationIds) check(animation.includes('id="' + id + '"'), 'RoboTV sem controle ' + id);
