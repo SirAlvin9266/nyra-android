@@ -33,6 +33,17 @@ Quando uma conversa nova precisar continuar o desenvolvimento, use uma instruç�
 | Registro de validação/integração | [NYRA_VALIDACAO_INTEGRACAO.md](NYRA_VALIDACAO_INTEGRACAO.md) | Histórico técnico de execução, fixtures, testes e pendências |
 | Referências de arquivos | [REFERENCE_FILES.md](REFERENCE_FILES.md) | Relação de arquivos de referência do projeto |
 
+## Estado da execução da Frente D (11/11/2026)
+
+- Branch de implementação: [work/nyra-frente-d-integration](https://github.com/SirAlvin9266/nyra-android/tree/work/nyra-frente-d-integration).
+- PR de acompanhamento: [#15 — início da integração da Frente D](https://github.com/SirAlvin9266/nyra-android/pull/15) (draft; não mesclar antes de CI e revisão).
+- Auditoria D1: [docs/NYRA_FRENTE_D_AUDITORIA_D1.md](docs/NYRA_FRENTE_D_AUDITORIA_D1.md).
+- Contrato D2 v1: [NYRA_SCENE_TRANSFER_V1.md](NYRA_SCENE_TRANSFER_V1.md).
+- Implementação inicial do validador: [nyra_scene_transfer_v1.cjs](android/scripts/nyra_scene_transfer_v1.cjs).
+- Testes automatizados iniciais: [audit_scene_transfer_v1.cjs](android/scripts/audit_scene_transfer_v1.cjs); o workflow já foi atualizado para executá-los.
+- Último estado conhecido: código-base de recuperação passou no workflow #453; isso não é CI da branch D e não comprova teste em dispositivo ou Bedrock.
+- Próxima ação: executar o novo teste via Actions e continuar a integração do envelope com o parser Blockbench e o host/RoboTV.
+
 ## Frente D — prioridade antes da Frente B
 
 **Objetivo:** integração de modelos, animação, importação e exportação, com foco em modelos de entidade Minecraft Bedrock/Blockbench e no fluxo RoboTV/Animação. Os controles de importação e exportação precisam existir também dentro da própria área de Animação; não basta deixá-los no rodapé do editor geral.
