@@ -1,0 +1,122 @@
+# Frente D — Auditoria D1 do código atual
+
+**Branch de auditoria/implementação:** `work/nyra-frente-d-integration`  
+**Base escolhida:** `fix/nyra-startup-recovery-2026-11-10`  
+**Commit-base:** `bc5ee9992ca346f617389fd364e62903c63c7640`  
+**Data do registro:** 11/11/2026  
+**Estado:** auditoria estática inicial concluída; validação Android/WebView e Minecraft ainda não executada nesta etapa.
+
+## 1. Decisão de base e proteção do trabalho existente
+
+A Frente D será desenvolvida em branch isolada, partindo do baseline de recuperação que o registro do repositório identifica como a base conservadora de inicialização. A `main` não foi alterada. A PR #14 permanece separada: ela trata de seletor genérico de importação, dock de exportação no Criador de Personagens e guia, e seu escopo declara expressamente que não altera RoboTV, arquitetura de painéis, gerador matemático ou compatibilidade interna Bedrock.
+
+Não mesclar PRs existentes como atalho para iniciar a Frente D. Antes de qualquer futura integração, revisar base/head e estado das PRs novamente.
+
+## 2. Arquitetura de execução encontrada
+
+O app Android atual incorpora três documentos HTML originais em Base64 no arquivo:
+
+- `android/app/src/main/assets/www/index.html`
+
+O shell contém uma navegação que troca os editores `items`, `character` e `animation` por meio de iframe gerado. Portanto, cada alteração em um editor embutido exige:
+1. decodificar o payload correto;
+2. alterar o HTML interno do editor;
+3. reserializar o HTML como UTF-8/Base64;
+4. atualizar a declaração `const pages` mantendo intactos os outros dois payloads;
+5. executar as auditorias de referência e adaptadores que extraem os documentos finais.
+
+Não editar o shell como se os documentos internos estivessem soltos no arquivo.
+
+## 3. O que já existe
+
+### 3.1 RoboTV / Animação atual
+
+O payload `animation` contém:
+
+- viewport Three.js com o robô articulado pré-definido;
+- seleção das articulações existentes e controles de rotação por eixo;
+- coleção local `frames`, cada quadro com `time` e `pose`;
+- funções `getPose`, `setPose`, `interpolate`, `renderFrames`, `addFrame`, `playLoop` e `stopPlayback`;
+- presets de poses;
+- reprodução baseada nos quadros armazenados;
+- exportação/importação JSON do projeto de animação;
+- salvamento local sob a chave `nyra3d-robotv-project`.
+
+**Limitação concreta:** o formato atual grava poses de um conjunto fixo de articulações do robô. A função `projectData()` serializa o nome fixo `RoboTV-blocky`, a pose e os `frames`. Não há evidência, no payload auditado, de uma árvore genérica de bones importados, canais por UUID de nó ou associação de clips Blockbench com a timeline existente.
+
+### 3.2 Criador de Personagens / Blockbench
+
+O payload `character` contém:
+
+- seletor `.bbmodel/.json`;
+- parser de Blockbench implementado no módulo `NyraModelIO` e exposto pelo bridge `window.__nyraParseBBModel`;
+- importador `importBBModelFile(file)`;
+- construção de cubos e malhas livres;
+- importação de grupos/outliner e pivôs;
+- mapeamento de canais de animação compatíveis para `THREE.AnimationClip`;
+- estado `bbmodelState`, que mantém `rawData`, raiz, registros e grupos;
+- exportador .bbmodel que parte de uma cópia de `rawData` e aplica transformações editadas aos elementos compatíveis;
+- status da importação que informa quantidade de peças, grupos, animações e texturas.
+
+O teste `android/scripts/audit_bbmodel_import.cjs` executa o parser real extraído do módulo e contém fixtures sintéticas de cubos/animação, malhas livres, textura externa e Hytale, além da fixture real do escudo.
+
+**Limitação concreta:** a presença de `parsed.animations` e sua contagem no status de importação não prova que os clips sejam enviados ao payload RoboTV. O estado e o viewport do Criador de Personagens são locais a esse editor.
+
+### 3.3 DSL matemático atual
+
+O documento `NYRA_MODEL_DSL.md` e o teste `android/scripts/audit_model_dsl.cjs` confirmam DSL v1 com `group`, `box`, `sphere`, `cylinder` e `cone`, posição/rotação/escala/pivô, validação de hierarquia e limite de 500 componentes.
+
+O teste confirma os tipos geométricos como construtores Three.js. O DSL atual não cria cubos Blockbench nativos, bones/esqueleto, texturas pintadas ou UV customizado. Ainda não é uma autoria Bedrock-aware.
+
+## 4. Lacunas principais confirmadas
+
+| Capacidade da Frente D | Situação encontrada |
+|---|---|
+| Detector explícito de formato/destino Bedrock Entity | Não comprovado no fluxo atual |
+| Documento canônico compartilhado entre os três editores | Não encontrado; cada editor mantém seu estado/rascunho |
+| Preservação de dados BBModel desconhecidos | `rawData` é retido no estado do Criador, mas cobertura de ida/volta precisa de teste |
+| Integração de clips BBModel à timeline RoboTV | Não encontrada |
+| Timeline genérica por osso/nó e canais position/rotation/scale | Não encontrada no RoboTV atual |
+| Motor de avaliação de pose por hierarquia genérica | RoboTV atual interpola poses do rig fixo |
+| Comandos importar/exportar dentro do próprio RoboTV | Não encontrados no payload de animação atual |
+| DSL com perfil `bedrock_entity` e geração de bones/cubos Bedrock | Ausente na especificação/teste DSL v1 |
+| Exportador geometry Bedrock versionado | Não encontrado |
+| Exportador animations Bedrock e ligações client_entity | Não encontrados |
+| Resource Pack independente de entidade com geometry + texture + animation | Não encontrado no fluxo de personagem; o Pixel Lab gera pacote de item de teste separado |
+| Validação em Minecraft Bedrock | Pendente nos registros do projeto |
+
+## 5. Testes e automação já existentes
+
+O workflow `.github/workflows/android-build.yml` executa:
+- auditoria estrutural dos payloads originais;
+- auditoria dos adaptadores Android;
+- teste DSL matemático;
+- teste do parser Blockbench;
+- pré-análise estrutural GLB;
+- build Gradle do APK;
+- inspeção de assets locais no APK.
+
+O workflow não executa smoke test de WebView/Android instrumentado nem validação no Minecraft Bedrock. A execução mais recente da branch de recuperação consultada foi bem-sucedida no CI da PR #13; isso comprova o pipeline automatizado daquele commit, não a nova branch D nem a interação física.
+
+## 6. Decisões de implementação derivadas da auditoria
+
+1. Manter o rig fixo e o fluxo atual do RoboTV funcionando enquanto se adiciona um modo de projeto genérico. Não substituir o robô atual por uma arquitetura incompleta.
+2. Extrair do importador uma camada de dados independente do Three.js para tornar possível enviar a estrutura importada ao RoboTV sem compartilhar objetos WebGL entre iframes.
+3. Definir um formato de transferência versionado entre Character Editor e RoboTV. Deve incluir árvore, IDs/UUIDs, nomes, pivôs, transforms de base, geometria referenciada/serializável e clips com canais/keyframes.
+4. Primeira integração funcional: importar no Criador um `.bbmodel` com animações e encaminhar para RoboTV um pacote de projeto serializável; RoboTV deve reconstruir hierarquia/rig e exibir os clips importados. Não colapsar os clips em uma única pose.
+5. A timeline genérica inicial deve suportar canais de rotação com base em clips convertidos já reconhecidos, mas reter o payload bruto de canais ainda não reproduzidos.
+6. Os controles de importar/exportar devem ser adicionados no payload interno `animation`, dentro do painel RoboTV.
+7. Só depois da integração e dos testes de ida/volta avançar para DSL Bedrock-aware e exportadores Bedrock.
+
+## 7. Próxima sequência executável
+
+- **D1 concluída como auditoria estática inicial:** mapa acima e branch isolada criada.
+- **D1.1:** executar as auditorias disponíveis no commit-base exato e registrar resultados.
+- **D2:** fechar o contrato de dados compartilhado/transferência entre editores, sem exigir mover imediatamente todo o estado legado.
+- **D3:** conectar importação BBModel e clips ao fluxo RoboTV.
+- **D4:** expandir timeline genérica e controles de importação/exportação dentro do RoboTV.
+- **D5+:** DSL Bedrock-aware, geometry exporter, animation exporter, client entity e empacotador, conforme o plano técnico detalhado.
+
+## 8. Critério de honestidade
+
+Este documento é uma auditoria baseada em leitura estática e testes já presentes. Não declara que os três editores funcionam no aparelho, que toda semântica Blockbench é reproduzida ou que qualquer pacote foi carregado no Minecraft. Esses critérios exigem ensaios próprios e resultados documentados.
