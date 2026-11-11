@@ -354,7 +354,9 @@ function importBedrockGeometry(input) {
           const uvSize=face.uv_size?vec2(face.uv_size,'face.uv_size'):[0,0];
           let rect=[uv[0],uv[1],uv[0]+uvSize[0],uv[1]+uvSize[1]];
           if(faceName==='up'||faceName==='down')rect=[uv[0]+uvSize[0],uv[1]+uvSize[1],uv[0],uv[1]];
-          faces[faceName]={uv:rect,rotation:face.uv_rotation||0,material_name:face.material_instance};
+          const faceData={uv:rect,rotation:face.uv_rotation||0};
+          if(typeof face.material_instance==='string'&&face.material_instance)faceData.material_name=face.material_instance;
+          faces[faceName]=faceData;
         }
       }
       const cubeId=id+':cube:'+cubeIndex;
