@@ -128,3 +128,13 @@ const structuredLocator=selected.scene.nodes.find(n=>n.type==='locator'&&n.name=
 assert.ok(structuredLocator);
 assert.deepEqual(structuredLocator.sourceData.bedrockLocator,{offset:[4,5,6],rotation:[0,90,0],ignore_inherited_scale:true});
 assert.throws(()=>importBedrockGeometry(legacy18,2),/Índice de geometria fora/);
+
+const unknownLocator={
+ format_version:'1.8.0',
+ 'minecraft:geometry':[{description:{identifier:'geometry.locator_unknown'},bones:[
+  {name:'root',locators:{custom:{rotation:[0,45,0],ignore_inherited_scale:true}},cubes:[]}
+ ]}]
+};
+const unknownLocatorDoc=importBedrockGeometry(unknownLocator);
+assert.ok(unknownLocatorDoc.scene.nodes.some(n=>n.type==='locator'&&n.name==='custom'));
+assert.deepEqual(unknownLocatorDoc.scene.nodes.find(n=>n.type==='locator').sourceData.bedrockLocator,{rotation:[0,45,0],ignore_inherited_scale:true});

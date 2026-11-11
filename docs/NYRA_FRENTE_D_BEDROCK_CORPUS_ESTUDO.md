@@ -213,7 +213,7 @@ Estado:
 - [x] Comparação das regras de conversão com o codec do Blockbench e a documentação Microsoft.
 - [x] Correções iniciais no conversor e ampliação do teste de regressão.
 - [x] Importação com seleção de múltiplas definições `minecraft:geometry` (índice explícito e preservação integral do arquivo original).
-- [x] Fixtures sintéticas para `1.8.0`, múltiplas geometrias, bones sem cubos e locator estruturado.
+- [x] Fixtures sintéticas para `1.8.0`, múltiplas geometrias, bones sem cubos e locators vetoriais/estruturados/sem offset editável.
 - [ ] CI verde após esta revisão.
 - [ ] Ensaio visual no Blockbench.
 - [ ] Ensaio de carregamento no Minecraft Bedrock.

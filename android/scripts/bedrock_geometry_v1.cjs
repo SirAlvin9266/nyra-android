@@ -383,8 +383,8 @@ function importBedrockGeometry(input, geometryIndex=0) {
     if(isObject(bone.locators)){
       for(const [locatorName,locator] of Object.entries(bone.locators)){
         const rawOffset=Array.isArray(locator)?locator:locator?.offset;
-        if(!Array.isArray(rawOffset)||rawOffset.length!==3)continue;
-        const bbOffset=bedrockPositionToBB(rawOffset);
+        const validOffset=Array.isArray(rawOffset)&&rawOffset.length===3&&rawOffset.every(v=>typeof v==='number'&&Number.isFinite(v));
+        const bbOffset=validOffset?bedrockPositionToBB(rawOffset):[0,0,0];
         const locatorId=id+':locator:'+locatorName;
         nodes.push({
           id:locatorId,sourceId:null,name:locatorName,type:'locator',parentId:id,children:[],
