@@ -41,8 +41,13 @@ Quando uma conversa nova precisar continuar o desenvolvimento, use uma instruç�
 - Contrato D2 v1: [NYRA_SCENE_TRANSFER_V1.md](NYRA_SCENE_TRANSFER_V1.md).
 - Implementação inicial do validador: [nyra_scene_transfer_v1.cjs](android/scripts/nyra_scene_transfer_v1.cjs).
 - Testes automatizados iniciais: [audit_scene_transfer_v1.cjs](android/scripts/audit_scene_transfer_v1.cjs); o workflow já foi atualizado para executá-los.
-- Último estado conhecido: código-base de recuperação passou no workflow #453; isso não é CI da branch D e não comprova teste em dispositivo ou Bedrock.
-- Próxima ação: executar o novo teste via Actions e continuar a integração do envelope com o parser Blockbench e o host/RoboTV.
+- Último commit de implementação consultado: `5231312cc028c52f9df0b4c8ac32ed2e41e83543`; a branch também recebeu registro técnico posterior em `be08aa6ed604e8f752a4d98d72156ac1d3b4a5a9`.
+- Contrato D2 v1: `nyra.scene-transfer`, com validador e teste de hierarquia, pivôs, clips e serialização.
+- Integração D3 inicial: Criador de Personagens converte o `rawData` Blockbench; host roteia mensagens entre iframes; RoboTV recebe árvore/clips, tenta usar GLB para visualização rica e oferece exportação Nyra JSON/GLB.
+- Correção de regressão: botão `Enviar para RoboTV` agora é habilitado após importação válida; `audit_bbmodel_transfer.cjs` verifica a ordem correta.
+- Workflow #479 no commit `5231312`: auditorias de referência, adaptadores, DSL, contrato, importador, mapeamento Blockbench → RoboTV e pré-análise GLB passaram. Compilação Gradle e inspeção do APK devem ser conferidas no estado atual de Actions.
+- Limites atuais: reprodução customizada sem GLB cobre rotação linear; canais não executados permanecem preservados. Exportação de entidade Bedrock/resource pack e validação em jogo continuam pendentes. Não há validação física Android/WebView ainda.
+- Próxima ação: fechar o CI completo da branch, fazer ensaio de transferência em Android/WebView, corrigir diferenças de runtime e então avançar para autoria/exportação Bedrock.
 
 ## Frente D — prioridade antes da Frente B
 
