@@ -18,22 +18,31 @@ const valid={
 const result=normalizeSceneTransfer(valid);
 assert.equal(result.scene.nodes.length,2);
 assert.equal(result.scene.nodes[1].parentId,'root');
+assert.deepEqual(result.scene.nodes[0].children,['arm'],'children must be derived from parentId');
 assert.deepEqual(result.animations.clips[0].channels[0].keyframes.map(f=>f.time),[0,1]);
 assert.equal(result.animations.clips[0].channels[1].property,'molang.foo');
 assert.equal(result.warnings.length,1);
+assert.equal(result.diagnostics.length,1);
+assert.equal(result.project.source.format,'blockbench');
+assert.equal(result.project.target.format,'bedrock_entity');
+assert.equal(result.scene.nodes[1].geometry.size[1],2);
 
-function invalid(doc,pattern){
- assert.throws(()=>normalizeSceneTransfer(doc),pattern);
-}
+function invalid(doc,pattern){assert.throws(()=>normalizeSceneTransfer(doc),pattern);}
 invalid({...valid,schemaVersion:9},/Versão/);
 invalid({...valid,scene:{nodes:[{id:'same'},{id:'same'}]}},/duplicado/);
 invalid({...valid,scene:{nodes:[{id:'child',parentId:'missing'}]}},/Pai inexistente/);
 invalid({...valid,scene:{nodes:[{id:'a',parentId:'b'},{id:'b',parentId:'a'}]}},/Ciclo/);
-invalid({...valid,animations:{clips:[{id:'c',duration:1,channels:[{targetNodeId:'missing',property:'rotation',keyframes:[]}]}]}},/nó inexistente/);
 invalid({...valid,animations:{clips:[{id:'c',duration:-1,channels:[]}]}},/duration/);
+invalid({...valid,animations:{clips:[{id:'c',duration:'1',channels:[]}]}},/duration/);
+invalid({...valid,animations:{clips:[{id:'c',duration:1,channels:[{targetNodeId:'missing',property:'rotation',keyframes:[]}]}]}},/nó inexistente/);
+invalid({...valid,animations:{clips:[{id:'c',duration:1,channels:[{targetNodeId:'arm',property:'rotation',keyframes:[{time:0,value:[0,0,0]},{time:0,value:[1,0,0]}]}]}]}},/duplicados/);
 invalid({...valid,scene:{nodes:[{id:'a',transform:{position:[0,NaN,0]}}]}},/position/);
+invalid({...valid,scene:{nodes:[{id:'a',children:['missing']}] }},/Filho inexistente/);
 invalid({...valid,scene:{nodes:[{id:'a',children:['b']},{id:'b',parentId:null}]}},/inconsistente/);
-invalid({...valid,scene:{nodes:[{id:'arm',type:'cube'}],textures:[{bad:()=>{}}]}},/serializáveis/);
+invalid({...valid,scene:{nodes:[{id:'a',children:['b']},{id:'b',parentId:'a'}]}},/incompleta/);
+invalid({...valid,scene:{nodes:[{id:'a',transform:{rotationUnit:'grad'}}]}},/rotationUnit/);
+invalid({...valid,scene:{nodes:[{id:'a',transform:{scale:[1,0,1]}}]}},/scale/);
+invalid({...valid,scene:{nodes:[{id:'a',geometry:{bad:()=>{}}}]}},/serializáveis/);
 
-console.log('PASS: Nyra scene-transfer v1 validates schema, unique IDs, parent references, cycles, transforms, clips, channels and keyframes.');
-console.log('PASS: unknown channels/interpolations are preserved with warnings and keyframes are ordered.');
+console.log('PASS: Nyra scene-transfer v1 validates schema, unique IDs, hierarchy, transforms, clips, channels and keyframes.');
+console.log('PASS: unknown channels/interpolations are preserved with warnings; source/target and geometry payloads survive normalization.');
