@@ -33,7 +33,7 @@ invalid({...valid,animations:{clips:[{id:'c',duration:1,channels:[{targetNodeId:
 invalid({...valid,animations:{clips:[{id:'c',duration:-1,channels:[]}]}},/duration/);
 invalid({...valid,scene:{nodes:[{id:'a',transform:{position:[0,NaN,0]}}]}},/position/);
 invalid({...valid,scene:{nodes:[{id:'a',children:['b']},{id:'b',parentId:null}]}},/inconsistente/);
-invalid({...valid,scene:{nodes:[{id:'a'}],textures:[()=>{}]}},/serializáveis/);
+invalid({...valid,scene:{nodes:[{id:'arm',type:'cube'}],textures:[()=>{}]}},/serializáveis/);
 
 console.log('PASS: Nyra scene-transfer v1 validates schema, unique IDs, parent references, cycles, transforms, clips, channels and keyframes.');
 console.log('PASS: unknown channels/interpolations are preserved with warnings and keyframes are ordered.');
