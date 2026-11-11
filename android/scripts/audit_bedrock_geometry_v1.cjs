@@ -186,3 +186,51 @@ assert.deepEqual(unsupportedDoc.extensions.bedrockGeometryOriginal,unsupportedRa
 assert.deepEqual(unsupportedDoc.extensions.bedrockGeometryDescription.custom_description,{keep:true});
 
 console.log('PASS: structured locators, bones without cubes, omitted UV faces and unknown source metadata are retained.');
+
+const structuredGeometry={
+ format_version:'1.12.0',
+ 'minecraft:geometry':[{
+  description:{identifier:'geometry.structured_test',texture_width:64,texture_height:64},
+  bones:[
+   {name:'root',pivot:[0,0,0],cubes:[],locators:{
+    structured:{offset:[2,3,4],rotation:[5,15,25],ignore_inherited_scale:true},
+    rotationOnly:{rotation:[0,45,0],ignore_inherited_scale:true}
+   }},
+   {name:'joint',parent:'root',pivot:[-8,16,0],cubes:[]}
+  ]
+ }]
+};
+const structuredDoc=importBedrockGeometry(structuredGeometry);
+const structuredExport=JSON.parse(exportBedrockGeometry(normalizeSceneTransfer(structuredDoc),{identifier:'structured_test'}).json);
+const structuredRoot=structuredExport['minecraft:geometry'][0].bones.find(b=>b.name==='root');
+assert.deepEqual(structuredRoot.locators.structured,{offset:[2,3,4],rotation:[5,15,25],ignore_inherited_scale:true});
+assert.deepEqual(structuredRoot.locators.rotationOnly,{rotation:[0,45,0],ignore_inherited_scale:true});
+assert.equal(structuredExport['minecraft:geometry'][0].bones.length,2,'bones without cubes must survive a complete re-export');
+
+const omittedFaces={
+ format_version:'1.12.0',
+ 'minecraft:geometry':[{
+  description:{identifier:'geometry.omitted_faces',texture_width:64,texture_height:64},
+  bones:[{name:'root',pivot:[0,0,0],cubes:[{
+   origin:[-16,0,0],size:[16,16,16],
+   uv:{north:{uv:[0,0],uv_size:[8,8]},up:{uv:[8,8],uv_size:[-8,-8]}}
+  }]}]
+ }]
+};
+const omittedDoc=normalizeSceneTransfer(importBedrockGeometry(omittedFaces));
+const omittedOut=JSON.parse(exportBedrockGeometry(omittedDoc,{identifier:'omitted_faces'}).json);
+const omittedCube=omittedOut['minecraft:geometry'][0].bones[0].cubes[0];
+assert.deepEqual(Object.keys(omittedCube.uv).sort(),['north','up'],'absent faces must not be invented on export');
+
+const unsupportedRaw={
+ format_version:'1.12.0',
+ 'minecraft:geometry':[{
+  description:{identifier:'geometry.future_data',texture_width:64,texture_height:64,custom_description:{keep:true}},
+  bones:[{name:'root',pivot:[0,0,0],custom_bone_flag:{keep:'yes'},cubes:[]}]
+ }]
+};
+const unsupportedDoc=importBedrockGeometry(unsupportedRaw);
+assert.deepEqual(unsupportedDoc.extensions.bedrockGeometryOriginal,unsupportedRaw,'the source Bedrock document must remain available in full');
+assert.deepEqual(unsupportedDoc.extensions.bedrockGeometryDescription.custom_description,{keep:true});
+
+console.log('PASS: structured locators, bones without cubes, omitted UV faces and unknown source metadata are retained.');
