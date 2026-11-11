@@ -44,7 +44,7 @@ invalid({...valid,scene:{nodes:[{id:'a',children:['b']},{id:'b',parentId:null}]}
 invalid({...valid,scene:{nodes:[{id:'a',children:[]},{id:'b',parentId:'a'}]},animations:{clips:[]}},/incompleta/);
 invalid({...valid,scene:{nodes:[{id:'a',transform:{rotationUnit:'grad'}}]}},/rotationUnit/);
 invalid({...valid,scene:{nodes:[{id:'a',transform:{scale:[1,0,1]}}]}},/scale/);
-invalid({...valid,scene:{nodes:[{id:'a',geometry:{bad:()=>{}}}]}},/serializáveis/);
+invalid({...valid,scene:{nodes:[{id:'a',geometry:{bad:()=>{}}}]}},/não JSON/);
 
 
 console.log('PASS: Nyra scene-transfer v1 validates schema, unique IDs, hierarchy, transforms, clips, channels and keyframes.');
