@@ -28,7 +28,7 @@ for (const [name, source] of Object.entries({ items, character, animation })) {
 }
 for (const id of ['texture','preview','paintColor','erasePixel','resetTexture','download','toggleGrid','downloadJson','downloadAddon','gridResolution','itemId']) check(items.includes('id="' + id + '"'), 'Oficina sem controle ' + id);
 for (const fn of ['paintMatrix','editPixel','saveMatrix','downloadBlob','render']) check(new RegExp('function\\s+' + fn + '\\s*\\(').test(items), 'Oficina sem função ' + fn);
-check(/addEventListener\(['"]pointerdown['"]\s*,\s*editPixel/.test(items), 'Oficina sem pointerdown ligado diretamente a editPixel');
+check(items.includes("addEventListener('pointerdown',editPixel)"), 'Oficina sem pointerdown ligado diretamente a editPixel');
 for (const id of ['view','partColor','hue','sat','lum','shapeType','addShape','deleteSelected','restorePart','save','load','file','saveBBModel','status']) check(character.includes('id="' + id + '"'), 'Criador sem controle ' + id);
 for (const fn of ['project','apply','importBBModelFile','buildBBModel','pushUndo','undoLast','addVoxel','setVoxelMode']) check(new RegExp('function\\s+' + fn + '\\s*\\(').test(character), 'Criador sem função ' + fn);
 for (const id of ['viewport','joint','rx','ry','rz','addFrame','duplicateFrame','deleteFrame','play','stop','saveProject','loadProject','exportProject','exportAnim']) check(animation.includes('id="' + id + '"'), 'RoboTV sem controle ' + id);
