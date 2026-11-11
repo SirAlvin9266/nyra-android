@@ -118,7 +118,7 @@ function addAndroidExportAdapter(html,key){
  }
 
  if(key==='character'){
-  const marker='resetToEmptyProject();\nfunction resize(){';
+  const marker='resetToEmptyProject();';
   const persistence = [
    "const nyraCharacterDraftKey='nyra.character.draft.v1';",
    "const nyraCharacterDraftModeKey='nyra.character.draft.mode.v1';",
@@ -132,7 +132,7 @@ function addAndroidExportAdapter(html,key){
    "document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('button'))nyraScheduleCharacterDraft();},true);",
    "root.addEventListener('pointerup',nyraScheduleCharacterDraft,true);document.addEventListener('keyup',function(e){if(e.ctrlKey&&String(e.key).toLowerCase()==='z')nyraScheduleCharacterDraft();},true);"
   ].join('\n');
-  if(html.includes(marker))html=html.replace(marker,'resetToEmptyProject(); '+persistence+' function resize(){');
+  if(html.includes(marker))html=html.replace(marker,'resetToEmptyProject();\n'+persistence+'\n');
  }
 
 
