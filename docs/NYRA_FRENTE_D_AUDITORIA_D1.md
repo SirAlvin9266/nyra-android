@@ -117,6 +117,28 @@ O workflow não executa smoke test de WebView/Android instrumentado nem validaç
 - **D4:** expandir timeline genérica e controles de importação/exportação dentro do RoboTV.
 - **D5+:** DSL Bedrock-aware, geometry exporter, animation exporter, client entity e empacotador, conforme o plano técnico detalhado.
 
-## 8. Critério de honestidade
+## 8. Integração D2/D3 — estado implementado na branch de trabalho
+
+A branch `work/nyra-frente-d-integration` agora contém uma primeira fatia funcional de integração Character Editor → host → RoboTV:
+
+- Contrato JSON versionado `nyra.scene-transfer` v1 e validador independente com checagem de IDs, hierarquia, ciclos, transforms, canais e serialização.
+- O Criador de Personagens converte o `rawData` do Blockbench em nós com grupos/bones, cubos/malhas, relações pai-filho, transforms locais, pivôs, faces/UVs, texturas, clips e canais. Os dados brutos originais permanecem em `extensions.blockbenchRaw` e em `sourceData`.
+- O host roteia mensagens entre os iframes, restringe a origem do produtor/destino e devolve confirmação ao editor de origem.
+- O RoboTV ganhou importação de `.bbmodel` dentro do próprio painel, árvore de nós, seleção/reprodução de clips, parada/restauração da pose, exportação do documento Nyra JSON e exportação GLB.
+- Quando a geração GLB é possível, o RoboTV usa o GLB para visualizar materiais, UVs e animações compatíveis. Se não for possível, há reconstrução estrutural simplificada; os dados completos de origem continuam no documento de transferência.
+- Corrigido um defeito encontrado durante a revisão: o botão de envio permanecia desativado depois da importação bem-sucedida. A ativação agora ocorre antes do retorno de sucesso, com regressão coberta por `audit_bbmodel_transfer.cjs`.
+
+### Limites que permanecem
+
+- A reprodução customizada sem animações GLB está limitada a canais de rotação com interpolação linear; canais position/scale, Molang e interpolações não suportadas são preservados como dados, não necessariamente executados.
+- A visualização simplificada não garante texturas/UVs equivalentes ao Blockbench; a geração GLB é a via preferencial quando disponível.
+- A exportação GLB não é exportação de entidade Minecraft Bedrock. Geometry, animation, client_entity, resource pack e validação em jogo continuam pendentes.
+- O CI valida auditorias e compilação Android, não interação real entre iframes em aparelho nem comportamento no Minecraft Bedrock.
+
+### Evidência automatizada
+
+No commit `5231312cc028c52f9df0b4c8ac32ed2e41e83543`, o workflow #479 executou com sucesso as auditorias de referência, adaptadores, DSL, contrato Nyra v1, importador Blockbench, mapeamento Blockbench → RoboTV e pré-análise GLB. A compilação Gradle e a inspeção final do APK ainda estavam em execução na última consulta; consultar o estado atual do workflow antes de considerar o pipeline completo aprovado.
+
+## 9. Critério de honestidade
 
 Este documento é uma auditoria baseada em leitura estática e testes já presentes. Não declara que os três editores funcionam no aparelho, que toda semântica Blockbench é reproduzida ou que qualquer pacote foi carregado no Minecraft. Esses critérios exigem ensaios próprios e resultados documentados.
