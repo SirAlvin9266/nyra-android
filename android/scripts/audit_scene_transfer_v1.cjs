@@ -38,8 +38,8 @@ invalid({...valid,animations:{clips:[{id:'c',duration:1,channels:[{targetNodeId:
 invalid({...valid,animations:{clips:[{id:'c',duration:1,channels:[{targetNodeId:'arm',property:'rotation',keyframes:[{time:0,value:[0,0,0]},{time:0,value:[1,0,0]}]}]}]}},/duplicados/);
 invalid({...valid,scene:{nodes:[{id:'a',transform:{position:[0,NaN,0]}}]}},/position/);
 invalid({...valid,scene:{nodes:[{id:'a',children:['missing']}] }},/Filho inexistente/);
-invalid({...valid,scene:{nodes:[{id:'a',children:['b']},{id:'b',parentId:null}]}},/inconsistente/);
-invalid({...valid,scene:{nodes:[{id:'a',children:['b']},{id:'b',parentId:'a'}]}},/incompleta/);
+invalid({...valid,scene:{nodes:[{id:'a',children:['b']},{id:'b',parentId:null}]},animations:{clips:[]}},/inconsistente/);
+invalid({...valid,scene:{nodes:[{id:'a',children:[]},{id:'b',parentId:'a'}]},animations:{clips:[]}},/incompleta/);
 invalid({...valid,scene:{nodes:[{id:'a',transform:{rotationUnit:'grad'}}]}},/rotationUnit/);
 invalid({...valid,scene:{nodes:[{id:'a',transform:{scale:[1,0,1]}}]}},/scale/);
 invalid({...valid,scene:{nodes:[{id:'a',geometry:{bad:()=>{}}}]}},/serializáveis/);
