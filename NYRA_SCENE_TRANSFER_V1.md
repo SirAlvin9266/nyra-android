@@ -161,7 +161,7 @@ A primeira implementação deve usar mensagens versionadas no host. Não expor o
 6. Só depois ligar as interações da timeline e os botões de importação/exportação.
 
 
-## 10. Exportação e reabertura — escopo corrigido
+## 9. Exportação e reabertura — escopo corrigido
 
 A exportação da Nyra deve produzir **um formato de modelo que o Minecraft Bedrock aceite e que a própria Nyra consiga importar novamente**. Não é requisito gerar automaticamente um Resource Pack completo, client entity, Behavior Pack, controllers ou lógica de comportamento nesta etapa.
 
@@ -192,8 +192,24 @@ Esses recursos podem ser etapas futuras, mas não devem bloquear a exportação/
 - `.glb`: formato 3D genérico para intercâmbio/preview; não substitui o formato Bedrock.
 - `nyra.scene-transfer`: formato interno de comunicação entre editores; não é formato de runtime Minecraft.
 
-## 9. Compatibilidade
+## 10. Compatibilidade
 
 - `nyra.scene-transfer` não é .bbmodel, geometry JSON Bedrock, animation JSON Bedrock nem Resource Pack.
 - Exportadores específicos traduzem o documento para cada alvo e devem gerar relatório de compatibilidade.
 - Alterações futuras incrementam `schemaVersion` quando quebram compatibilidade; propriedades adicionais podem ser preservadas em `extensions` e `sourceData`.
+
+## 11. Requisitos derivados do corpus Bedrock
+
+A análise estrutural dos 278 arquivos `.geo.json` dos add-ons Dragon Evolution v1.5.0 e Novatsug's Extra Clothes v1.11 está registrada em `docs/NYRA_FRENTE_D_BEDROCK_CORPUS_ESTUDO.md`.
+
+O corpus confirmou que a transferência precisa preservar, no mínimo:
+- bones hierárquicos e bones sem cubos;
+- pivôs e rotações de bones;
+- cubos com origem, dimensões, pivô, rotação, inflate e mirror;
+- UV de caixa e UV por face, incluindo faces omitidas e inversão especial de `up`/`down`;
+- `uv_rotation`, `material_instance`, locators e metadados de bone;
+- dimensões da textura sem fingir que o bitmap PNG está incorporado ao `.geo.json`.
+
+Animações e controladores permanecem documentos separados do Geometry JSON. Recursos desconhecidos devem ser preservados em `sourceData`/`extensions` e sinalizados; não devem ser descartados silenciosamente.
+
+As regras de coordenadas e de versão mínima foram comparadas com o codec público do Blockbench e a documentação Microsoft. O teste `android/scripts/audit_bedrock_geometry_v1.cjs` cobre a conversão assimétrica e o ciclo exportar → importar → exportar. A auditoria estrutural do corpus não substitui a validação visual no Blockbench nem o carregamento real no Minecraft Bedrock.
