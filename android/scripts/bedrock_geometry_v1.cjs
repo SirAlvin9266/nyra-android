@@ -109,7 +109,8 @@ function normalizeCube(node, boneMetadata={}) {
   const to=vec3(geometry.to||source.to,'cube.to');
   const size=to.map((v,i)=>v-from[i]);
   if(size.some(v=>v<=0)) throw new RangeError('Cubo '+node.name+' tem dimensão zero ou negativa.');
-  const cube={origin:[-to[0],from[1],from[2]],size};
+  const cube={...safeClone(bedrock),origin:[-to[0],from[1],from[2]],size};
+  delete cube.pivot; delete cube.rotation; delete cube.inflate; delete cube.mirror; delete cube.uv;
   const inflate=geometry.inflate??source.inflate??bedrock.inflate;
   if(inflate!==undefined&&inflate!==0) cube.inflate=finite(inflate,'cube.inflate');
   const boxUv=geometry.boxUv===true||source.box_uv===true||Array.isArray(source.uv)||Array.isArray(bedrock.uv);
@@ -158,7 +159,7 @@ function exportBedrockGeometry(documentData, options={}) {
   if(byId.size!==nodes.length) throw new Error('IDs de nós duplicados.');
   const children=nodeChildren(nodes);
   for(const node of nodes) if(node.parentId&&!byId.has(node.parentId)) throw new Error('Pai inexistente em '+node.name);
-  const boneNodes=nodes.filter(n=>['bone','group','empty'].includes(n.type));
+  const boneNodes=nodes.filter(n=>['bone','group','empty'].includes(n.type)&&n.sourceData?.role!=='bedrock-geometry-root');
   const meshNodes=nodes.filter(n=>n.type==='mesh');
   if(meshNodes.length) throw new Error('Malhas livres não possuem conversão automática segura para cubos Bedrock. Preserve-as no projeto Nyra ou converta-as para cubos.');
   const invalid=nodes.filter(n=>!['bone','group','empty','cube','locator'].includes(n.type));
@@ -201,7 +202,9 @@ function exportBedrockGeometry(documentData, options={}) {
     const origin=bone===synthetic?[0,0,0]:getBoneOrigin(bone,byId,worldOrigins);
     const rotation=bone===synthetic?[0,0,0]:getNodeRotation(bone);
     const metadata=bone===synthetic?{}:collectBoneMetadata(bone);
-    const item={name:nameById.get(bone.id)};
+    const rawBone=bone.sourceData?.bedrockOriginal||{};
+    const item={...safeClone(rawBone),name:nameById.get(bone.id)};
+    for(const key of ['parent','pivot','rotation','cubes','locators']) delete item[key];
     const parent=parentIdFor(bone);
     if(parent)item.parent=nameById.get(parent);
     const pivot=bbPositionToBedrock(origin);
@@ -253,8 +256,9 @@ function exportBedrockGeometry(documentData, options={}) {
   }
   const firstTexture=documentData.scene?.textures?.[0];
   const resolution=documentData.extensions?.blockbenchRaw?.resolution||{};
-  const width=finite(options.textureWidth??firstTexture?.width??resolution.width??64,'texture_width');
-  const height=finite(options.textureHeight??firstTexture?.height??resolution.height??64,'texture_height');
+  const bedrockDescription=documentData.extensions?.bedrockGeometryDescription||{};
+  const width=finite(options.textureWidth??firstTexture?.width??resolution.width??bedrockDescription.texture_width??64,'texture_width');
+  const height=finite(options.textureHeight??firstTexture?.height??resolution.height??bedrockDescription.texture_height??64,'texture_height');
   if(!Number.isInteger(width)||!Number.isInteger(height)||width<=0||height<=0) throw new RangeError('texture_width/texture_height devem ser inteiros positivos.');
   const identifier=makeGeometryId(options.identifier||documentData.project?.name||'nyra_model');
   const description={
