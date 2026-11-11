@@ -114,94 +114,7 @@ function addAndroidExportAdapter(html,key){
    +'document.addEventListener("change",schedule,true);document.addEventListener("pointerup",schedule,true);'
    +'document.addEventListener("click",function(e){if(e.target&&e.target.closest&&e.target.closest("button"))schedule();},true);'
    +'} )();'+'<'+'/script>';
-  html=html.replace(/<\/body>/i,persistence+'<script type="module">
-import * as THREE from '/assets/www/vendor/three/build/three.module.js';
-(()=>{
- const host=document.getElementById('nyraGuideRobotSlot');
- if(!host)return;
- try{
-  const components=[
-   {id:'body',type:'group',position:[0,0,0],pivot:[0,0,0]},
-   {id:'torso',type:'box',parent:'body',size:[0.95,1.15,0.52],position:[0,1.55,0],color:'#29394a'},
-   {id:'chestScreen',type:'box',parent:'body',size:[0.48,0.36,0.035],position:[0,1.58,0.28],color:'#15949c'},
-   {id:'chestScreenInner',type:'box',parent:'body',size:[0.38,0.27,0.012],position:[0,1.58,0.304],color:'#25c5c0'},
-   {id:'tvHead',type:'group',parent:'body',position:[0,2.67,0],pivot:[0,0,0]},
-   {id:'cyanHead',type:'box',parent:'tvHead',size:[0.98,0.82,0.55],position:[0,0,0],color:'#20bcd5'},
-   {id:'tvBack',type:'box',parent:'tvHead',size:[1.28,1.08,0.16],position:[0,0,-0.39],color:'#101820'},
-   {id:'tvTop',type:'box',parent:'tvHead',size:[1.28,0.13,0.82],position:[0,0.475,0],color:'#111820'},
-   {id:'tvBottom',type:'box',parent:'tvHead',size:[1.28,0.13,0.82],position:[0,-0.475,0],color:'#111820'},
-   {id:'tvLeft',type:'box',parent:'tvHead',size:[0.15,0.82,0.82],position:[-0.565,0,0],color:'#111820'},
-   {id:'tvRight',type:'box',parent:'tvHead',size:[0.15,0.82,0.82],position:[0.565,0,0],color:'#111820'},
-   {id:'eyeL',type:'box',parent:'tvHead',size:[0.12,0.14,0.025],position:[-0.21,0.04,0.29],color:'#e6ffff'},
-   {id:'eyeR',type:'box',parent:'tvHead',size:[0.12,0.14,0.025],position:[0.21,0.04,0.29],color:'#e6ffff'},
-   {id:'antennaL',type:'cylinder',parent:'tvHead',radiusTop:0.035,radiusBottom:0.035,height:0.28,position:[-0.37,0.66,0],rotation:[0,0,-0.3],color:'#a9bdcc'},
-   {id:'antennaR',type:'cylinder',parent:'tvHead',radiusTop:0.035,radiusBottom:0.035,height:0.28,position:[0.37,0.66,0],rotation:[0,0,0.3],color:'#a9bdcc'},
-   {id:'leftArmGroup',type:'group',parent:'body',position:[-0.66,1.45,0],pivot:[0,0.4,0]},
-   {id:'leftArm',type:'box',parent:'leftArmGroup',size:[0.34,1.08,0.42],position:[0,0,0],color:'#b9cbd7'},
-   {id:'leftHand',type:'box',parent:'leftArmGroup',size:[0.40,0.28,0.46],position:[0,-0.50,0.02],color:'#a8bbc9'},
-   {id:'rightArmGroup',type:'group',parent:'body',position:[0.66,1.45,0],pivot:[0,0.4,0]},
-   {id:'rightArm',type:'box',parent:'rightArmGroup',size:[0.34,1.08,0.42],position:[0,0,0],color:'#b9cbd7'},
-   {id:'rightHand',type:'box',parent:'rightArmGroup',size:[0.40,0.28,0.46],position:[0,-0.50,0.02],color:'#a8bbc9'},
-   {id:'leftLegGroup',type:'group',parent:'body',position:[-0.25,0.53,0],pivot:[0,0.45,0]},
-   {id:'leftLeg',type:'box',parent:'leftLegGroup',size:[0.38,1.05,0.42],position:[0,0,0],color:'#536a80'},
-   {id:'leftFoot',type:'box',parent:'leftLegGroup',size:[0.48,0.27,0.62],position:[0,-0.395,0.10],color:'#465e75'},
-   {id:'rightLegGroup',type:'group',parent:'body',position:[0.25,0.53,0],pivot:[0,0.45,0]},
-   {id:'rightLeg',type:'box',parent:'rightLegGroup',size:[0.38,1.05,0.42],position:[0,0,0],color:'#536a80'},
-   {id:'rightFoot',type:'box',parent:'rightLegGroup',size:[0.48,0.27,0.62],position:[0,-0.395,0.10],color:'#465e75'}
-  ];
-  const scene=new THREE.Scene();
-  const camera=new THREE.PerspectiveCamera(34,1,0.1,80);
-  camera.position.set(4.4,3.55,7.2);camera.lookAt(0,1.85,0);
-  const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
-  renderer.setClearColor(0x000000,0);renderer.outputColorSpace=THREE.SRGBColorSpace;
-  renderer.domElement.style.cssText='display:block;width:100%;height:100%;touch-action:pan-y';
-  host.replaceChildren(renderer.domElement);
-  scene.add(new THREE.HemisphereLight(0xd9f4ff,0x263447,2.1));
-  const key=new THREE.DirectionalLight(0xffffff,2.3);key.position.set(4,7,5);scene.add(key);
-  const fill=new THREE.DirectionalLight(0x49d8ed,0.9);fill.position.set(-4,3,-3);scene.add(fill);
-  const robot=new THREE.Group();robot.name='Robô TV — Modelo Cinza';scene.add(robot);
-  const byId=new Map(),pivots=new Map();
-  for(const c of components){
-   if(c.type!=='group')continue;
-   const parent=c.parent?byId.get(c.parent):robot;
-   if(!parent)throw new Error('Grupo pai ausente: '+c.parent);
-   const parentPivot=c.parent?(pivots.get(c.parent)||[0,0,0]):[0,0,0];
-   const pivot=c.pivot||[0,0,0];
-   const group=new THREE.Group();group.name=c.id;
-   group.position.set(c.position[0]-parentPivot[0]+pivot[0],c.position[1]-parentPivot[1]+pivot[1],c.position[2]-parentPivot[2]+pivot[2]);
-   parent.add(group);byId.set(c.id,group);pivots.set(c.id,pivot);
-  }
-  for(const c of components){
-   if(c.type==='group')continue;
-   const parent=c.parent?byId.get(c.parent):robot;
-   if(!parent)throw new Error('Grupo pai ausente: '+c.parent);
-   const pivot=c.parent?(pivots.get(c.parent)||[0,0,0]):[0,0,0];
-   const geometry=c.type==='box'?new THREE.BoxGeometry(...c.size):new THREE.CylinderGeometry(c.radiusTop,c.radiusBottom,c.height,20);
-   const color=new THREE.Color(c.color||'#b9cbd7');
-   const material=new THREE.MeshStandardMaterial({color,roughness:0.48,metalness:0.12,emissive:(c.id==='chestScreenInner'||c.id==='eyeL'||c.id==='eyeR')?color:0x000000,emissiveIntensity:c.id==='chestScreenInner'?0.35:0.12});
-   const mesh=new THREE.Mesh(geometry,material);mesh.name=c.id;
-   mesh.position.set(c.position[0]-pivot[0],c.position[1]-pivot[1],c.position[2]-pivot[2]);
-   if(c.rotation)mesh.rotation.set(...c.rotation);
-   mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);
-  }
-  const floor=new THREE.Mesh(new THREE.CircleGeometry(1.05,48),new THREE.MeshBasicMaterial({color:0x1b5364,transparent:true,opacity:0.17}));
-  floor.rotation.x=-Math.PI/2;floor.position.y=0.035;floor.scale.set(1.2,1.2,1);scene.add(floor);
-  const resize=()=>{const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
-  if(typeof ResizeObserver!=='undefined')new ResizeObserver(resize).observe(host);
-  window.addEventListener('resize',resize);resize();
-  let frame=0;
-  const animate=time=>{frame=requestAnimationFrame(animate);if(!host.offsetParent)return;robot.rotation.y=Math.sin(time*0.00045)*0.24;renderer.render(scene,camera);};
-  frame=requestAnimationFrame(animate);
-  document.getElementById('nyraGuideOpen')?.addEventListener('click',resize);
-  window.addEventListener('pagehide',()=>{cancelAnimationFrame(frame);renderer.dispose();});
- }catch(error){
-  console.error('[Nyra guide robot]',error);
-  host.textContent='Robô TV indisponível nesta inicialização.';
-  host.style.color='#aabbd0';host.style.display='grid';host.style.placeItems='center';
- }
-})();
-</script></body>');
+  html=html.replace(/<\/body>/i,persistence+'</body>');
  }
 
  if(key==='character'){
@@ -496,6 +409,96 @@ let initial='items';
 try{const saved=localStorage.getItem('nyra_active_editor');if(saved&&pages[saved])initial=saved}catch(_){}
 try{Object.keys(pages).forEach(key=>ensureEditor(key));openEditor(initial);message.textContent='Todos os editores foram preparados e estão prontos.';}
 catch(error){console.error('Nyra editor bootstrap failed',error);message.textContent='Falha ao preparar os editores: '+(error?.message||String(error));}
+
+import('/assets/www/vendor/three/build/three.module.js').then(THREE=>{
+
+(()=>{
+ const host=document.getElementById('nyraGuideRobotSlot');
+ if(!host)return;
+ try{
+  const components=[
+   {id:'body',type:'group',position:[0,0,0],pivot:[0,0,0]},
+   {id:'torso',type:'box',parent:'body',size:[0.95,1.15,0.52],position:[0,1.55,0],color:'#29394a'},
+   {id:'chestScreen',type:'box',parent:'body',size:[0.48,0.36,0.035],position:[0,1.58,0.28],color:'#15949c'},
+   {id:'chestScreenInner',type:'box',parent:'body',size:[0.38,0.27,0.012],position:[0,1.58,0.304],color:'#25c5c0'},
+   {id:'tvHead',type:'group',parent:'body',position:[0,2.67,0],pivot:[0,0,0]},
+   {id:'cyanHead',type:'box',parent:'tvHead',size:[0.98,0.82,0.55],position:[0,0,0],color:'#20bcd5'},
+   {id:'tvBack',type:'box',parent:'tvHead',size:[1.28,1.08,0.16],position:[0,0,-0.39],color:'#101820'},
+   {id:'tvTop',type:'box',parent:'tvHead',size:[1.28,0.13,0.82],position:[0,0.475,0],color:'#111820'},
+   {id:'tvBottom',type:'box',parent:'tvHead',size:[1.28,0.13,0.82],position:[0,-0.475,0],color:'#111820'},
+   {id:'tvLeft',type:'box',parent:'tvHead',size:[0.15,0.82,0.82],position:[-0.565,0,0],color:'#111820'},
+   {id:'tvRight',type:'box',parent:'tvHead',size:[0.15,0.82,0.82],position:[0.565,0,0],color:'#111820'},
+   {id:'eyeL',type:'box',parent:'tvHead',size:[0.12,0.14,0.025],position:[-0.21,0.04,0.29],color:'#e6ffff'},
+   {id:'eyeR',type:'box',parent:'tvHead',size:[0.12,0.14,0.025],position:[0.21,0.04,0.29],color:'#e6ffff'},
+   {id:'antennaL',type:'cylinder',parent:'tvHead',radiusTop:0.035,radiusBottom:0.035,height:0.28,position:[-0.37,0.66,0],rotation:[0,0,-0.3],color:'#a9bdcc'},
+   {id:'antennaR',type:'cylinder',parent:'tvHead',radiusTop:0.035,radiusBottom:0.035,height:0.28,position:[0.37,0.66,0],rotation:[0,0,0.3],color:'#a9bdcc'},
+   {id:'leftArmGroup',type:'group',parent:'body',position:[-0.66,1.45,0],pivot:[0,0.4,0]},
+   {id:'leftArm',type:'box',parent:'leftArmGroup',size:[0.34,1.08,0.42],position:[0,0,0],color:'#b9cbd7'},
+   {id:'leftHand',type:'box',parent:'leftArmGroup',size:[0.40,0.28,0.46],position:[0,-0.50,0.02],color:'#a8bbc9'},
+   {id:'rightArmGroup',type:'group',parent:'body',position:[0.66,1.45,0],pivot:[0,0.4,0]},
+   {id:'rightArm',type:'box',parent:'rightArmGroup',size:[0.34,1.08,0.42],position:[0,0,0],color:'#b9cbd7'},
+   {id:'rightHand',type:'box',parent:'rightArmGroup',size:[0.40,0.28,0.46],position:[0,-0.50,0.02],color:'#a8bbc9'},
+   {id:'leftLegGroup',type:'group',parent:'body',position:[-0.25,0.53,0],pivot:[0,0.45,0]},
+   {id:'leftLeg',type:'box',parent:'leftLegGroup',size:[0.38,1.05,0.42],position:[0,0,0],color:'#536a80'},
+   {id:'leftFoot',type:'box',parent:'leftLegGroup',size:[0.48,0.27,0.62],position:[0,-0.395,0.10],color:'#465e75'},
+   {id:'rightLegGroup',type:'group',parent:'body',position:[0.25,0.53,0],pivot:[0,0.45,0]},
+   {id:'rightLeg',type:'box',parent:'rightLegGroup',size:[0.38,1.05,0.42],position:[0,0,0],color:'#536a80'},
+   {id:'rightFoot',type:'box',parent:'rightLegGroup',size:[0.48,0.27,0.62],position:[0,-0.395,0.10],color:'#465e75'}
+  ];
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(34,1,0.1,80);
+  camera.position.set(4.4,3.55,7.2);camera.lookAt(0,1.85,0);
+  const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+  renderer.setClearColor(0x000000,0);renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.domElement.style.cssText='display:block;width:100%;height:100%;touch-action:pan-y';
+  host.replaceChildren(renderer.domElement);
+  scene.add(new THREE.HemisphereLight(0xd9f4ff,0x263447,2.1));
+  const key=new THREE.DirectionalLight(0xffffff,2.3);key.position.set(4,7,5);scene.add(key);
+  const fill=new THREE.DirectionalLight(0x49d8ed,0.9);fill.position.set(-4,3,-3);scene.add(fill);
+  const robot=new THREE.Group();robot.name='Robô TV — Modelo Cinza';scene.add(robot);
+  const byId=new Map(),pivots=new Map();
+  for(const c of components){
+   if(c.type!=='group')continue;
+   const parent=c.parent?byId.get(c.parent):robot;
+   if(!parent)throw new Error('Grupo pai ausente: '+c.parent);
+   const parentPivot=c.parent?(pivots.get(c.parent)||[0,0,0]):[0,0,0];
+   const pivot=c.pivot||[0,0,0];
+   const group=new THREE.Group();group.name=c.id;
+   group.position.set(c.position[0]-parentPivot[0]+pivot[0],c.position[1]-parentPivot[1]+pivot[1],c.position[2]-parentPivot[2]+pivot[2]);
+   parent.add(group);byId.set(c.id,group);pivots.set(c.id,pivot);
+  }
+  for(const c of components){
+   if(c.type==='group')continue;
+   const parent=c.parent?byId.get(c.parent):robot;
+   if(!parent)throw new Error('Grupo pai ausente: '+c.parent);
+   const pivot=c.parent?(pivots.get(c.parent)||[0,0,0]):[0,0,0];
+   const geometry=c.type==='box'?new THREE.BoxGeometry(...c.size):new THREE.CylinderGeometry(c.radiusTop,c.radiusBottom,c.height,20);
+   const color=new THREE.Color(c.color||'#b9cbd7');
+   const material=new THREE.MeshStandardMaterial({color,roughness:0.48,metalness:0.12,emissive:(c.id==='chestScreenInner'||c.id==='eyeL'||c.id==='eyeR')?color:0x000000,emissiveIntensity:c.id==='chestScreenInner'?0.35:0.12});
+   const mesh=new THREE.Mesh(geometry,material);mesh.name=c.id;
+   mesh.position.set(c.position[0]-pivot[0],c.position[1]-pivot[1],c.position[2]-pivot[2]);
+   if(c.rotation)mesh.rotation.set(...c.rotation);
+   mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);
+  }
+  const floor=new THREE.Mesh(new THREE.CircleGeometry(1.05,48),new THREE.MeshBasicMaterial({color:0x1b5364,transparent:true,opacity:0.17}));
+  floor.rotation.x=-Math.PI/2;floor.position.y=0.035;floor.scale.set(1.2,1.2,1);scene.add(floor);
+  const resize=()=>{const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
+  if(typeof ResizeObserver!=='undefined')new ResizeObserver(resize).observe(host);
+  window.addEventListener('resize',resize);resize();
+  let frame=0;
+  const animate=time=>{frame=requestAnimationFrame(animate);if(!host.offsetParent)return;robot.rotation.y=Math.sin(time*0.00045)*0.24;renderer.render(scene,camera);};
+  frame=requestAnimationFrame(animate);
+  document.getElementById('nyraGuideOpen')?.addEventListener('click',resize);
+  window.addEventListener('pagehide',()=>{cancelAnimationFrame(frame);renderer.dispose();});
+ }catch(error){
+  console.error('[Nyra guide robot]',error);
+  host.textContent='Robô TV indisponível nesta inicialização.';
+  host.style.color='#aabbd0';host.style.display='grid';host.style.placeItems='center';
+ }
+})();
+</script>
+}).catch(error=>{const host=document.getElementById('nyraGuideRobotSlot');console.error('[Nyra guide robot module]',error);if(host){host.textContent='Robô TV indisponível nesta inicialização.';host.style.color='#aabbd0';host.style.display='grid';host.style.placeItems='center';}});
 </script>
 </body>
 </html>
