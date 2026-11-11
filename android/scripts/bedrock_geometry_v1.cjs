@@ -287,13 +287,15 @@ function exportBedrockGeometry(documentData, options={}) {
     }
   };
 }
-function importBedrockGeometry(input) {
+function importBedrockGeometry(input, geometryIndex=0) {
   const data=typeof input==='string'?JSON.parse(input):safeClone(input);
-  if(!isObject(data)||typeof data.format_version!=='string'||!Array.isArray(data[GEOMETRY_SCHEMA])||data[GEOMETRY_SCHEMA].length!==1) {
-    throw new Error('Arquivo não é um Minecraft Bedrock Geometry JSON reconhecível com uma geometria.');
+  if(!isObject(data)||typeof data.format_version!=='string'||!Array.isArray(data[GEOMETRY_SCHEMA])||data[GEOMETRY_SCHEMA].length<1) {
+    throw new Error('Arquivo não é um Minecraft Bedrock Geometry JSON reconhecível.');
   }
   versionTuple(data.format_version);
-  const geometry=data[GEOMETRY_SCHEMA][0],description=geometry.description||{},rawBones=geometry.bones;
+  const geometries=data[GEOMETRY_SCHEMA];
+  if(!Number.isInteger(geometryIndex)||geometryIndex<0||geometryIndex>=geometries.length) throw new RangeError('Índice de geometria fora do arquivo: '+geometryIndex);
+  const geometry=geometries[geometryIndex],description=geometry.description||{},rawBones=geometry.bones;
   if(!Array.isArray(rawBones)||!rawBones.length) throw new Error('Geometry sem bones.');
   const ids=new Map(),nodes=[],rawByName=new Map();
   const geometryId=String(description.identifier||'geometry.unnamed');
@@ -415,6 +417,8 @@ function importBedrockGeometry(input) {
     animations:{clips:[]},
     extensions:{
       bedrockGeometryOriginal:safeClone(data),
+      bedrockGeometryIndex:geometryIndex,
+      bedrockGeometryCount:geometries.length,
       bedrockGeometryDescription:safeClone(description),
       bedrockGeometryWarnings:warnings
     },

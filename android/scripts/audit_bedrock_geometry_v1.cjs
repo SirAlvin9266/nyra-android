@@ -98,3 +98,33 @@ console.log('PASS: Blockbench <-> Bedrock coordinate conversion, asymmetric dime
 console.log('PASS: box UV, per-face UV, up/down UV inversion, uv_rotation, material_instance, mirror, inflate and locators.');
 console.log('PASS: import/export round-trip preserves bone metadata and texture dimensions without duplicating the synthetic root.');
 console.log('PASS: required geometry format version is raised for binding and per-face UV rotation; invalid/unsupported inputs fail explicitly.');
+
+
+const legacy18={
+ format_version:'1.8.0',
+ 'minecraft:geometry':[
+  {description:{identifier:'geometry.legacy_a',texture_width:64,texture_height:32},bones:[
+   {name:'root',pivot:[0,0,0],cubes:[]},
+   {name:'joint_without_cube',parent:'root',pivot:[-16,16,0],cubes:[]}
+  ]},
+  {description:{identifier:'geometry.legacy_b',texture_width:16,texture_height:16},bones:[
+   {name:'body',pivot:[0,0,0],locators:{
+    vector:[1,2,3],
+    structured:{offset:[4,5,6],rotation:[0,90,0],ignore_inherited_scale:true}
+   },cubes:[]}
+  ]}
+ ]
+};
+const legacyImported=importBedrockGeometry(legacy18);
+assert.equal(legacyImported.project.source.formatVersion,'1.8.0');
+assert.equal(legacyImported.extensions.bedrockGeometryCount,2);
+assert.equal(legacyImported.extensions.bedrockGeometryIndex,0);
+assert.ok(legacyImported.scene.nodes.some(n=>n.name==='joint_without_cube'));
+assert.equal(legacyImported.extensions.bedrockGeometryOriginal['minecraft:geometry'].length,2);
+const selected=importBedrockGeometry(legacy18,1);
+assert.equal(selected.project.name,'geometry.legacy_b');
+assert.equal(selected.extensions.bedrockGeometryIndex,1);
+const structuredLocator=selected.scene.nodes.find(n=>n.type==='locator'&&n.name==='structured');
+assert.ok(structuredLocator);
+assert.deepEqual(structuredLocator.sourceData.bedrockLocator,{offset:[4,5,6],rotation:[0,90,0],ignore_inherited_scale:true});
+assert.throws(()=>importBedrockGeometry(legacy18,2),/Índice de geometria fora/);
