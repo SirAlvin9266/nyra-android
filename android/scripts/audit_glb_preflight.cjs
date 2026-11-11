@@ -7,13 +7,27 @@ const vm=require('node:vm');
 const assert=require('node:assert/strict');
 
 const html=fs.readFileSync(path.resolve(__dirname,'../app/src/main/assets/www/index.html'),'utf8');
-const assignment='const modelTools = ';
-const start=html.indexOf(assignment);
-const end=html.indexOf('";',start);
-assert.ok(start>=0&&end>start,'Android modelTools adapter must exist');
-const modelTools=JSON.parse(html.slice(start+assignment.length,end+1));
+function extractModelTools(source) {
+  const assignment = 'const modelTools = ';
+  const start = source.indexOf(assignment);
+  if (start < 0) throw new Error('Model I/O template is missing from the Android host page.');
+  const literalStart = start + assignment.length;
+  const boundary = source.indexOf('const panelEnd = ', literalStart);
+  if (boundary < 0) throw new Error('Host template boundary after modelTools was not found.');
+  // The host uses automatic semicolon insertion: the string closes immediately
+  // before the newline introducing panelEnd, not before a semicolon.
+  const closingQuote = source.lastIndexOf('"', boundary);
+  if (closingQuote < literalStart) throw new Error('Closing quote for modelTools was not found.');
+  return JSON.parse(source.slice(literalStart, closingQuote + 1));
+}
+const modelTools=extractModelTools(html);
 const moduleStart=modelTools.indexOf('<script type="module">');
-const moduleEnd=modelTools.indexOf('</script>',moduleStart);
+// The outer HTML stores this nested module close escaped so it does not
+// terminate the shell script. JSON.parse restores the backslash in this string.
+const escapedClose='<'+String.fromCharCode(92)+'/script>';
+const escapedModuleEnd=modelTools.indexOf(escapedClose,moduleStart);
+const literalModuleEnd=modelTools.indexOf('</script>',moduleStart);
+const moduleEnd=escapedModuleEnd>=0?escapedModuleEnd:literalModuleEnd;
 assert.ok(moduleStart>=0&&moduleEnd>moduleStart,'Model I/O module must exist');
 const moduleSource=modelTools.slice(moduleStart+'<script type="module">'.length,moduleEnd);
 const preflightStart=moduleSource.indexOf('async function inspectGLBFile');
