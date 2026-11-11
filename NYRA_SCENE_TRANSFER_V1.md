@@ -213,3 +213,24 @@ O corpus confirmou que a transferência precisa preservar, no mínimo:
 Animações e controladores permanecem documentos separados do Geometry JSON. Recursos desconhecidos devem ser preservados em `sourceData`/`extensions` e sinalizados; não devem ser descartados silenciosamente.
 
 As regras de coordenadas e de versão mínima foram comparadas com o codec público do Blockbench e a documentação Microsoft. O teste `android/scripts/audit_bedrock_geometry_v1.cjs` cobre a conversão assimétrica e o ciclo exportar → importar → exportar. A auditoria estrutural do corpus não substitui a validação visual no Blockbench nem o carregamento real no Minecraft Bedrock.
+
+## 12. Regra de identidade do Guia e do editor
+
+O Robô TV que aparece como personagem-guia pertence ao **Guia Interativo**. Ele não é o rig-base obrigatório do editor RoboTV/Animação. O editor de animação deve receber o projeto 3D/rig que o usuário importar ou transferir, reconstruir sua própria hierarquia e operar sobre esses nós e clips. O Guia mantém seu personagem de apresentação independente.
+
+A transferência Character Editor → host → RoboTV não deve modificar o estado do Guia, trocar seu mascote ou usar a presença dele como substituto para a confirmação de um projeto importado no editor.
+
+## 13. Endurecimento do validador v1
+
+A implementação atual de `NyraSceneTransferV1.normalizeSceneTransfer` acrescenta:
+- validação de segurança JSON sobre o envelope inteiro antes da normalização;
+- rejeição de ciclos, getters/setters, funções, símbolos e números não finitos em dados de transferência;
+- validação de metadados básicos do projeto;
+- consistência bidirecional de `parentId` e `children`, sem IDs filhos repetidos;
+- IDs únicos de clips, duração numérica finita, loop booleano e referências de nós válidas;
+- keyframes com tempo numérico finito, ordenação e rejeição de tempos duplicados;
+- vetores 3D estritos para canais nativos de posição/rotação/escala;
+- preservação de valores JSON arbitrários para canais de extensão desconhecidos, com aviso em vez de conversão destrutiva;
+- avisos para canais/interpolações ainda não reproduzidos e keyframes além da duração.
+
+Os testes automatizados ampliados devem passar no commit exato em que a validação é executada. Eles não substituem testes físicos, round-trip em Blockbench ou carregamento no Minecraft Bedrock.
