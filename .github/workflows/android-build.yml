@@ -60,6 +60,9 @@ jobs:
       - name: Test Nyra scene transfer contract
         run: node android/scripts/audit_scene_transfer_v1.cjs
 
+      - name: Test Bedrock geometry import/export round-trip
+        run: node android/scripts/audit_bedrock_geometry_v1.cjs
+
       - name: Test Blockbench model importer
         run: node android/scripts/audit_bbmodel_import.cjs
 
