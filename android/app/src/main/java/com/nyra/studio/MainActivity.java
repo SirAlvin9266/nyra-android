@@ -44,6 +44,12 @@ public class MainActivity extends Activity {
     private static final int CREATE_DOCUMENT_REQUEST = 4207;
     private static final int FILE_CHOOSER_REQUEST = 4208;
     private static final long MAX_EXPORT_BYTES = 256L * 1024L * 1024L;
+    private static final long MAX_REBUILDABLE_CACHE_BYTES = 512L * 1024L * 1024L;
+    private static final long REBUILDABLE_CACHE_RETENTION_MS = 7L * 24L * 60L * 60L * 1000L;
+    private static final long MAX_SAVED_PROJECT_BYTES = 240L * 1024L * 1024L;
+    private static final int PROJECT_CHUNK_BYTES = 48 * 1024;
+    private static final String SAVED_PROJECT_FILE = "scene-model.json";
+    private final Map<String, File> projectWrites = new ConcurrentHashMap<>();
 
     private WebView webView;
     private WebViewAssetLoader assetLoader;
@@ -70,6 +76,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        pruneRebuildableCache();
 
         assetLoader = new WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
@@ -204,14 +211,154 @@ public class MainActivity extends Activity {
         return name.isEmpty() ? fallback : name;
     }
 
+    private File rebuildableCacheDirectory() {
+        return new File(getCacheDir(), "nyra-rebuildable");
+    }
+
+    private long rebuildableCacheBytes() {
+        File directory = rebuildableCacheDirectory();
+        long bytes = 0L;
+        File[] entries = directory.listFiles();
+        if (entries != null) {
+            for (File entry : entries) {
+                if (entry.isFile()) bytes += entry.length();
+            }
+        }
+        return bytes;
+    }
+
+    private boolean isRebuildableExportActive(File candidate) {
+        for (ExportTransfer transfer : transfers.values()) {
+            if (transfer.file.equals(candidate)) return true;
+        }
+        synchronized (completedExports) {
+            for (ExportTransfer transfer : completedExports) {
+                if (transfer.file.equals(candidate)) return true;
+            }
+        }
+        return pendingDocument != null && pendingDocument.file.equals(candidate);
+    }
+
+    private void pruneRebuildableCache() {
+        File directory = rebuildableCacheDirectory();
+        if (!directory.isDirectory()) return;
+        long cutoff = System.currentTimeMillis() - REBUILDABLE_CACHE_RETENTION_MS;
+        File[] entries = directory.listFiles();
+        if (entries == null) return;
+        for (File entry : entries) {
+            if (entry.isFile() && entry.getName().startsWith("nyra-export-")
+                && entry.lastModified() < cutoff && !isRebuildableExportActive(entry)) {
+                entry.delete();
+            }
+        }
+    }
+
     private final class ExportBridge {
+        @JavascriptInterface
+        public String beginProjectSave(String filename) {
+            try {
+                if (!SAVED_PROJECT_FILE.equals(safeFilename(filename, SAVED_PROJECT_FILE))) return "";
+                File dir = new File(getFilesDir(), "nyra-projects");
+                if (!dir.exists() && !dir.mkdirs()) return "";
+                File pending = File.createTempFile("scene-model-", ".pending", dir);
+                String token = UUID.randomUUID().toString();
+                projectWrites.put(token, pending);
+                return token;
+            } catch (Exception ex) { return ""; }
+        }
+
+        @JavascriptInterface
+        public boolean appendProjectSaveChunk(String token, String encodedChunk) {
+            File pending = projectWrites.get(token);
+            if (pending == null || encodedChunk == null) return false;
+            byte[] bytes;
+            try { bytes = Base64.decode(encodedChunk, Base64.DEFAULT); }
+            catch (IllegalArgumentException ex) { cancelProjectSave(token); return false; }
+            synchronized (pending) {
+                if (pending.length() + bytes.length > MAX_SAVED_PROJECT_BYTES) { cancelProjectSave(token); return false; }
+                try (FileOutputStream out = new FileOutputStream(pending, true)) {
+                    out.write(bytes); out.getFD().sync(); return true;
+                } catch (Exception ex) { cancelProjectSave(token); return false; }
+            }
+        }
+
+        @JavascriptInterface
+        public boolean finishProjectSave(String token) {
+            File pending = projectWrites.remove(token);
+            if (pending == null || !pending.isFile() || pending.length() < 2) return false;
+            File target = new File(pending.getParentFile(), SAVED_PROJECT_FILE);
+            File backup = new File(pending.getParentFile(), SAVED_PROJECT_FILE + ".previous");
+            if (target.exists() && !target.renameTo(backup)) { pending.delete(); return false; }
+            if (!pending.renameTo(target)) {
+                if (backup.exists()) backup.renameTo(target);
+                pending.delete(); return false;
+            }
+            if (backup.exists()) backup.delete();
+            return true;
+        }
+
+        @JavascriptInterface
+        public void cancelProjectSave(String token) {
+            File pending = projectWrites.remove(token);
+            if (pending != null) pending.delete();
+        }
+
+        private File savedProjectDirectory() {
+            return new File(getFilesDir(), "nyra-projects");
+        }
+
+        private File recoverSavedProjectFile() {
+            File directory = savedProjectDirectory();
+            File target = new File(directory, SAVED_PROJECT_FILE);
+            File backup = new File(directory, SAVED_PROJECT_FILE + ".previous");
+            if (!target.isFile() && backup.isFile()) backup.renameTo(target);
+            if (target.isFile() && backup.exists()) backup.delete();
+            File[] entries = directory.listFiles();
+            if (entries != null) {
+                for (File entry : entries) {
+                    if (entry.isFile() && entry.getName().startsWith("scene-model-") && entry.getName().endsWith(".pending")) entry.delete();
+                }
+            }
+            return target;
+        }
+
+        @JavascriptInterface
+        public String getSavedProjectInfo() {
+            File target = recoverSavedProjectFile();
+            return target.isFile()
+                ? "{\"exists\":true,\"bytes\":" + target.length() + "}"
+                : "{\"exists\":false}";
+        }
+
+        @JavascriptInterface
+        public String readSavedProjectChunk(long offset, int length) {
+            if (offset < 0 || length < 1 || length > PROJECT_CHUNK_BYTES) return "";
+            File target = recoverSavedProjectFile();
+            if (!target.isFile() || offset >= target.length()) return "";
+            byte[] bytes = new byte[(int)Math.min(length, target.length() - offset)];
+            try (java.io.RandomAccessFile file = new java.io.RandomAccessFile(target, "r")) {
+                file.seek(offset); file.readFully(bytes); return Base64.encodeToString(bytes, Base64.NO_WRAP);
+            } catch (Exception ex) { return ""; }
+        }
+
+        @JavascriptInterface
+        public boolean deleteSavedProject() {
+            if (!projectWrites.isEmpty()) return false;
+            File target = recoverSavedProjectFile();
+            File backup = new File(savedProjectDirectory(), SAVED_PROJECT_FILE + ".previous");
+            return (!target.exists() || target.delete()) && (!backup.exists() || backup.delete());
+        }
+
         @JavascriptInterface
         public String beginExport(String filename, String mimeType) {
             try {
                 String safe = safeFilename(filename, "nyra-export.bin");
                 String mime = (mimeType == null || mimeType.trim().isEmpty()) ? "application/octet-stream" : mimeType.trim();
                 if (mime.length() > 120 || mime.contains("\r") || mime.contains("\n")) mime = "application/octet-stream";
-                File temp = File.createTempFile("nyra-export-", ".tmp", getCacheDir());
+                File cacheRoot = new File(getCacheDir(), "nyra-rebuildable");
+                pruneRebuildableCache();
+                if (!cacheRoot.exists() && !cacheRoot.mkdirs()) throw new IllegalStateException("Não foi possível criar o cache temporário Nyra.");
+                File temp = File.createTempFile("nyra-export-", ".tmp", cacheRoot);
                 String token = UUID.randomUUID().toString();
                 transfers.put(token, new ExportTransfer(safe, mime, temp));
                 return token;
@@ -232,7 +379,8 @@ public class MainActivity extends Activity {
                 return false;
             }
             synchronized (transfer) {
-                if (transfer.bytes + data.length > MAX_EXPORT_BYTES) {
+                if (transfer.bytes + data.length > MAX_EXPORT_BYTES
+                    || rebuildableCacheBytes() + data.length > MAX_REBUILDABLE_CACHE_BYTES) {
                     discardTransfer(token, transfer);
                     return false;
                 }
@@ -265,6 +413,51 @@ public class MainActivity extends Activity {
         }
     }
 
+    @JavascriptInterface
+    public String getRebuildableCacheReport() {
+        File directory = new File(getCacheDir(), "nyra-rebuildable");
+        long bytes = 0L;
+        int files = 0;
+        if (directory.isDirectory()) {
+            File[] entries = directory.listFiles();
+            if (entries != null) {
+                for (File entry : entries) {
+                    if (entry.isFile()) {
+                        bytes += entry.length();
+                        files++;
+                    }
+                }
+            }
+        }
+        return "{\"files\":" + files + ",\"bytes\":" + bytes
+            + ",\"limitBytes\":" + MAX_REBUILDABLE_CACHE_BYTES
+            + ",\"retentionDays\":7}";
+    }
+
+    @JavascriptInterface
+    public boolean clearRebuildableCache() {
+        synchronized (completedExports) {
+            if (!transfers.isEmpty() || pendingDocument != null || !completedExports.isEmpty() || documentPickerOpen) {
+                return false;
+            }
+        }
+        File directory = new File(getCacheDir(), "nyra-rebuildable");
+        if (!directory.exists()) return true;
+        File[] entries = directory.listFiles();
+        if (entries == null) return false;
+        boolean success = true;
+        for (File entry : entries) {
+            if (entry.isFile() && entry.getName().startsWith("nyra-export-")) {
+                success &= entry.delete();
+            }
+        }
+        File[] remaining = directory.listFiles();
+        if (success && remaining != null && remaining.length == 0) {
+            success = directory.delete();
+        }
+        return success;
+    }
+
     private void discardTransfer(String token, ExportTransfer transfer) {
         transfers.remove(token);
         transfer.file.delete();
@@ -284,6 +477,8 @@ public class MainActivity extends Activity {
             startActivityForResult(intent, CREATE_DOCUMENT_REQUEST);
         } catch (Exception ex) {
             if (pendingDocument != null) pendingDocument.file.delete();
+        for (File pending : projectWrites.values()) pending.delete();
+        projectWrites.clear();
             pendingDocument = null;
             documentPickerOpen = false;
             Toast.makeText(this, "Não foi possível abrir o seletor de arquivos.", Toast.LENGTH_LONG).show();
@@ -328,6 +523,19 @@ public class MainActivity extends Activity {
                 Uri[] result = resultCode == RESULT_OK
                     ? collectSelectedUris(data, allowMultiple)
                     : null;
+                if (result != null) {
+                    for (Uri uri : result) {
+                        try {
+                            getContentResolver().takePersistableUriPermission(
+                                uri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            );
+                        } catch (SecurityException ignored) {
+                            // Some document providers grant only a transient read
+                            // permission; WebView can still read during this session.
+                        }
+                    }
+                }
                 callback.onReceiveValue(result);
             }
             return;
