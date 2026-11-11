@@ -49,5 +49,5 @@ invalid({...valid,scene:{nodes:[{id:'a',geometry:{bad:()=>{}}}]}},/serializávei
 
 invalid({...valid,project:{id:'p1',name:'Fixture',source:{format:'blockbench',modelFormat:'bedrock'},target:{format:'bedrock_entity'},circular:(()=>{const x={};x.self=x;return x})()}},/circular/);
 invalid({...valid,scene:{nodes:[{id:'a',geometry:{bad:()=>{}}}]}},/serializáveis/);
-\nconsole.log('PASS: Nyra scene-transfer v1 validates schema, unique IDs, hierarchy, transforms, clips, channels and keyframes.');
+console.log('PASS: Nyra scene-transfer v1 validates schema, unique IDs, hierarchy, transforms, clips, channels and keyframes.');
 console.log('PASS: unknown channels/interpolations are preserved with warnings; source/target and geometry payloads survive normalization.');
