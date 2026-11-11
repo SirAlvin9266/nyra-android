@@ -142,3 +142,34 @@ No commit `5231312cc028c52f9df0b4c8ac32ed2e41e83543`, o workflow #479 terminou c
 ## 9. Critério de honestidade
 
 Este documento é uma auditoria baseada em leitura estática e testes já presentes. Não declara que os três editores funcionam no aparelho, que toda semântica Blockbench é reproduzida ou que qualquer pacote foi carregado no Minecraft. Esses critérios exigem ensaios próprios e resultados documentados.
+
+
+## 10. Esclarecimento de escopo — Robô TV do Guia Interativo
+
+O modelo/mascote Robô TV citado nas referências visuais do projeto pertence à apresentação e ao **Guia Interativo**. Ele é o personagem-guia da experiência inicial e não deve ser tratado como o modelo 3D de trabalho do editor RoboTV/Animação.
+
+O painel RoboTV/Animação é o ambiente de edição de projetos 3D importados. A implementação de D2/D3 deve permitir que o usuário transfira rigs, hierarquias, geometria e clips de arquivos Blockbench para esse editor, sem substituir o mascote do Guia por modelos importados e sem usar o mascote como rig obrigatório de animação.
+
+Regra de preservação:
+- manter o Robô TV do Guia Interativo como personagem de apresentação;
+- manter a experiência/identidade do Guia independente dos arquivos de trabalho;
+- o RoboTV/Animação deve operar sobre o modelo importado ou projeto de animação selecionado;
+- preservar o fluxo legado do RoboTV enquanto a edição genérica de modelos e animações amadurece;
+- não considerar a presença do Robô TV no Guia como evidência de que um modelo importado está carregado no editor de animação.
+
+## 11. Estado técnico da rodada de endurecimento do contrato (11/11/2026)
+
+A branch `work/nyra-frente-d-integration` recebeu melhorias no módulo `android/scripts/nyra_scene_transfer_v1.cjs`:
+
+- valida o envelope inteiro como JSON seguro, rejeitando funções, getters/setters, ciclos, tipos não JSON e números não finitos antes de normalizar;
+- valida identificadores e nomes do projeto;
+- valida hierarquia pai/filho, listas `children` duplicadas ou inconsistentes e ciclos;
+- exige duração numérica finita, loop booleano, IDs únicos de clips e referências válidas a nós;
+- rejeita keyframes com tempos duplicados e avisa quando ultrapassam a duração declarada;
+- canais nativos `position`, `rotation`, `scale` exigem vetores de três componentes;
+- canais/extensões desconhecidos mantêm valores JSON arbitrários em seus keyframes e recebem diagnóstico, sem serem convertidos à força em vetores 3D;
+- interpolações ainda não reproduzidas permanecem preservadas e são sinalizadas.
+
+A auditoria correspondente foi ampliada com casos negativos e de preservação. A validação de CI da revisão mais recente deve ser consultada pelo SHA exato antes de declarar a bateria aprovada.
+
+**Não comprovado por esses testes:** execução real dos iframes no WebView Android, fidelidade visual de UV/material, playback de toda semântica de animação, round-trip no Blockbench externo e carregamento no Minecraft Bedrock.
