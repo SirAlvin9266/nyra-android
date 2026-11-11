@@ -14,6 +14,11 @@ const characterHtml = Buffer.from(match[2], 'base64').toString('utf8');
 const start = characterHtml.indexOf('function nyraBuildSceneTransferFromBBModel(');
 const end = characterHtml.indexOf('\nasync function nyraSendBBModelToRoboTV()', start);
 assert.ok(start >= 0 && end > start, 'Character Creator must expose the BBModel transfer builder');
+const importSuccess = characterHtml.indexOf("Importado com fidelidade estrutural:");
+const enableTransfer = characterHtml.indexOf("sendRoboTvButton.disabled=false", importSuccess);
+const importReturn = characterHtml.indexOf("return true;", importSuccess);
+assert.ok(importSuccess >= 0 && enableTransfer > importSuccess && importReturn > enableTransfer,
+  'successful BBModel import must enable the RoboTV transfer button before returning');
 
 const context = vm.createContext({});
 vm.runInContext(
