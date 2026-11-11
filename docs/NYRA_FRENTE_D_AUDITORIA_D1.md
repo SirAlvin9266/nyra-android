@@ -137,7 +137,7 @@ A branch `work/nyra-frente-d-integration` agora contém uma primeira fatia funci
 
 ### Evidência automatizada
 
-No commit `5231312cc028c52f9df0b4c8ac32ed2e41e83543`, o workflow #479 executou com sucesso as auditorias de referência, adaptadores, DSL, contrato Nyra v1, importador Blockbench, mapeamento Blockbench → RoboTV e pré-análise GLB. A compilação Gradle e a inspeção final do APK ainda estavam em execução na última consulta; consultar o estado atual do workflow antes de considerar o pipeline completo aprovado.
+No commit `5231312cc028c52f9df0b4c8ac32ed2e41e83543`, o workflow #479 terminou com **success**. As auditorias de referência, adaptadores, DSL, contrato Nyra v1, importador Blockbench, mapeamento Blockbench → RoboTV, pré-análise GLB, compilação Gradle do APK e inspeção dos assets offline no APK passaram. Isso comprova o pipeline automatizado desse commit; não substitui ensaio físico em Android/WebView nem validação no Minecraft Bedrock.
 
 ## 9. Critério de honestidade
 
