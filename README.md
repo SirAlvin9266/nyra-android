@@ -49,11 +49,36 @@ O GLB grande é deliberadamente tratado como um caso de risco de memória. O usu
 - NURBS, point clouds e voxels permanecem temas de investigação futura.
 - A integração do ícone e da arte do guia está no código/recursos; a aparência final do launcher e do guia ainda precisa de conferência em diferentes launchers/dispositivos.
 
-## Estado de release
+## Frente D — estado de desenvolvimento
 
-As alterações ficam isoladas na branch work/nyra-all-ideas-integration e no PR #3. A branch main não foi mesclada nem alterada por esta execução. O PR permanece em rascunho até que a bateria automatizada e os ensaios em aparelho estejam completos.
+A Frente D está em implementação na branch `work/nyra-frente-d-integration`, acompanhada pelo [PR #15](https://github.com/SirAlvin9266/nyra-android/pull/15). O PR permanece em draft e não está integrado à `main`.
 
-Um CI verde comprova as verificações automatizadas, os testes disponíveis, a compilação do APK e a auditoria dos assets; não comprova renderização, memória, toques ou exportações no telefone. O APK de depuração pode ser baixado pelo artefato nyra-android-debug-apk na execução do GitHub Actions. Não é uma versão assinada para distribuição pública.
+A implementação atual inclui:
+- contrato JSON versionado `nyra.scene-transfer` v1 para transferir nós, hierarquia, transforms/pivôs, geometria, materiais/texturas, clips e metadados entre editores;
+- fluxo Character Editor → host → RoboTV/Animação com confirmação de recebimento;
+- importação/exportação e teste de ida e volta de Minecraft Bedrock Geometry JSON para os recursos suportados;
+- preservação do documento Geometry original, seleção de uma geometria em arquivos com múltiplas definições e preservação de locators estruturados;
+- testes automatizados de contrato, importação Blockbench e conversão Bedrock.
+
+**Identidade do Guia:** o Robô TV é o mascote do Guia Interativo. Não é o rig-base obrigatório do editor RoboTV/Animação, que deve trabalhar com modelos/projetos importados pelo usuário.
+
+## Limites e validações pendentes da Frente D
+
+- O exportador Bedrock ainda rejeita malhas livres que não possam ser convertidas com segurança em cubos. Não há aproximação destrutiva automática.
+- Geometry JSON não incorpora PNG, animações ou controllers; esses recursos são arquivos/ativos separados.
+- Canais e interpolações desconhecidos são preservados e diagnosticados, mas nem todos são reproduzidos.
+- Round-trip visual no Blockbench externo e carregamento real no Minecraft Bedrock ainda precisam ser executados.
+- Interação entre iframes, WebView, memória, toque, persistência e exportações no aparelho Android ainda precisa de validação física.
+
+O CI comprova apenas as auditorias automatizadas e a compilação/inspeção do APK no commit testado. Não comprova visualização correta, playback completo, desempenho físico ou compatibilidade em jogo.
+
+## Estado de integração
+
+- Branch de trabalho: `work/nyra-frente-d-integration`.
+- PR: [#15 — WIP: Nyra Frente D — integração 3D e geometria Bedrock](https://github.com/SirAlvin9266/nyra-android/pull/15).
+- `main`: não alterada por esta rodada.
+- PR: draft, sem merge.
+- APK de debug: só considerar o artefato associado ao SHA exato após CI concluído com sucesso. Não é build assinada para distribuição pública.
 
 ## Documentação complementar
 

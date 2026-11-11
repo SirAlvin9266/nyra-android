@@ -14,7 +14,7 @@ on:
       - 'build.gradle*'
       - '.github/workflows/android-build.yml'
   push:
-    branches: [main, work/nyra-integrated-offline-loaders]
+    branches: [main, work/nyra-integrated-offline-loaders, work/nyra-frente-d-integration, fix/nyra-startup-recovery-2026-11-10]
     paths:
       - 'android/**'
       - 'app/**'
@@ -57,8 +57,17 @@ jobs:
       - name: Test mathematical model DSL
         run: node android/scripts/audit_model_dsl.cjs
 
+      - name: Test Nyra scene transfer contract
+        run: node android/scripts/audit_scene_transfer_v1.cjs
+
+      - name: Test Bedrock geometry import/export round-trip
+        run: node android/scripts/audit_bedrock_geometry_v1.cjs
+
       - name: Test Blockbench model importer
         run: node android/scripts/audit_bbmodel_import.cjs
+
+      - name: Test Blockbench to RoboTV transfer mapping
+        run: node android/scripts/audit_bbmodel_transfer.cjs
 
       - name: Test GLB structural preflight
         run: node android/scripts/audit_glb_preflight.cjs
@@ -113,6 +122,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nyra-android-debug-apk
-          path: build-output/*.apk
+          path: |
+            build-output/nyra-android-debug.apk
+            build-output/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14
