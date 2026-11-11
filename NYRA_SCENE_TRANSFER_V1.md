@@ -160,6 +160,38 @@ A primeira implementação deve usar mensagens versionadas no host. Não expor o
 5. No RoboTV, primeiro exibir lista/diagnóstico de clips e hierarquia. Depois acrescentar reprodução de rotação por nó.
 6. Só depois ligar as interações da timeline e os botões de importação/exportação.
 
+
+## 10. Exportação e reabertura — escopo corrigido
+
+A exportação da Nyra deve produzir **um formato de modelo que o Minecraft Bedrock aceite e que a própria Nyra consiga importar novamente**. Não é requisito gerar automaticamente um Resource Pack completo, client entity, Behavior Pack, controllers ou lógica de comportamento nesta etapa.
+
+Formato prioritário para a primeira entrega:
+- **Bedrock geometry JSON** (`.geo.json`) como formato de modelo aceito pelo pipeline de entidades do Minecraft Bedrock.
+- Textura(s) referenciadas, preservando dimensões e UV.
+- Se necessário, pacote ZIP/manifesto leve apenas para transportar os arquivos do modelo e texturas, sem prometer configuração completa de entidade.
+
+A Nyra deve ter um importador próprio para esse mesmo formato, com operação de abrir/reabrir. O importador precisa reconstruir a mesma árvore, bones, pivôs, cubos, transforms e UVs; não deve depender de um arquivo `.bbmodel` original para reabrir uma exportação gerada pela Nyra.
+
+### Fluxo de ida e volta obrigatório
+1. Importar um projeto (por exemplo, `.bbmodel`) para o documento canônico Nyra.
+2. Exportar para Bedrock Geometry JSON + assets de textura necessários.
+3. Abrir esse `.geo.json` (e seus assets associados) novamente na Nyra.
+4. Comparar estrutura, nomes, relações pai/filho, pivôs, transforms, cubos, UVs e dimensões de textura.
+5. Preservar informações que não pertencem ao formato de geometria em um projeto Nyra opcional; não fingir que animações, Molang ou controllers foram armazenados dentro do `.geo.json`.
+
+### Fora do escopo desta entrega de modelo
+- Resource Pack pronto para instalar com client entity.
+- Behavior Pack.
+- Controllers/estados de animação.
+- Exportação de animações Bedrock.
+Esses recursos podem ser etapas futuras, mas não devem bloquear a exportação/reabertura do formato de modelo solicitada.
+
+### Compatibilidade de formatos
+- `.bbmodel`: formato de projeto editável do Blockbench, suportado pela Nyra como origem quando o template é conhecido.
+- `.geo.json`: formato de geometria Bedrock que a Nyra deve exportar e reabrir.
+- `.glb`: formato 3D genérico para intercâmbio/preview; não substitui o formato Bedrock.
+- `nyra.scene-transfer`: formato interno de comunicação entre editores; não é formato de runtime Minecraft.
+
 ## 9. Compatibilidade
 
 - `nyra.scene-transfer` não é .bbmodel, geometry JSON Bedrock, animation JSON Bedrock nem Resource Pack.
