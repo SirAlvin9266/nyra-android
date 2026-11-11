@@ -30,8 +30,43 @@ function normalizeTransform(value, label) {
   }
   return {position,rotation,scale,rotationUnit,rotationOrder};
 }
+function assertJsonSafe(value, label, seen = new WeakSet()) {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) throw new TypeError(label + ' contém número não finito.');
+    return;
+  }
+  if (typeof value !== 'object') {
+    throw new TypeError(label + ' contém tipo não JSON: ' + typeof value + '.');
+  }
+  if (seen.has(value)) throw new TypeError(label + ' contém referência circular.');
+  const prototype = Object.getPrototypeOf(value);
+  if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null) {
+    throw new TypeError(label + ' contém objeto que não é um objeto JSON simples.');
+  }
+  seen.add(value);
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index++) {
+      if (!Object.prototype.hasOwnProperty.call(value, index)) {
+        throw new TypeError(label + ' contém posição vazia em array.');
+      }
+      assertJsonSafe(value[index], label + '[' + index + ']', seen);
+    }
+  } else {
+    for (const key of Reflect.ownKeys(value)) {
+      if (typeof key !== 'string') throw new TypeError(label + ' contém chave Symbol.');
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+        throw new TypeError(label + '.' + key + ' contém getter ou setter.');
+      }
+      assertJsonSafe(descriptor.value, label + '.' + key, seen);
+    }
+  }
+  seen.delete(value);
+}
 function serializableClone(value, label) {
   try {
+    assertJsonSafe(value, label);
     const clone = JSON.parse(JSON.stringify(value));
     if (clone === undefined) throw new Error('undefined');
     return clone;
