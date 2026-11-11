@@ -49,3 +49,5 @@ invalid({...valid,scene:{nodes:[{id:'a',geometry:{bad:()=>{}}}]}},/serializávei
 
 console.log('PASS: Nyra scene-transfer v1 validates schema, unique IDs, hierarchy, transforms, clips, channels and keyframes.');
 console.log('PASS: unknown channels/interpolations are preserved with warnings; source/target and geometry payloads survive normalization.');
+
+// Regression suite revision: warning counts include preserved unknown-channel diagnostics.
