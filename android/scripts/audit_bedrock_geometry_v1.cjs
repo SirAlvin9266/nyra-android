@@ -12,7 +12,7 @@ const source={
   {id:'body',name:'body',type:'bone',parentId:'root',children:['cube'],pivot:[0,1,0],transform:{position:[0,1,0],rotation:[0,0,0],scale:[1,1,1]},sourceData:{origin:[0,16,0]}},
   {id:'cube',name:'body cube',type:'cube',parentId:'body',children:[],pivot:[0,1,0],transform:{position:[0,0,0],rotation:[0,0,0],scale:[1,1,1]},geometry:{kind:'blockbench_cube',from:[-8,-8,-8],to:[8,8,8],inflate:0,mirror:false,faces:{north:{uv:[0,0,16,16],rotation:0},south:{uv:[16,0,32,16],rotation:90}}},sourceData:{origin:[0,16,0],rotation:[0,0,0],from:[-8,-8,-8],to:[8,8,8],faces:{north:{uv:[0,0,16,16]},south:{uv:[16,0,32,16],rotation:90}}}}
  ],materials:[],textures:[{id:'skin',name:'skin.png',width:64,height:64,source:'data:image/png;base64,AA=='}]},
- animations:{clips:[{id:'walk',name:'walk',duration:1,loop:true,channels:[{targetNodeId:'body',property:'rotation',keyframes:[{time:0,value:[0,0,0]},{time:1,value:[0,1,0]}]}]}]},
+ animations:{clips:[{id:'walk',name:'walk',duration:1,loop:true,channels:[{targetNodeId:'body',property:'rotation',keyframes:[{time:0,value:[0,0,0],interpolation:'linear',sourceData:{}},{time:1,value:[0,1,0],interpolation:'linear',sourceData:{}}]}]}]},
  extensions:{},diagnostics:[]
 };
 const normalized=normalizeSceneTransfer(source);
