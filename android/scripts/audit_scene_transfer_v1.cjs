@@ -11,7 +11,8 @@ const valid={
  ],materials:[],textures:[]},
  animations:{clips:[{id:'walk',name:'walk',duration:1,loop:true,channels:[
   {targetNodeId:'arm',property:'rotation',keyframes:[{time:1,value:[0,0,1]},{time:0,value:[0,0,0]}]},
-  {targetNodeId:'arm',property:'molang.foo',keyframes:[],sourceData:{expression:'query.foo'}}
+  {targetNodeId:'arm',property:'molang.foo',keyframes:[],sourceData:{expression:'query.foo'}},
+  {targetNodeId:'arm',property:'vendor.custom',keyframes:[{time:0.25,value:[1,2,3,4],interpolation:'bezier',sourceData:{raw:true}}]}
  ]}]},
  extensions:{vendor:{raw:1}},diagnostics:[]
 };
@@ -21,8 +22,9 @@ assert.equal(result.scene.nodes[1].parentId,'root');
 assert.deepEqual(result.scene.nodes[0].children,['arm'],'children must be derived from parentId');
 assert.deepEqual(result.animations.clips[0].channels[0].keyframes.map(f=>f.time),[0,1]);
 assert.equal(result.animations.clips[0].channels[1].property,'molang.foo');
-assert.equal(result.warnings.length,1);
-assert.equal(result.diagnostics.length,1);
+assert.deepEqual(result.animations.clips[0].channels[2].keyframes[0].value,[1,2,3,4],'unknown channels must preserve arbitrary JSON keyframe value shapes');
+assert.equal(result.warnings.length,2);
+assert.equal(result.diagnostics.length,2);
 assert.equal(result.project.source.format,'blockbench');
 assert.equal(result.project.target.format,'bedrock_entity');
 assert.equal(result.scene.nodes[1].geometry.size[1],2);
