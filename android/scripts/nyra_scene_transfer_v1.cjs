@@ -2,6 +2,11 @@
 
 const SCHEMA = 'nyra.scene-transfer';
 const VERSION = 1;
+const NODE_TYPES = new Set(['group','bone','cube','mesh','locator','empty']);
+const ROTATION_UNITS = new Set(['radians','degrees']);
+const ROTATION_ORDERS = new Set(['XYZ','XZY','YXZ','YZX','ZXY','ZYX']);
+const PLAYABLE_PROPERTIES = new Set(['position','rotation','scale']);
+const PLAYABLE_INTERPOLATIONS = new Set(['linear','step']);
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -21,11 +26,11 @@ function normalizeTransform(value, label) {
   const scale = finiteVector(source.scale ?? [1,1,1], 3, label + '.scale');
   if (scale.some(v => v === 0)) throw new RangeError(label + '.scale não pode conter zero.');
   const rotationUnit = source.rotationUnit ?? 'radians';
-  if (!['radians','degrees'].includes(rotationUnit)) {
+  if (!ROTATION_UNITS.has(rotationUnit)) {
     throw new TypeError(label + '.rotationUnit deve ser radians ou degrees.');
   }
   const rotationOrder = source.rotationOrder ?? 'XYZ';
-  if (typeof rotationOrder !== 'string' || !/^(XYZ|XZY|YXZ|YZX|ZXY|ZYX)$/.test(rotationOrder)) {
+  if (!ROTATION_ORDERS.has(rotationOrder)) {
     throw new TypeError(label + '.rotationOrder inválida.');
   }
   return {position,rotation,scale,rotationUnit,rotationOrder};
@@ -74,28 +79,42 @@ function serializableClone(value, label) {
     throw new TypeError(label + ' precisa conter apenas dados JSON serializáveis: ' + error.message);
   }
 }
-function normalizeSceneTransfer(input) {
-  if (!object(input)) throw new TypeError('O documento de transferência deve ser um objeto JSON.');
-  if (input.schema !== SCHEMA) throw new Error('Schema de transferência não reconhecido.');
-  if (input.schemaVersion !== VERSION) throw new Error('Versão de transferência não suportada: ' + input.schemaVersion);
-  const project = object(input.project) ? input.project : {};
+function normalizeProject(project) {
+  if (!object(project)) throw new TypeError('project deve ser um objeto.');
   const source = object(project.source) ? project.source : {};
   const target = object(project.target) ? project.target : {};
-  const scene = object(input.scene) ? input.scene : {};
-  const animations = object(input.animations) ? input.animations : {};
-  const rawNodes = Array.isArray(scene.nodes) ? scene.nodes : [];
+  const normalized = {
+    id:String(project.id ?? 'nyra-project'),
+    name:String(project.name ?? 'Projeto sem título'),
+    source:{
+      format:String(source.format ?? 'unknown'),
+      formatVersion:source.formatVersion == null ? null : String(source.formatVersion),
+      modelFormat:source.modelFormat == null ? null : String(source.modelFormat),
+      fileName:source.fileName == null ? null : String(source.fileName)
+    },
+    target:{
+      format:String(target.format ?? 'generic_3d'),
+      version:target.version == null ? null : String(target.version)
+    }
+  };
+  if (!normalized.id.trim()) throw new Error('project.id não pode ficar vazio.');
+  if (!normalized.name.trim()) throw new Error('project.name não pode ficar vazio.');
+  return normalized;
+}
+function normalizeNodes(scene) {
+  if (!object(scene)) throw new TypeError('scene deve ser um objeto.');
+  if (!Array.isArray(scene.nodes)) throw new TypeError('scene.nodes deve ser uma lista.');
   const ids = new Set();
-  const nodes = rawNodes.map((raw,index) => {
+  const nodes = scene.nodes.map((raw,index) => {
     const label = 'scene.nodes[' + index + ']';
     if (!object(raw)) throw new TypeError(label + ' deve ser objeto.');
     if (typeof raw.id !== 'string' || !raw.id.trim()) throw new Error(label + '.id obrigatório.');
     if (ids.has(raw.id)) throw new Error('ID de nó duplicado: ' + raw.id);
     ids.add(raw.id);
     const type = raw.type ?? 'empty';
-    if (!['group','bone','cube','mesh','locator','empty'].includes(type)) {
-      throw new Error(label + '.type inválido: ' + type);
-    }
+    if (!NODE_TYPES.has(type)) throw new Error(label + '.type inválido: ' + type);
     const parentId = raw.parentId == null ? null : String(raw.parentId);
+    if (parentId === raw.id) throw new Error('Um nó não pode ser pai de si mesmo: ' + raw.id);
     const pivot = finiteVector(raw.pivot ?? [0,0,0],3,label+'.pivot');
     const normalized = {
       id:raw.id, sourceId:raw.sourceId == null ? null : String(raw.sourceId),
@@ -109,20 +128,36 @@ function normalizeSceneTransfer(input) {
       if (!Array.isArray(raw.children) || !raw.children.every(id=>typeof id==='string')) {
         throw new TypeError(label+'.children deve ser uma lista de IDs.');
       }
+      if (new Set(raw.children).size !== raw.children.length) {
+        throw new Error(label+'.children contém IDs duplicados.');
+      }
       normalized.children = raw.children.slice();
     }
     return normalized;
   });
   const byId = new Map(nodes.map(node=>[node.id,node]));
+  const derivedChildren = new Map(nodes.map(node=>[node.id,[]]));
   for (const node of nodes) {
     if (node.parentId !== null && !byId.has(node.parentId)) {
       throw new Error('Pai inexistente "'+node.parentId+'" no nó "'+node.id+'".');
     }
+    if (node.parentId !== null) derivedChildren.get(node.parentId).push(node.id);
     if (node.children) for (const childId of node.children) {
       if (!byId.has(childId)) throw new Error('Filho inexistente "'+childId+'" no nó "'+node.id+'".');
       if (byId.get(childId).parentId !== node.id) {
         throw new Error('Relação children/parentId inconsistente: '+node.id+' -> '+childId+'.');
       }
+    }
+  }
+  for (const node of nodes) {
+    if (node.children) {
+      const declared = new Set(node.children);
+      const derived = new Set(derivedChildren.get(node.id));
+      if (declared.size !== derived.size || [...derived].some(id=>!declared.has(id))) {
+        throw new Error('Lista children incompleta para o nó "'+node.id+'".');
+      }
+    } else {
+      node.children = derivedChildren.get(node.id);
     }
   }
   const marks = new Map();
@@ -136,14 +171,29 @@ function normalizeSceneTransfer(input) {
     marks.set(id,2);
   }
   for(const node of nodes) visit(node.id);
-
-  const clips = (Array.isArray(animations.clips)?animations.clips:[]).map((raw,index)=>{
+  return nodes;
+}
+function normalizeAnimations(animations, byId) {
+  if (!object(animations)) throw new TypeError('animations deve ser um objeto.');
+  const rawClips = animations.clips ?? [];
+  if (!Array.isArray(rawClips)) throw new TypeError('animations.clips deve ser uma lista.');
+  const clipIds = new Set();
+  const warnings = [];
+  const clips = rawClips.map((raw,index)=>{
     const label='animations.clips['+index+']';
     if(!object(raw)) throw new TypeError(label+' deve ser objeto.');
     if(typeof raw.id!=='string'||!raw.id.trim()) throw new Error(label+'.id obrigatório.');
-    const duration=Number(raw.duration);
-    if(!Number.isFinite(duration)||duration<0) throw new Error(label+'.duration deve ser finita e não negativa.');
-    const channels=(Array.isArray(raw.channels)?raw.channels:[]).map((channel,ci)=>{
+    if(clipIds.has(raw.id)) throw new Error('ID de clip duplicado: '+raw.id);
+    clipIds.add(raw.id);
+    const duration=raw.duration;
+    if(typeof duration!=='number'||!Number.isFinite(duration)||duration<0) {
+      throw new Error(label+'.duration deve ser um número finito e não negativo.');
+    }
+    if(raw.loop !== undefined && typeof raw.loop !== 'boolean') {
+      throw new TypeError(label+'.loop deve ser booleano.');
+    }
+    if(!Array.isArray(raw.channels ?? [])) throw new TypeError(label+'.channels deve ser uma lista.');
+    const channels=(raw.channels??[]).map((channel,ci)=>{
       const clabel=label+'.channels['+ci+']';
       if(!object(channel)) throw new TypeError(clabel+' deve ser objeto.');
       if(typeof channel.targetNodeId!=='string'||!byId.has(channel.targetNodeId)) {
@@ -151,45 +201,77 @@ function normalizeSceneTransfer(input) {
       }
       const property=String(channel.property||'');
       if(!property) throw new Error(clabel+'.property obrigatório.');
-      const keyframes=(Array.isArray(channel.keyframes)?channel.keyframes:[]).map((frame,fi)=>{
+      const keyframes=(channel.keyframes??[]).map((frame,fi)=>{
         const flabel=clabel+'.keyframes['+fi+']';
         if(!object(frame)) throw new TypeError(flabel+' deve ser objeto.');
-        const time=Number(frame.time);
-        if(!Number.isFinite(time)||time<0) throw new Error(flabel+'.time inválido.');
+        if(typeof frame.time!=='number'||!Number.isFinite(frame.time)||frame.time<0) {
+          throw new Error(flabel+'.time inválido.');
+        }
         const value=Array.isArray(frame.value)
-          ? frame.value.map((v,j)=>{if(typeof v!=='number'||!Number.isFinite(v))throw new Error(flabel+'.value['+j+'] inválido.');return v;})
-          : (typeof frame.value==='number'&&Number.isFinite(frame.value)?frame.value:serializableClone(frame.value,flabel+'.value'));
-        return {time,value,interpolation:String(frame.interpolation??'linear'),sourceData:serializableClone(frame.sourceData??{},flabel+'.sourceData')};
-      }).sort((a,b)=>a.time-b.time);
-      return {targetNodeId:channel.targetNodeId,property,keyframes,sourceData:serializableClone(channel.sourceData??{},clabel+'.sourceData')};
+          ? finiteVector(frame.value,3,flabel+'.value')
+          : (typeof frame.value==='number'&&Number.isFinite(frame.value)
+            ? frame.value : serializableClone(frame.value,flabel+'.value'));
+        return {
+          time:frame.time,value,
+          interpolation:String(frame.interpolation??'linear'),
+          sourceData:serializableClone(frame.sourceData??{},flabel+'.sourceData')
+        };
+      });
+      keyframes.sort((a,b)=>a.time-b.time);
+      for(let i=1;i<keyframes.length;i++) {
+        if(keyframes[i].time===keyframes[i-1].time) {
+          throw new Error(clabel+' possui keyframes duplicados no tempo '+keyframes[i].time+'.');
+        }
+      }
+      if(keyframes.some(frame=>frame.time>duration)) {
+        warnings.push('Keyframe posterior à duração declarada em '+clabel+'.');
+      }
+      if(!PLAYABLE_PROPERTIES.has(property)) {
+        warnings.push('Canal preservado, mas ainda não reproduzido: '+property);
+      }
+      for(const frame of keyframes) {
+        if(!PLAYABLE_INTERPOLATIONS.has(frame.interpolation)) {
+          warnings.push('Interpolação preservada, mas ainda não reproduzida: '+frame.interpolation);
+        }
+      }
+      return {
+        targetNodeId:channel.targetNodeId,property,keyframes,
+        sourceData:serializableClone(channel.sourceData??{},clabel+'.sourceData')
+      };
     });
-    return {id:raw.id,name:String(raw.name??raw.id),duration,loop:raw.loop===true,channels,sourceData:serializableClone(raw.sourceData??{},label+'.sourceData')};
+    return {
+      id:raw.id,name:String(raw.name??raw.id),duration,loop:raw.loop===true,
+      channels,sourceData:serializableClone(raw.sourceData??{},label+'.sourceData')
+    };
   });
-  const warnings=[];
-  for(const clip of clips) for(const channel of clip.channels) {
-    if(!['position','rotation','scale'].includes(channel.property)) warnings.push('Canal preservado, mas ainda não reproduzido: '+channel.property);
-    for(const frame of channel.keyframes) if(!['linear','step','catmullrom','cubic'].includes(frame.interpolation)) warnings.push('Interpolação preservada, mas ainda não reproduzida: '+frame.interpolation);
-  }
-  return {
-    schema:SCHEMA,schemaVersion:VERSION,
-    project:{
-      id:String(project.id??'nyra-project'),
-      name:String(project.name??'Projeto sem título'),
-      source:{format:String(source.format??'unknown'),formatVersion:source.formatVersion??null,modelFormat:source.modelFormat??null,fileName:source.fileName??null},
-      target:{format:String(target.format??'generic_3d'),version:target.version??null}
-    },
+  return {clips,warnings};
+}
+function normalizeSceneTransfer(input) {
+  if (!object(input)) throw new TypeError('O documento de transferência deve ser um objeto JSON.');
+  if (input.schema !== SCHEMA) throw new Error('Schema de transferência não reconhecido.');
+  if (input.schemaVersion !== VERSION) throw new Error('Versão de transferência não suportada: ' + input.schemaVersion);
+  const project=normalizeProject(input.project??{});
+  const scene=object(input.scene)?input.scene:{};
+  const nodes=normalizeNodes(scene);
+  const byId=new Map(nodes.map(node=>[node.id,node]));
+  const normalizedAnimations=normalizeAnimations(input.animations??{},byId);
+  const normalized = {
+    schema:SCHEMA,schemaVersion:VERSION,project,
     scene:{
       coordinateSystem:String(scene.coordinateSystem??'nyra-local'),
-      nodes,materials:serializableClone(scene.materials??[], 'scene.materials'),
-      textures:serializableClone(scene.textures??[], 'scene.textures')
+      nodes,materials:serializableClone(scene.materials??[],'scene.materials'),
+      textures:serializableClone(scene.textures??[],'scene.textures')
     },
-    animations:{clips},extensions:serializableClone(input.extensions??{},'extensions'),
-    diagnostics:serializableClone(input.diagnostics??[],'diagnostics'),
-    warnings
+    animations:{clips:normalizedAnimations.clips},
+    extensions:serializableClone(input.extensions??{},'extensions'),
+    diagnostics:serializableClone(input.diagnostics??[],'diagnostics')
   };
+  normalized.diagnostics.push(...normalizedAnimations.warnings);
+  normalized.warnings=normalizedAnimations.warnings;
+  return normalized;
 }
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports={SCHEMA,VERSION,normalizeSceneTransfer};
+  module.exports={SCHEMA,VERSION,NODE_TYPES,PLAYABLE_PROPERTIES,PLAYABLE_INTERPOLATIONS,normalizeSceneTransfer};
 } else {
-  globalThis.NyraSceneTransferV1={SCHEMA,VERSION,normalizeSceneTransfer};
+  globalThis.NyraSceneTransferV1={SCHEMA,VERSION,NODE_TYPES,PLAYABLE_PROPERTIES,PLAYABLE_INTERPOLATIONS,normalizeSceneTransfer};
 }
