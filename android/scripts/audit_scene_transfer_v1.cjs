@@ -23,8 +23,8 @@ assert.deepEqual(result.scene.nodes[0].children,['arm'],'children must be derive
 assert.deepEqual(result.animations.clips[0].channels[0].keyframes.map(f=>f.time),[0,1]);
 assert.equal(result.animations.clips[0].channels[1].property,'molang.foo');
 assert.deepEqual(result.animations.clips[0].channels[2].keyframes[0].value,[1,2,3,4],'unknown channels must preserve arbitrary JSON keyframe value shapes');
-assert.equal(result.warnings.length,2);
-assert.equal(result.diagnostics.length,2);
+assert.equal(result.warnings.length,3);
+assert.equal(result.diagnostics.length,3);
 assert.equal(result.project.source.format,'blockbench');
 assert.equal(result.project.target.format,'bedrock_entity');
 assert.equal(result.scene.nodes[1].geometry.size[1],2);
