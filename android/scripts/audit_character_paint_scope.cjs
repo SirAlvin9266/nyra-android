@@ -8,6 +8,14 @@ const { spawnSync } = require('node:child_process');
 
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/character.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
+
+const integratedPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
+const integratedHtml = fs.readFileSync(integratedPath, 'utf8');
+const bundleStart = integratedHtml.indexOf('const pages = {items: "');
+const bundleMatch = bundleStart >= 0 ? integratedHtml.slice(bundleStart).match(/character: "([^"]+)"/) : null;
+assert.ok(bundleMatch, 'O aplicativo deve conter a página Character Creator.');
+assert.equal(Buffer.from(bundleMatch[1], 'base64').toString('utf8'), html,
+  'A página Character Creator integrada deve ser idêntica à cópia auditada.');
 assert.ok(html.includes('id="paintScope"'), 'O seletor de escopo de pintura deve existir.');
 for (const option of ['piece', 'group', 'model']) {
   assert.ok(html.includes('value="' + option + '"'), 'Escopo de pintura ausente: ' + option);
