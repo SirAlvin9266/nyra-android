@@ -74,6 +74,7 @@ footer{color:var(--muted);font-size:11px;padding:0 14px 14px;max-width:1200px;ma
    <button class="primary" id="nyraImportBBModel">Importar modelo Blockbench (.bbmodel)</button>
    <button id="nyraExportGLB" disabled>Exportar modelo GLB</button>
    <button id="nyraExportBBModel" disabled>Exportar .bbmodel editado</button>
+   <button id="nyraExportCharacterJSON" disabled>Exportar personagem JSON</button>
    <button id="nyraExportTransfer" disabled>Exportar projeto Nyra JSON</button>
   </div>
   <input type="file" id="nyraTransferFile" accept=".bbmodel" hidden>
@@ -271,7 +272,7 @@ $('resetView').onclick=()=>{camera.position.set(5.4,4.4,8.2);controls.target.set
 // O RoboTV de demonstração fica guardado internamente e não pode ser carregado pela interface de trabalho nesta etapa. robot.visible=false;
 let nyraTransferData=null,nyraTransferRoot=null,nyraNodeObjects=new Map(),nyraClipFrame=0,nyraClipState=null,nyraBaseRotations=new Map(),nyraBaseTransforms=new Map(),nyraSelectedNodeId=null,nyraViewportSelectionBound=false;
 let nyraGltfAnimations=[],nyraGltfMixer=null,nyraGltfAction=null,nyraGltfFrame=0,nyraGltfLastTime=0;
-const nyraTransferStatus=$('nyraTransferStatus'),nyraTransferTree=$('nyraTransferTree'),nyraClipSelect=$('nyraClipSelect'),nyraClipControls=$('nyraClipControls'),nyraExportTransfer=$('nyraExportTransfer'),nyraExportGLB=$('nyraExportGLB'),nyraExportBBModel=$('nyraExportBBModel');
+const nyraTransferStatus=$('nyraTransferStatus'),nyraTransferTree=$('nyraTransferTree'),nyraClipSelect=$('nyraClipSelect'),nyraClipControls=$('nyraClipControls'),nyraExportTransfer=$('nyraExportTransfer'),nyraExportGLB=$('nyraExportGLB'),nyraExportBBModel=$('nyraExportBBModel');nyraExportCharacterJSON=$('nyraExportCharacterJSON');
 function nyraSetTransferStatus(text){if(nyraTransferStatus)nyraTransferStatus.textContent=text;status(text);}
 function nyraValidateTransfer(doc){
  if(!doc||doc.schema!=='nyra.scene-transfer'||doc.schemaVersion!==1||!doc.scene||!Array.isArray(doc.scene.nodes)||!doc.animations||!Array.isArray(doc.animations.clips))throw new Error('Documento de transferência Nyra v1 inválido.');
@@ -303,7 +304,7 @@ function nyraRemovePreviousTransfer(){
  if($('nyraClipPlay'))$('nyraClipPlay').disabled=true;
  if($('nyraClipStop'))$('nyraClipStop').disabled=true;
  if(nyraExportTransfer)nyraExportTransfer.disabled=true;
- if(nyraExportGLB)nyraExportGLB.disabled=true;if(nyraExportBBModel)nyraExportBBModel.disabled=true;
+ if(nyraExportGLB)nyraExportGLB.disabled=true;if(nyraExportBBModel)nyraExportBBModel.disabled=true;if(nyraExportCharacterJSON)nyraExportCharacterJSON.disabled=true;
  if($('zeroJoint'))$('zeroJoint').disabled=true;
  if($('nyraAssociateMode'))$('nyraAssociateMode').disabled=true;
  if($('nyraDetachNode'))$('nyraDetachNode').disabled=true;
@@ -553,7 +554,7 @@ async function nyraLoadTransfer(doc,glb){
  nyraClipSelect.disabled=visibleClips.length===0;
  $('nyraClipPlay').disabled=visibleClips.length===0;$('nyraClipStop').disabled=visibleClips.length===0;
  nyraClipControls.style.display=visibleClips.length?'block':'none';
- nyraExportTransfer.disabled=false;nyraExportGLB.disabled=false;nyraExportBBModel.disabled=normalized.project?.source?.format==='blockbench'&&!!normalized.extensions?.blockbenchRaw;
+ nyraExportTransfer.disabled=false;nyraExportGLB.disabled=false;nyraExportBBModel.disabled=normalized.project?.source?.format==='blockbench'&&!!normalized.extensions?.blockbenchRaw;nyraExportCharacterJSON.disabled=nyraExportBBModel.disabled;
  $('zeroJoint').disabled=true;$('nyraAssociateMode').disabled=true;$('nyraDetachNode').disabled=true;$('nyraCancelAssociation').disabled=true;
  nyraSetTransferStatus('Projeto recebido: '+normalized.scene.nodes.length+' nós e '+normalized.animations.clips.length+' animação(ões). '+(clips.length?'Visor GLB com materiais, UVs e clips compatíveis carregado.':'Pré-visualização simplificada; documento e dados originais preservados.'));
  const first=normalized.scene.nodes.find(node=>!node.parentId&&nodeObjects.has(node.id))||normalized.scene.nodes.find(node=>nodeObjects.has(node.id));
@@ -632,6 +633,13 @@ $('nyraExportBBModel').onclick=()=>{
  window.parent.postMessage({type:'NYRA_ROBOTV_EXPORT_BBMODEL',requestId,transfer:nyraTransferData},'*');
  nyraSetTransferStatus('Enviando o modelo editado ao exportador .bbmodel do Criador de Personagens…');
 };
+$('nyraExportCharacterJSON').onclick=()=>{
+ if(!nyraTransferData)return;
+ for(const node of nyraTransferData.scene.nodes){const object=nyraNodeObjects.get(node.id);if(object)nyraStoreObjectTransform(node,object);}
+ const requestId='robotv-json-export-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+ window.parent.postMessage({type:'NYRA_ROBOTV_EXPORT_PROJECT_JSON',requestId,transfer:nyraTransferData},'*');
+ nyraSetTransferStatus('Enviando o modelo atual ao exportador JSON do Criador de Personagens…');
+};
 nyraExportTransfer.onclick=()=>{if(!nyraTransferData)return;for(const node of nyraTransferData.scene.nodes){const object=nyraNodeObjects.get(node.id);if(object)nyraStoreObjectTransform(node,object);}const url=URL.createObjectURL(new Blob([JSON.stringify(nyraTransferData,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='nyra-scene-transfer.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);};
 nyraExportGLB.onclick=async()=>{
  if(!nyraTransferRoot)return;
@@ -649,7 +657,7 @@ nyraExportGLB.onclick=async()=>{
 window.addEventListener('message',event=>{
  if(event.source!==window.parent||!event.data)return;
  if(event.data.type==='NYRA_SCENE_TRANSFER_IMPORT'){(async()=>{try{await nyraLoadTransfer(event.data.transfer,event.data.glb);window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_ACK',requestId:event.data.requestId,success:true,projectName:nyraTransferData.project?.name||'Projeto',warnings:nyraTransferData.diagnostics||[]},'*');}catch(error){window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_ACK',requestId:event.data.requestId,success:false,error:error?.message||String(error)},'*');}})();}
- if(event.data.type==='NYRA_ROBOTV_EXPORT_RESULT')nyraSetTransferStatus(event.data.success?'Arquivo .bbmodel enviado para download pelo Criador de Personagens.':'Falha ao exportar .bbmodel: '+(event.data.error||'erro desconhecido'));
+ if(event.data.type==='NYRA_ROBOTV_EXPORT_RESULT')nyraSetTransferStatus(event.data.success?(event.data.format==='json'?'Projeto JSON enviado para download pelo Criador de Personagens.':'Arquivo .bbmodel enviado para download pelo Criador de Personagens.'):'Falha ao exportar: '+(event.data.error||'erro desconhecido'));
 });
 function resize(){const w=viewport.clientWidth,h=viewport.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
 new ResizeObserver(resize).observe(viewport);resize();
