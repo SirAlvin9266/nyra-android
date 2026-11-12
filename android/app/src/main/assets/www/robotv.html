@@ -419,7 +419,7 @@ async function nyraLoadTransfer(doc,glb){
   controls.target.set(0,0,0);camera.position.set(8,5,8);controls.update();
  }
  nyraRemovePreviousTransfer();nyraTransferRoot=candidate;nyraTransferData=normalized;nyraGltfAnimations=clips;scene.add(candidate);robot.visible=false;
- nyraRenderTransferTree(normalized);nyraClipSelect.replaceChildren();
+ nyraRenderTransferTree(normalized);nyraBindViewportSelection();nyraClipSelect.replaceChildren();
  const visibleClips=clips.length?clips:normalized.animations.clips;
  for(const [i,clip] of visibleClips.entries())nyraClipSelect.add(new Option(clip.name||('Animação '+(i+1)),String(i)));
  nyraClipControls.style.display=visibleClips.length?'block':'none';nyraExportTransfer.disabled=false;nyraExportGLB.disabled=false;
