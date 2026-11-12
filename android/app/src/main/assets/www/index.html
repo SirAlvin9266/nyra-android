@@ -374,14 +374,21 @@ window.addEventListener('message',event=>{
  }
  if(event.data?.type==='NYRA_SCENE_TRANSFER_IMPORT_BBMODEL'&&sourceKey==='animation'){
   const frame=editorFrames.character;
-  if(!frame){event.source.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',success:false,error:'Criador de Personagens não está disponível.'},'*');}
+  const fail=error=>event.source.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',requestId:event.data.requestId,success:false,error},'*');
+  if(!frame){fail('Criador de Personagens não está disponível.');}
   else{
    const relay=()=>{
-    if(!frame.contentWindow){event.source.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',requestId:event.data.requestId,success:false,error:'Criador de Personagens ainda não está disponível.'},'*');return;}
+    if(!frame.contentWindow){fail('Criador de Personagens ainda não está disponível.');return;}
+    const onImportResult=reply=>{
+     if(reply.source!==frame.contentWindow||reply.data?.type!=='NYRA_SCENE_TRANSFER_RESULT'||reply.data.requestId!==event.data.requestId)return;
+     window.removeEventListener('message',onImportResult);
+     event.source.postMessage(reply.data,'*');
+    };
+    window.addEventListener('message',onImportResult);
     frame.contentWindow.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT_BBMODEL',requestId:event.data.requestId,file:event.data.file,name:event.data.name},'*');
    };
    try{if(frame.contentDocument?.readyState==='complete')relay();else frame.addEventListener('load',relay,{once:true});}
-   catch(error){event.source.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',requestId:event.data.requestId,success:false,error:error?.message||String(error)},'*');}
+   catch(error){fail(error?.message||String(error));}
   }
  }
  if(event.data?.type==='NYRA_SCENE_TRANSFER_ACK'&&sourceKey==='animation'){
