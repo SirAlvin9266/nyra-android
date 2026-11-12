@@ -376,9 +376,12 @@ window.addEventListener('message',event=>{
   const frame=editorFrames.character;
   if(!frame){event.source.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',success:false,error:'Criador de Personagens não está disponível.'},'*');}
   else{
-   const relay=()=>frame.contentWindow?.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT_BBMODEL',file:event.data.file,name:event.data.name},'*');
+   const relay=()=>{
+    if(!frame.contentWindow){event.source.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',requestId:event.data.requestId,success:false,error:'Criador de Personagens ainda não está disponível.'},'*');return;}
+    frame.contentWindow.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT_BBMODEL',requestId:event.data.requestId,file:event.data.file,name:event.data.name},'*');
+   };
    try{if(frame.contentDocument?.readyState==='complete')relay();else frame.addEventListener('load',relay,{once:true});}
-   catch(error){frame.addEventListener('load',relay,{once:true});}
+   catch(error){event.source.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',requestId:event.data.requestId,success:false,error:error?.message||String(error)},'*');}
   }
  }
  if(event.data?.type==='NYRA_SCENE_TRANSFER_ACK'&&sourceKey==='animation'){
