@@ -22,11 +22,14 @@ try {
 }
 
 const checks = [
-  ['estado da peça selecionada declarado uma única vez', (source.match(/nyraSelectedNodeId=null/g) || []).length === 1],
+  ['estado da peça selecionada declarado uma única vez', (source.match(/let nyraTransferData=[^;]*nyraSelectedNodeId=null;/g) || []).length === 1 && !source.includes('let nyraSelectedNodeId=null;')],
   ['seletor de viewport definido uma única vez', (source.match(/function nyraBindViewportSelection\(/g) || []).length === 1],
   ['listener do viewport protegido contra duplicação', source.includes('if(nyraViewportSelectionBound)return;')],
   ['clique no viewport usa Raycaster', source.includes('raycaster.intersectObjects(candidates,false)')],
   ['hierarquia oferece seleção por clique', source.includes("row.addEventListener('click',()=>nyraSelectTransferNode(node.id))")],
+  ['seletor de partes humanoides foi removido da interface', !html.includes('id="joint"') && !html.includes('id="jointButtons"')],
+  ['timeline e controles de animação foram preservados', html.includes('id="addFrame"') && html.includes('id="play"') && html.includes('id="stop"')],
+  ['campos de transformação têm IDs únicos', ['px','py','pz','rx','ry','rz','sx','sy','sz'].every(id => (html.match(new RegExp('id="'+id+'"','g')) || []).length === 1)],
   ['nove controles de transformação estão ligados', source.includes("for(const id of ['px','py','pz','rx','ry','rz','sx','sy','sz'])") && source.includes('nyraUpdateSelectedVector(id,event.target.value)')],
   ['associação bloqueia ciclos', source.includes("if(cursor.id===childId)throw new Error('Associação inválida: isso criaria um ciclo.')")],
   ['associação preserva a matriz mundial', source.includes('new THREE.Matrix4().compose(worldPosition,worldQuaternion,worldScale)')],
