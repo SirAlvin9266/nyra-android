@@ -78,6 +78,11 @@ for key, page in pages.items():
         remaining_legacy = sorted(legacy_ids & ids)
         if remaining_legacy:
             errors.append(f"animation: legacy fixed-part controls must be removed: {remaining_legacy}")
+    if key == "animation":
+        legacy_ids = {"joint", "jointButtons", "samplePoses", "sampleEquipment", "backpackToggle"}
+        remaining_legacy = sorted(legacy_ids & ids)
+        if remaining_legacy:
+            errors.append(f"animation: legacy fixed-part controls must be removed: {remaining_legacy}")
     if missing_ids or missing_functions or missing_strings:
         errors.append(
             f"{key}: missing IDs={missing_ids}; functions={missing_functions}; strings={missing_strings}"
