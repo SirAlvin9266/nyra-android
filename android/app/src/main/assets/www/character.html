@@ -68,7 +68,7 @@ document.querySelector('#moveTool').onclick=()=>{transform.setMode('translate');
 for(const id of ['dimX','dimY','dimZ','posX','posY','posZ'])document.querySelector('#'+id).addEventListener('change',()=>{if(!selectedObject)return;const o=selectedObject,before={position:o.position.toArray(),rotation:[o.rotation.x,o.rotation.y,o.rotation.z],scale:o.scale.toArray()};const v=Math.max(id.startsWith('dim') ? 0.05 : -100, Math.min(id.startsWith('dim') ? 10 : 100, Number(document.querySelector('#'+id).value)||0));document.querySelector('#'+id).value=v;const axis=id.slice(-1).toLowerCase();if(id.startsWith('dim'))o.scale[axis]=v;else o.position[axis]=v;pushUndo('ajuste de '+id,()=>{o.position.fromArray(before.position);o.rotation.set(...before.rotation);o.scale.fromArray(before.scale);if(selectedObject===o)syncEditor()});});
 
 document.querySelector('#resetCam').onclick=()=>{camera.position.set(4.7,4.1,7);controls.target.set(0,1.8,0);controls.update()};document.querySelector('#randomize').onclick=()=>{if(!selectedObject){document.querySelector('#status').textContent='Selecione um objeto antes de alterar sua cor.';return;}const matsForRandom=Array.isArray(selectedObject.material)?selectedObject.material:[selectedObject.material];const editable=matsForRandom.filter(mat=>mat?.color);if(editable.length){const tint=new THREE.Color().setHSL(Math.random(),.6,.55);editable.forEach(mat=>mat.color.copy(tint));syncEditor();document.querySelector('#status').textContent='Cor aleatória aplicada ao objeto selecionado.';}else{document.querySelector('#status').textContent='Este objeto não possui uma cor editável diretamente.';}};
-function project(){return {format:'Nyra Character+Voxel Project v4',name:document.querySelector('#name').value,colors:character.userData.activeModel?Object.fromEntries(Object.keys(groups).map(k=>[k,'#'+material(k).color.getHexString()])):{},parts:character.userData.activeModel?Object.fromEntries(Object.keys(groups).filter(k=>{let n=groups[k];while(n&&n!==character)n=n.parent;return n===character}).map(k=>[k,{position:groups[k].position.toArray(),scale:groups[k].scale.toArray(),rotation:[groups[k].rotation.x,groups[k].rotation.y,groups[k].rotation.z],visible:groups[k].visible}])):{},voxels:voxelGroup.children.filter(o=>o.userData?.isVoxel).map(o=>({x:o.position.x,y:o.position.y,z:o.position.z,color:'#'+o.material.color.getHexString(),position:o.position.toArray(),scale:o.scale.toArray(),rotation:[o.rotation.x,o.rotation.y,o.rotation.z]})),objects:customObjects.filter(r=>r.type!=='bbmodel').map((r)=>({type:r.type,name:r.mesh.name,position:r.mesh.position.toArray(),scale:r.mesh.scale.toArray(),rotation:[r.mesh.rotation.x,r.mesh.rotation.y,r.mesh.rotation.z],color:'#'+r.mesh.material.color.getHexString()})),bbmodel:bbmodelState?.rawData||null}}
+function project(){return {format:'Nyra Character+Voxel Project v4',name:document.querySelector('#name').value,colors:character.userData.activeModel?Object.fromEntries(Object.keys(groups).map(k=>[k,'#'+material(k).color.getHexString()])):{},parts:character.userData.activeModel?Object.fromEntries(Object.keys(groups).filter(k=>{let n=groups[k];while(n&&n!==character)n=n.parent;return n===character}).map(k=>[k,{position:groups[k].position.toArray(),scale:groups[k].scale.toArray(),rotation:[groups[k].rotation.x,groups[k].rotation.y,groups[k].rotation.z],visible:groups[k].visible}])):{},voxels:voxelGroup.children.filter(o=>o.userData?.isVoxel).map(o=>({x:o.position.x,y:o.position.y,z:o.position.z,color:'#'+o.material.color.getHexString(),position:o.position.toArray(),scale:o.scale.toArray(),rotation:[o.rotation.x,o.rotation.y,o.rotation.z]})),objects:customObjects.filter(r=>r.type!=='bbmodel').map((r)=>({type:r.type,name:r.mesh.name,position:r.mesh.position.toArray(),scale:r.mesh.scale.toArray(),rotation:[r.mesh.rotation.x,r.mesh.rotation.y,r.mesh.rotation.z],color:'#'+r.mesh.material.color.getHexString()})),bbmodel:bbmodelState?buildBBModelExportData():null}}
 function clearCustom(){
   if(bbmodelState){const oldRoot=bbmodelState.rootGroup;window.__nyraForgetImportedModel?.(oldRoot);oldRoot.parent?.remove(oldRoot);oldRoot.traverse(n=>{if(n.isMesh){n.geometry?.dispose();const mats=Array.isArray(n.material)?n.material:(n.material?[n.material]:[]);mats.forEach(m=>{for(const v of Object.values(m))if(v?.isTexture)v.dispose();m.dispose()})}});bbmodelState=null;window.__nyraBBModelState=null;const exportButton=document.querySelector('#saveBBModel');if(exportButton)exportButton.disabled=true;}
   for(const r of customObjects){if(r.type==='bbmodel')continue;voxelGroup.remove(r.mesh);r.mesh.geometry?.dispose();const mats=Array.isArray(r.mesh.material)?r.mesh.material:(r.mesh.material?[r.mesh.material]:[]);mats.forEach(m=>m?.dispose())}
@@ -258,50 +258,54 @@ async function importBBModelFile(file){
   }
 }
 // O botão único de importação identifica automaticamente o formato pelo conteúdo do JSON.
+function buildBBModelExportData(){
+ if(!bbmodelState)return null;
+ const out=JSON.parse(JSON.stringify(bbmodelState.rawData));
+ const byId=new Map((out.elements||[]).map(e=>[e.uuid,e]));
+ const eulerDegrees=q=>{const e=new THREE.Euler().setFromQuaternion(q,'XYZ');return [e.x,e.y,e.z].map(v=>THREE.MathUtils.radToDeg(v));};
+ for(const group of bbmodelState.groups||[]){
+  const def=(out.groups||[]).find(g=>g.uuid===group.uuid);if(!def)continue;
+  def.origin=group.parentOrigin.map((v,i)=>(v+group.node.position.toArray()[i])*16);
+  def.rotation=eulerDegrees(group.node.quaternion);def.visibility=group.node.visible;
+ }
+ for(const r of bbmodelState.records){
+  const mesh=r.mesh,el=byId.get(r.uuid);if(!el||!mesh)continue;
+  const pivot=r.pivot||mesh.parent;
+  if(r.freeMesh){
+   mesh.updateMatrix();
+   const origin=(r.baseOrigin||el.origin||[0,0,0]).map(v=>Number(v)/16);
+   const originVec=new THREE.Vector3(...origin);
+   for(const [id,v] of Object.entries(el.vertices||{})){
+    const point=new THREE.Vector3(Number(v[0])/16-origin[0],Number(v[1])/16-origin[1],Number(v[2])/16-origin[2]);
+    point.applyMatrix4(mesh.matrix).add(originVec);
+    el.vertices[id]=point.toArray().map(n=>n*16);
+   }
+   if(pivot){
+    el.origin=(r.parentOrigin||[0,0,0]).map((v,i)=>(v+pivot.position.toArray()[i])*16);
+    el.rotation=eulerDegrees(pivot.quaternion);
+   }
+   continue;
+  }
+  const baseCenter=mesh.userData.baseCenter||[0,0,0],baseSize=mesh.userData.baseSize||[1,1,1];
+  const delta=mesh.position.toArray().map((v,i)=>(v-baseCenter[i])*16);
+  const size=baseSize.map((v,i)=>v*Math.abs(mesh.scale.toArray()[i])*16);
+  el.from=r.baseFrom.map((v,i)=>v+delta[i]-(size[i]-(r.baseTo[i]-r.baseFrom[i]))/2);
+  el.to=r.baseTo.map((v,i)=>v+delta[i]+(size[i]-(r.baseTo[i]-r.baseFrom[i]))/2);
+  if(pivot){
+   el.origin=(r.parentOrigin||[0,0,0]).map((v,i)=>(v+pivot.position.toArray()[i])*16);
+   const q=pivot.quaternion.clone().multiply(mesh.quaternion);
+   el.rotation=eulerDegrees(q);
+  }
+ }
+ return out;
+}
 bbmodelExport.onclick=()=>{
-  if(!bbmodelState)return;
-  const out=JSON.parse(JSON.stringify(bbmodelState.rawData));
-  const byId=new Map((out.elements||[]).map(e=>[e.uuid,e]));
-  const eulerDegrees=q=>{const e=new THREE.Euler().setFromQuaternion(q,'XYZ');return [e.x,e.y,e.z].map(v=>THREE.MathUtils.radToDeg(v));};
-  for(const group of bbmodelState.groups||[]){
-    const def=(out.groups||[]).find(g=>g.uuid===group.uuid);if(!def)continue;
-    def.origin=group.parentOrigin.map((v,i)=>(v+group.node.position.toArray()[i])*16);
-    def.rotation=eulerDegrees(group.node.quaternion);def.visibility=group.node.visible;
-  }
-  for(const r of bbmodelState.records){
-    const mesh=r.mesh,el=byId.get(r.uuid);if(!el||!mesh)continue;
-    const pivot=r.pivot||mesh.parent;
-    if(r.freeMesh){
-      mesh.updateMatrix();
-      const origin=(r.baseOrigin||el.origin||[0,0,0]).map(v=>Number(v)/16);
-      const originVec=new THREE.Vector3(...origin);
-      for(const [id,v] of Object.entries(el.vertices||{})){
-        const point=new THREE.Vector3(Number(v[0])/16-origin[0],Number(v[1])/16-origin[1],Number(v[2])/16-origin[2]);
-        point.applyMatrix4(mesh.matrix).add(originVec);
-        el.vertices[id]=point.toArray().map(n=>n*16);
-      }
-      if(pivot){
-        el.origin=(r.parentOrigin||[0,0,0]).map((v,i)=>(v+pivot.position.toArray()[i])*16);
-        el.rotation=eulerDegrees(pivot.quaternion);
-      }
-      continue;
-    }
-    const baseCenter=mesh.userData.baseCenter||[0,0,0],baseSize=mesh.userData.baseSize||[1,1,1];
-    const delta=mesh.position.toArray().map((v,i)=>(v-baseCenter[i])*16);
-    const size=baseSize.map((v,i)=>v*Math.abs(mesh.scale.toArray()[i])*16);
-    el.from=r.baseFrom.map((v,i)=>v+delta[i]-(size[i]-(r.baseTo[i]-r.baseFrom[i]))/2);
-    el.to=r.baseTo.map((v,i)=>v+delta[i]+(size[i]-(r.baseTo[i]-r.baseFrom[i]))/2);
-    if(pivot){
-      el.origin=(r.parentOrigin||[0,0,0]).map((v,i)=>(v+pivot.position.toArray()[i])*16);
-      const q=pivot.quaternion.clone().multiply(mesh.quaternion);
-      el.rotation=eulerDegrees(q);
-    }
-  }
-  const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
-  const a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;
-  a.download=(bbmodelState.fileName||'modelo.bbmodel').replace(/\\.bbmodel$/i,'')+'_editado.bbmodel';
-  a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
-  document.querySelector('#status').textContent='Projeto .bbmodel exportado com grupos, cubos, malhas livres, UVs, texturas e animações originais. As transformações editadas foram aplicadas aos elementos compatíveis.';
+ const out=buildBBModelExportData();if(!out)return;
+ const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+ const a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;
+ a.download=(bbmodelState.fileName||'modelo.bbmodel').replace(/\\.bbmodel$/i,'')+'_editado.bbmodel';
+ a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
+ document.querySelector('#status').textContent='Projeto .bbmodel exportado com grupos, cubos, malhas livres, UVs, texturas e animações originais. As transformações editadas foram aplicadas aos elementos compatíveis.';
 };
 document.querySelector('#save').onclick=()=>{const blob=new Blob([JSON.stringify(project(),null,2)],{type:'application/json'}),a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;a.download='nyra_personagem.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);document.querySelector('#status').textContent='Projeto JSON exportado.'};document.querySelector('#load').onclick=()=>document.querySelector('#file').click();document.querySelector('#file').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{const parsed=JSON.parse(await f.text());if(parsed&&Array.isArray(parsed.elements)){await importBBModelFile(f)}else if(parsed?.bbmodel&&Array.isArray(parsed.bbmodel.elements)){apply(parsed);const nativeFile=new File([JSON.stringify(parsed.bbmodel)],String(parsed.bbmodel.name||parsed.name||'nyra-restaurado').replace(/\\.bbmodel$/i,'')+'.bbmodel',{type:'application/json'});await importBBModelFile(nativeFile);document.querySelector('#status').textContent='Projeto JSON e modelo Blockbench restaurados.'}else{apply(parsed);document.querySelector('#status').textContent='Projeto JSON importado e validado.'}}catch(err){document.querySelector('#status').textContent='Falha ao importar. O projeto atual foi preservado: '+err.message}e.target.value=''};
 function setVoxelMode(mode,updateStatus=true){
