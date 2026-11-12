@@ -19,6 +19,7 @@ function vector(initial = [0, 0, 0]) {
   return {
     x: initial[0], y: initial[1], z: initial[2],
     fromArray(values) { this.x = values[0]; this.y = values[1]; this.z = values[2]; },
+    set(x,y,z) { this.x=x; this.y=y; this.z=z; },
     toArray() { return [this.x, this.y, this.z]; },
   };
 }
