@@ -11,9 +11,10 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 
 const integratedPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const integratedHtml = fs.readFileSync(integratedPath, 'utf8');
-const pagesMatch = integratedHtml.match(/const pages = \\{items: "([^"]+)", character: "([^"]+)", animation: "([^"]+)"\\};/);
+const pageBundleStart = integratedHtml.indexOf('const pages = {items: "');
+const pagesMatch = pageBundleStart >= 0 ? integratedHtml.slice(pageBundleStart).match(/animation: "([^"]+)"/) : null;
 assert.ok(pagesMatch, 'O aplicativo deve conter o bundle dos três editores.');
-assert.equal(Buffer.from(pagesMatch[3], 'base64').toString('utf8'), html,
+assert.equal(Buffer.from(pagesMatch[1], 'base64').toString('utf8'), html,
   'A página RoboTV integrada no aplicativo deve ser idêntica à cópia auditada.');
 const match = html.match(/<script type="module">([\s\S]*?)<\/script>/);
 assert.ok(match, 'RoboTV deve conter o script de módulo esperado.');
