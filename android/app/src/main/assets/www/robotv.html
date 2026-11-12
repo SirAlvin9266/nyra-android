@@ -226,8 +226,9 @@ setEquipment('none');
 function getPose(){const pose={}; for(const [k,p] of Object.entries(parts))pose[k]=[p.rotation.x,p.rotation.y,p.rotation.z];return pose}
 function setPose(pose){for(const [k,rot] of Object.entries(pose||{})){if(parts[k]&&Array.isArray(rot)){parts[k].rotation.set(+rot[0]||0,+rot[1]||0,+rot[2]||0)}};syncSliders()}
 function syncSliders(){
- const imported=nyraSelectedNodeId?nyraNodeObjects.get(nyraSelectedNodeId):null;
- const rotation=imported?imported.rotation:parts[selected].rotation;
+ const imported=nyraGetSelectedTransferObject();
+ if(imported){nyraSyncTransformControls();return;}
+ const rotation=parts[selected].rotation;
  [['rx','x'],['ry','y'],['rz','z']].forEach(([id,axis])=>{
   const value=degrees(rotation[axis]);$(id).value=Math.max(-180,Math.min(180,value));$(id+'Val').textContent=value+'°';
  });
@@ -235,15 +236,18 @@ function syncSliders(){
 function selectPart(name){nyraSelectedNodeId=null;selected=name;$('joint').value=name;renderJointButtons();syncSliders()}
 function renderJointButtons(){const root=$('jointButtons');root.innerHTML='';for(const [k,n] of Object.entries(partNames)){const b=document.createElement('button');b.textContent=n;b.className=k===selected?'selected':'';b.onclick=()=>selectPart(k);root.appendChild(b)}}
 $('joint').onchange=e=>selectPart(e.target.value);
-[['rx','x'],['ry','y'],['rz','z']].forEach(([id,axis])=>{$(id).addEventListener('input',e=>{
- const imported=nyraSelectedNodeId?nyraNodeObjects.get(nyraSelectedNodeId):null;
- if(imported){imported.rotation[axis]=radians(+e.target.value);$(id+'Val').textContent=e.target.value+'°';return;}
- parts[selected].rotation[axis]=radians(+e.target.value);$(id+'Val').textContent=e.target.value+'°';
- if(selectedFrame>=0&&frames[selectedFrame]){frames[selectedFrame].pose=getPose();renderFrames()}
-})});
+[['px','position'],['py','position'],['pz','position'],['rx','rotation'],['ry','rotation'],['rz','rotation'],['sx','scale'],['sy','scale'],['sz','scale']].forEach(([id])=>$(id)?.addEventListener('input',event=>{
+ if(nyraGetSelectedTransferObject()){nyraUpdateSelectedVector(id,event.target.value);return;}
+ if(id[0]!=='r')return;
+ const axis=id[1];parts[selected].rotation[axis]=radians(+event.target.value);
+ $(id+'Val').textContent=event.target.value+'°';
+ if(selectedFrame>=0&&frames[selectedFrame]){frames[selectedFrame].pose=getPose();renderFrames();}
+}));
 $('zeroJoint').onclick=()=>{
- const imported=nyraSelectedNodeId?nyraNodeObjects.get(nyraSelectedNodeId):null;
- if(imported){imported.rotation.set(0,0,0);syncSliders();nyraSetTransferStatus('Rotação da peça zerada.');return;}
+ const imported=nyraGetSelectedTransferObject();
+ if(imported){
+  imported.rotation.set(0,0,0);nyraSyncTransformControls();nyraSetTransferStatus('Rotação da peça zerada.');return;
+ }
  parts[selected].rotation.set(0,0,0);syncSliders();
  if(selectedFrame>=0&&frames[selectedFrame]){frames[selectedFrame].pose=getPose();renderFrames()}
  status('Articulação zerada.')
@@ -363,20 +367,38 @@ function nyraBindViewportSelection(){
   if(node?.userData?.nyraTransferNodeId)nyraSelectTransferNode(node.userData.nyraTransferNodeId);
  });
 }
+function nyraGetSelectedTransferObject(){
+ return nyraSelectedNodeId?nyraNodeObjects.get(nyraSelectedNodeId)||null:null;
+}
+function nyraSyncTransformControls(){
+ const object=nyraGetSelectedTransferObject();
+ const controls=[['px','x',object?.position],['py','y',object?.position],['pz','z',object?.position],
+ ['rx','x',object?.rotation],['ry','y',object?.rotation],['rz','z',object?.rotation],
+ ['sx','x',object?.scale],['sy','y',object?.scale],['sz','z',object?.scale]];
+ for(const [id,axis,vector] of controls){
+  const input=$(id),label=$(id+'Val');if(!input||!vector)continue;
+  const factor=id[0]==='r'?180/Math.PI:1;
+  const value=vector[axis]*factor;input.value=String(value);if(label)label.textContent=(id[0]==='r'?value.toFixed(0)+'°':value.toFixed(2));
+ }
+}
+function nyraUpdateSelectedVector(axis,value){
+ const object=nyraGetSelectedTransferObject();if(!object)return;
+ const vector=axis[0]==='p'?object.position:axis[0]==='r'?object.rotation:object.scale;
+ const dimension=axis[1],factor=axis[0]==='r'?Math.PI/180:1;
+ const number=Number(value);if(!Number.isFinite(number))return;
+ vector[dimension]=number*factor;
+ object.updateMatrix();object.updateMatrixWorld(true);
+ const label=$(axis+'Val');if(label)label.textContent=axis[0]==='r'?number.toFixed(0)+'°':number.toFixed(2);
+}
 function nyraSelectTransferNode(id){
  const object=nyraNodeObjects.get(id);if(!object)return;
  nyraSelectedNodeId=id;
  nyraTransferTree?.querySelectorAll('[data-node-id]').forEach(row=>{
   const active=row.dataset.nodeId===id;row.classList.toggle('selected',active);row.setAttribute('aria-selected',active?'true':'false');
  });
- const transform=object;
- const rotation=transform.rotation;
- [['rx','x'],['ry','y'],['rz','z']].forEach(([control,axis])=>{
-  const value=THREE.MathUtils.radToDeg(rotation[axis]);
-  $(control).value=Math.max(-180,Math.min(180,value));
-  $(control+'Val').textContent=Math.round(value)+'°';
- });
- nyraSetTransferStatus('Peça selecionada: '+(nyraTransferData?.scene?.nodes?.find(n=>n.id===id)?.name||object.name||id)+'. Ajuste a rotação pelos controles.');
+ nyraSyncTransformControls();
+ const node=nyraTransferData?.scene?.nodes?.find(item=>item.id===id);
+ nyraSetTransferStatus('Peça selecionada: '+(node?.name||object.name||id)+'. Ajuste posição, rotação e escala.');
 }
 function nyraRenderTransferTree(doc){
  if(!nyraTransferTree)return;
