@@ -600,6 +600,16 @@ sendRoboTvButton?.addEventListener('click',nyraSendBBModelToRoboTV);
 window.addEventListener('message',event=>{
  if(event.source!==window.parent||!event.data)return;
  if(event.data.type==='NYRA_TRIGGER_BBMODEL_PICKER'){bbmodelInput?.click();return;}
+ if(event.data.type==='NYRA_ROBOTV_EXPORT_PROJECT_JSON'){
+  try{
+   nyraApplyRoboTVTransferToBBModel(event.data.transfer);
+   document.querySelector('#save').click();
+   window.parent.postMessage({type:'NYRA_ROBOTV_EXPORT_RESULT',requestId:event.data.requestId,success:true,format:'json'},'*');
+  }catch(error){
+   window.parent.postMessage({type:'NYRA_ROBOTV_EXPORT_RESULT',requestId:event.data.requestId,success:false,format:'json',error:error?.message||String(error)},'*');
+  }
+  return;
+ }
  if(event.data.type==='NYRA_ROBOTV_EXPORT_BBMODEL'){
   try{
    nyraApplyRoboTVTransferToBBModel(event.data.transfer);
