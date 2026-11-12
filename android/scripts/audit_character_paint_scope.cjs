@@ -43,6 +43,7 @@ const checks = [
   ['grupo Blockbench é encontrado sem alcançar irmãos', source.includes('parent!==character&&parent!==voxelGroup&&!parent.userData?.bbGroupUuid')],
   ['pintura não usa mais traverse irrestrito do grupo selecionado', !source.includes("part?.traverse(node=>{if(node.isMesh)")],
   ['exportador Blockbench recebe a cena atual do RoboTV', source.includes('function nyraApplyRoboTVTransferToBBModel(doc)')],
+  ['serializador compartilhado é usado pelo exportador .bbmodel', source.includes('const out=buildBBModelExportData()')],
   ['JSON do Character Creator reutiliza o serializador Blockbench atualizado', source.includes('bbmodel:bbmodelState?buildBBModelExportData():null')],
   ['RoboTV pode acionar o exportador JSON original', source.includes("event.data.type==='NYRA_ROBOTV_EXPORT_PROJECT_JSON'") && source.includes("document.querySelector('#save').click()")],
   ['exportação reaproveita o handler existente do Criador', source.includes('bbmodelExport.click()')],
