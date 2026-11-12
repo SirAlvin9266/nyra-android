@@ -657,7 +657,7 @@ window.addEventListener('message',event=>{
      throw new Error('Este JSON não contém um modelo Blockbench. Use um .bbmodel ou um projeto JSON do Criador que contenha o campo bbmodel.');
     }
    }else{
-    imported=await importBBModelFile(file);
+    imported=await importBBModelFile(event.data.file);
    }
    if(!imported||!bbmodelState)throw new Error('O arquivo não foi importado pelo Criador de Personagens.');
    await nyraSendBBModelToRoboTV(event.data.requestId);
