@@ -19,20 +19,26 @@ const mats={};const groups={};const defaults={head:'#35e5ff',torso:'#263548',arm
 groups.torso=new THREE.Group();groups.torso.name='torso';groups.torso.position.set(0,2.2,0);character.add(groups.torso);box(groups.torso,'Torso',[0,0,0],[1.05,1.2,.58],material('torso'));box(groups.torso,'ChestPanel',[0,.12,.31],[.62,.4,.045],new THREE.MeshStandardMaterial({color:'#2a9fa9',metalness:.2}));
 groups.head=new THREE.Group();groups.head.name='head';groups.head.position.set(0,.88,0);groups.torso.add(groups.head);const headMesh=box(groups.head,'Head',[0,.28,0],[.92,.78,.72],material('head'));box(groups.head,'EyeL',[-.2,.3,.37],[.12,.13,.035],new THREE.MeshStandardMaterial({color:'#ffffff',emissive:'#66ddff',emissiveIntensity:.8}));box(groups.head,'EyeR',[.2,.3,.37],[.12,.13,.035],new THREE.MeshStandardMaterial({color:'#ffffff',emissive:'#66ddff',emissiveIntensity:.8}));
 for(const [key,x] of [['armL',-.72],['armR',.72]]){groups[key]=new THREE.Group();groups[key].name=key;groups[key].position.set(x,.4,0);groups.torso.add(groups[key]);box(groups[key],key+'Upper',[0,-.32,0],[.3,.68,.34],material(key));box(groups[key],key+'Hand',[0,-.72,.02],[.36,.23,.36],material(key))}for(const [key,x] of [['legL',-.28],['legR',.28]]){groups[key]=new THREE.Group();groups[key].name=key;groups[key].position.set(x,1.55,0);character.add(groups[key]);box(groups[key],key+'Upper',[0,-.35,0],[.38,.75,.42],material(key));box(groups[key],key+'Foot',[0,-.78,.1],[.44,.22,.58],material(key))}
-let selected=null,selectedObject=null,selectedKind='none';const customObjects=[];const partBase={head:[.92,.78,.72],torso:[1,1,1],armL:[1,1,1],armR:[1,1,1],legL:[1,1,1],legR:[1,1,1]};
+let selected=null,selectedObject=null,selectedMesh=null,selectedKind='none';const customObjects=[];const partBase={head:[.92,.78,.72],torso:[1,1,1],armL:[1,1,1],armR:[1,1,1],legL:[1,1,1],legR:[1,1,1]};
 const actionHistory=[];const HISTORY_LIMIT=50;let transformBefore=null;let restoringHistory=false;function pushUndo(label,undo){if(restoringHistory)return;actionHistory.push({label,undo});if(actionHistory.length>HISTORY_LIMIT)actionHistory.shift();document.querySelector('#restorePart').textContent='Desfazer (Ctrl+Z) · '+actionHistory.length;}function undoLast(){const action=actionHistory.pop();if(!action){document.querySelector('#status').textContent='Não há ações para desfazer.';return;}restoringHistory=true;try{action.undo();}catch(err){console.error('Falha ao desfazer',err);document.querySelector('#status').textContent='Não foi possível desfazer esta ação: '+err.message;}finally{restoringHistory=false;document.querySelector('#restorePart').textContent='Desfazer (Ctrl+Z) · '+actionHistory.length;document.querySelector('#status').textContent='Ação desfeita: '+action.label+'.';}}
 function labelFor(k){return ({head:'Cabeça',torso:'Tronco',armL:'Braço esquerdo',armR:'Braço direito',legL:'Perna esquerda',legR:'Perna direita'})[k]||k}
-function selectPart(k){const part=groups[k];let node=part,connected=false;while(node){if(node===character){connected=true;break;}node=node.parent;}if(!character.userData.activeModel||!connected){document.querySelector('#status').textContent='Essa parte não existe no projeto atual. Importe um modelo ou adicione objetos.';return;}setVoxelMode('select',false);selected=k;selectedObject=part;selectedKind='part';node=part;while(node&&node!==character){node.visible=true;node=node.parent;}transform.attach(selectedObject);syncEditor();}
-function selectCustom(o){setVoxelMode('select',false);selectedObject=o;selectedKind=o.userData?.isBBModel?'bbmodel':(o.userData?.isVoxel?'voxel':'shape');selected=o.name;transform.attach(o);syncEditor()}
+function selectPart(k,mesh=null){const part=groups[k];let node=part,connected=false;while(node){if(node===character){connected=true;break;}node=node.parent;}if(!character.userData.activeModel||!connected){document.querySelector('#status').textContent='Essa parte não existe no projeto atual. Importe um modelo ou adicione objetos.';return;}setVoxelMode('select',false);selected=k;selectedObject=part;selectedMesh=mesh&&mesh.isMesh?mesh:null;selectedKind='part';node=part;while(node&&node!==character){node.visible=true;node=node.parent;}transform.attach(selectedObject);syncEditor();}
+function selectCustom(o){setVoxelMode('select',false);selectedMesh=o?.isMesh?o:null;selectedObject=o;selectedKind=o.userData?.isBBModel?'bbmodel':(o.userData?.isVoxel?'voxel':'shape');selected=o.name;transform.attach(o);syncEditor()}
 function selectVoxel(o){selectCustom(o);document.querySelector('#status').textContent='Voxel selecionado. Você pode mover, girar, redimensionar ou alterar a cor.'}
 function syncEditor(){if(!selectedObject)return;let color;if(selectedKind==='part')color='#'+material(selected).color.getHexString();else {const mat=Array.isArray(selectedObject.material)?selectedObject.material.find(m=>m?.color):selectedObject.material;color='#'+(mat?.color||new THREE.Color('#d5e2ed')).getHexString();}document.querySelector('#partColor').value=color;document.querySelector('#selectedLabel').textContent=selectedKind==='part'?labelFor(selected):selectedObject.name;const sc=selectedObject.scale,po=selectedObject.position;for(const [id,val] of [['dimX',sc.x],['dimY',sc.y],['dimZ',sc.z],['posX',po.x],['posY',po.y],['posZ',po.z]])document.querySelector('#'+id).value=Number(val.toFixed(3));const c=new THREE.Color(color);const hsl={};c.getHSL(hsl);document.querySelector('#hue').value=Math.round(hsl.h*360);document.querySelector('#sat').value=Math.round(hsl.s*100);document.querySelector('#lum').value=Math.round(hsl.l*100)}
 function forEachEditableMaterial(object,callback){const list=Array.isArray(object?.material)?object.material:(object?.material?[object.material]:[]);list.forEach(callback);}
 function paintMaterials(root,color,deep=true){
  if(!root)return;
  const paint=node=>{if(node.isMesh)forEachEditableMaterial(node,mat=>{if(mat.color)mat.color.set(color)});};
- if(deep)root.traverse(paint);
- else if(root.isMesh)paint(root);
- else root.children.forEach(paint);
+ if(root.isMesh){paint(root);return;}
+ if(deep){
+  // Traverse only descendants, never siblings or the parent's other branches.
+  root.traverse(paint);
+ }else{
+  // A selected group is not itself a mesh; "piece" must mean the exact selected
+  // node's own geometry, not all immediate children (which are often peer meshes).
+  forEachEditableMaterial(root,mat=>{if(mat.color)mat.color.set(color)});
+ }
 }
 function paintWholeProject(color){
  paintMaterials(character,color,true);
@@ -45,16 +51,27 @@ function setSelectedColor(color){
   const part=groups[selected];if(!part)return;
   if(scope==='model')paintWholeProject(color);
   else if(scope==='group')paintMaterials(part,color,true);
-  else paintMaterials(part,color,false);
+  else {
+   // Built-in body parts are groups containing several independent meshes.
+   // "Piece" means the precise mesh selected by raycast, when available.
+   const target=selectedMesh&&part.getObjectById(selectedMesh.id)===selectedMesh?selectedMesh:part;
+   paintMaterials(target,color,false);
+  }
  }else if((selectedKind==='shape'||selectedKind==='voxel'||selectedKind==='bbmodel')&&selectedObject){
   let root=selectedObject;
   if(scope==='model')paintWholeProject(color);
   else if(scope==='group'){
-   let parent=selectedObject.parent;
-   while(parent&&parent!==character&&parent!==voxelGroup&&!parent.userData?.bbGroupUuid)parent=parent.parent;
-   root=parent&&(parent!==character&&parent!==voxelGroup)?parent:(selectedObject.parent||selectedObject);
+   if(selectedKind==='bbmodel'){
+    let parent=selectedObject;
+    while(parent&&parent!==bbmodelState?.rootGroup&&!parent.userData?.bbGroupUuid)parent=parent.parent;
+    root=parent&&parent!==bbmodelState?.rootGroup?parent:selectedObject;
+   }else{
+    // Do not promote a single mesh to its parent blindly: that parent can be
+    // a scene/root container shared by unrelated objects.
+    root=selectedObject.parent&&selectedObject.parent!==voxelGroup?selectedObject.parent:selectedObject;
+   }
   }
-  if(scope!=='model')paintMaterials(root,color,true);
+  if(scope!=='model')paintMaterials(root,color,scope==='group');
   const rec=customObjects.find(x=>x.mesh===selectedObject);if(rec)rec.color=color;
  }else return;
  document.querySelector('#partColor').value=color;
