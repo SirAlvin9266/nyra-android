@@ -27,6 +27,7 @@ button{cursor:pointer;font-weight:600}button:active{transform:scale(.98)}button.
 .equipamentos-container .special{background:#0f684c;border-color:#179c72}
 .slider-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 input[type=range]{width:100%;accent-color:var(--accent)}
+.transform-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.transform-grid input{width:100%;min-width:0}.divider{height:1px;background:var(--line);margin:8px 0}#nyraAssociationStatus{min-height:34px}
 .joint-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .joint-list button{font-size:12px;padding:8px 5px}
 .joint-list button.selected{border-color:var(--accent);background:#21423f}
@@ -66,43 +67,46 @@ footer{color:var(--muted);font-size:11px;padding:0 14px 14px;max-width:1200px;ma
  </div>
 </section>
 <section class="panel">
- <div class="panel-title">Articulações e animação</div>
+ <div class="panel-title">Modelo, peças e hierarquia</div>
  <div class="controls">
-  <div><label for="joint">Parte selecionada</label><select id="joint" style="width:100%">
-   <option value="head">Cabeça / TV</option><option value="torso">Tronco</option><option value="armL">Braço esquerdo</option><option value="armR">Braço direito</option><option value="legL">Perna esquerda</option><option value="legR">Perna direita</option>
-  </select></div>
-  <div class="joint-list" id="jointButtons"></div>
-  <div class="slider-row">
+  <label>Importar e exportar modelo</label>
+  <div class="row">
+   <button class="primary" id="nyraImportBBModel">Importar modelo Blockbench (.bbmodel)</button>
+   <button id="nyraExportGLB" disabled>Exportar modelo GLB</button>
+   <button id="nyraExportTransfer" disabled>Exportar projeto Nyra JSON</button>
+  </div>
+  <input type="file" id="nyraTransferFile" accept=".bbmodel" hidden>
+  <div id="nyraTransferStatus" class="status">Importe um modelo Blockbench ou envie uma cena pelo Criador de Personagens. Selecione uma peça na árvore ou diretamente no viewport.</div>
+  <label>Hierarquia de peças</label>
+  <div id="nyraTransferTree" role="tree" style="max-height:220px;overflow:auto;margin-top:4px;font-size:12px;color:var(--muted)"></div>
+  <div class="divider"></div>
+  <label>Transformação da peça selecionada</label>
+  <div class="transform-grid">
+   <div><label for="px">Posição X: <span id="pxVal">0.00</span></label><input id="px" type="range" min="-8" max="8" step="0.01" value="0"></div>
+   <div><label for="py">Posição Y: <span id="pyVal">0.00</span></label><input id="py" type="range" min="-8" max="8" step="0.01" value="0"></div>
+   <div><label for="pz">Posição Z: <span id="pzVal">0.00</span></label><input id="pz" type="range" min="-8" max="8" step="0.01" value="0"></div>
    <div><label for="rx">Rotação X: <span id="rxVal">0°</span></label><input id="rx" type="range" min="-180" max="180" value="0"></div>
    <div><label for="ry">Rotação Y: <span id="ryVal">0°</span></label><input id="ry" type="range" min="-180" max="180" value="0"></div>
    <div><label for="rz">Rotação Z: <span id="rzVal">0°</span></label><input id="rz" type="range" min="-180" max="180" value="0"></div>
-   <div><label>Pose rápida</label><button id="zeroJoint" style="width:100%">Zerar articulação</button></div>
+   <div><label for="sx">Escala X: <span id="sxVal">1.00</span></label><input id="sx" type="range" min="0.05" max="4" step="0.01" value="1"></div>
+   <div><label for="sy">Escala Y: <span id="syVal">1.00</span></label><input id="sy" type="range" min="0.05" max="4" step="0.01" value="1"></div>
+   <div><label for="sz">Escala Z: <span id="szVal">1.00</span></label><input id="sz" type="range" min="0.05" max="4" step="0.01" value="1"></div>
   </div>
-  <div id="samplePoses" style="display:none">
-   <label>Animações prontas (aplicam pose editável)</label>
-   <div class="row"><button data-preset="idle">Neutro</button><button data-preset="walk">Caminhada</button><button data-preset="attack">Ataque</button></div>
+  <div class="row"><button id="zeroJoint" disabled>Resetar rotação</button></div>
+  <div class="divider"></div>
+  <label>Associação entre peças</label>
+  <div class="row"><button id="nyraAssociateMode" disabled>Associar peça selecionada…</button><button id="nyraCancelAssociation" disabled>Cancelar</button><button id="nyraDetachNode" disabled>Remover associação</button></div>
+  <div id="nyraAssociationStatus" class="status">Selecione uma peça, inicie a associação e escolha a peça que será seu novo objeto pai.</div>
+  <div class="divider"></div>
+  <label>Projeto e animação</label>
+  <div class="row"><button class="primary" id="saveProject">Salvar no celular</button><button id="exportProject">Exportar JSON</button></div>
+  <div class="row"><button id="loadProject">Abrir projeto JSON</button><button id="exportAnim">Exportar animação</button></div>
+  <input type="file" id="fileInput" accept=".json,application/json" hidden>
+  <div id="nyraClipControls" style="display:none;margin-top:8px">
+   <label for="nyraClipSelect">Animação do modelo importado</label>
+   <div class="row"><select id="nyraClipSelect" style="flex:1"></select><button id="nyraClipPlay">Reproduzir</button><button id="nyraClipStop">Parar</button></div>
   </div>
-  <div class="equipamentos-container" id="sampleEquipment" style="display:none">
-   <label style="font-size:14px;color:var(--text);font-weight:700">Equipamentos voxel</label>
-   <div class="row">
-    <button type="button" data-item="sword">⚔ Equipar espada</button>
-    <button type="button" data-unequip="sword">✕ Desequipar espada</button>
-   </div>
-   <div class="row">
-    <button type="button" data-item="pickaxe">⛏ Equipar picareta</button>
-    <button type="button" data-item="axe">🪓 Equipar machado</button>
-   </div>
-   <div class="row"><button type="button" id="backpackToggle" class="special">🎒 Equipar mochila de fios</button></div>
-   <small style="color:var(--muted)">Espada, picareta e machado ficam presos ao braço direito. A mochila de fios fica presa ao tronco. Os equipamentos não alteram os quadros-chave salvos.</small>
-  </div>
-  <div>
-   <label>Projeto</label>
-   <div class="row"><button class="primary" id="saveProject">Salvar no celular</button><button id="exportProject">Exportar JSON</button></div>
-   <div class="row"><button id="loadProject">Abrir projeto JSON</button><button id="exportAnim">Exportar animação</button></div>
-   <input type="file" id="fileInput" accept=".json,application/json" hidden>
-<div class="row"><button class="primary" id="nyraImportBBModel">Importar modelo Blockbench (.bbmodel)</button><button id="nyraExportGLB" disabled>Exportar modelo GLB</button><button id="nyraExportTransfer" disabled>Exportar projeto Nyra JSON</button></div><input type="file" id="nyraTransferFile" accept=".bbmodel,application/json" hidden><div id="nyraTransferStatus" class="status">Selecione um .bbmodel aqui. O RoboTV usa o importador Blockbench do Criador de Personagens e recebe o modelo com hierarquia e animações.</div><div id="nyraTransferTree" style="max-height:150px;overflow:auto;margin-top:8px;font-size:12px;color:var(--muted)"></div><div id="nyraClipControls" style="display:none;margin-top:8px"><label for="nyraClipSelect">Animação do modelo</label><div class="row"><select id="nyraClipSelect" style="flex:1"></select><button id="nyraClipPlay">Reproduzir</button><button id="nyraClipStop">Parar</button></div></div>
-  </div>
-  <div class="status" id="status">Pronto. Escolha uma articulação e mova os controles.</div>
+  <div class="status" id="status">Pronto. Importe um modelo e selecione uma peça para editar.</div>
  </div>
 </section>
 </main>
@@ -225,12 +229,12 @@ const status = msg => {$('status').textContent=msg};
 setEquipment('none');
 function getPose(){const pose={}; for(const [k,p] of Object.entries(parts))pose[k]=[p.rotation.x,p.rotation.y,p.rotation.z];return pose}
 function setPose(pose){for(const [k,rot] of Object.entries(pose||{})){if(parts[k]&&Array.isArray(rot)){parts[k].rotation.set(+rot[0]||0,+rot[1]||0,+rot[2]||0)}};syncSliders()}
-function syncSliders(){const p=parts[selected];[['rx','x'],['ry','y'],['rz','z']].forEach(([id,axis])=>{$(id).value=degrees(p.rotation[axis]);$(id+'Val').textContent=degrees(p.rotation[axis])+'°'})}
+function syncSliders(){const imported=typeof nyraGetSelectedTransferObject==='function'?nyraGetSelectedTransferObject():null;if(imported){nyraSyncTransformControls();return;}const p=parts[selected];[['rx','x'],['ry','y'],['rz','z']].forEach(([id,axis])=>{$(id).value=degrees(p.rotation[axis]);$(id+'Val').textContent=degrees(p.rotation[axis])+'°'})}
 function selectPart(name){selected=name;$('joint').value=name;renderJointButtons();syncSliders()}
 function renderJointButtons(){const root=$('jointButtons');root.innerHTML='';for(const [k,n] of Object.entries(partNames)){const b=document.createElement('button');b.textContent=n;b.className=k===selected?'selected':'';b.onclick=()=>selectPart(k);root.appendChild(b)}}
-$('joint').onchange=e=>selectPart(e.target.value);
-[['rx','x'],['ry','y'],['rz','z']].forEach(([id,axis])=>{$(id).addEventListener('input',e=>{parts[selected].rotation[axis]=radians(+e.target.value);$(id+'Val').textContent=e.target.value+'°';if(selectedFrame>=0&&frames[selectedFrame]){frames[selectedFrame].pose=getPose();renderFrames()}})});
-$('zeroJoint').onclick=()=>{parts[selected].rotation.set(0,0,0);syncSliders();if(selectedFrame>=0&&frames[selectedFrame]){frames[selectedFrame].pose=getPose();renderFrames()}status('Articulação zerada.')};
+
+
+$('zeroJoint').onclick=()=>{const object=nyraGetSelectedTransferObject();if(object){object.rotation.set(0,0,0);nyraSyncTransformControls();nyraSetTransferStatus('Rotação da peça zerada.');return;}parts[selected].rotation.set(0,0,0);syncSliders();if(selectedFrame>=0&&frames[selectedFrame]){frames[selectedFrame].pose=getPose();renderFrames()}status('Articulação zerada.')};
 function renderFrames(){const root=$('frames');root.innerHTML='';frames.forEach((f,i)=>{const b=document.createElement('button');b.className='frame'+(i===selectedFrame?' active':'');b.textContent='Quadro '+(i+1);b.title='Tempo: '+f.time+' s';b.onclick=()=>{stopPlayback();selectedFrame=i;setPose(f.pose);renderFrames();status('Quadro '+(i+1)+' selecionado.')};root.appendChild(b)})}
 function addFrame(pose=getPose(),time=null){const last=frames[frames.length-1];frames.push({time:time===null?(last?last.time+0.5:0):time,pose:structuredClone(pose)});selectedFrame=frames.length-1;renderFrames();status('Pose guardada no quadro '+(selectedFrame+1)+'.')}
 $('addFrame').onclick=()=>addFrame();
@@ -261,7 +265,7 @@ $('loadProject').onclick=()=>$('fileInput').click();
 $('fileInput').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{const d=JSON.parse(await file.text());if(!d||!Array.isArray(d.frames))throw new Error('Arquivo não contém quadros válidos');frames=d.frames.filter(f=>f&&f.pose&&typeof f.time==='number');selectedFrame=frames.length?0:-1;if(selectedFrame>=0)setPose(frames[0].pose);else if(d.pose)setPose(d.pose);renderFrames();status('Projeto carregado: '+frames.length+' quadro(s).')}catch(err){status('Não foi possível abrir esse JSON: '+err.message)}e.target.value=''};
 document.querySelectorAll('[data-item]').forEach(b=>b.addEventListener('click',()=>equiparItem(b.dataset.item)));
 document.querySelectorAll('[data-unequip]').forEach(b=>b.addEventListener('click',()=>desequiparItem(b.dataset.unequip)));
-$('backpackToggle').onclick=()=>{backpack.visible=!backpack.visible;$('backpackToggle').textContent=backpack.visible?'🎒 Desequipar mochila de fios':'🎒 Equipar mochila de fios';$('backpackToggle').classList.toggle('selected',backpack.visible);status(backpack.visible?'Mochila de fios equipada.':'Mochila de fios removida.')};
+
 $('resetView').onclick=()=>{camera.position.set(5.4,4.4,8.2);controls.target.set(0,1.8,0);controls.update()};
 // O RoboTV de demonstração fica guardado internamente e não pode ser carregado pela interface de trabalho nesta etapa. robot.visible=false;
 let nyraTransferData=null,nyraTransferRoot=null,nyraNodeObjects=new Map(),nyraClipFrame=0,nyraClipState=null,nyraBaseRotations=new Map(),nyraBaseTransforms=new Map(),nyraSelectedNodeId=null,nyraViewportSelectionBound=false;
