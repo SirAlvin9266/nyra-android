@@ -236,3 +236,10 @@ Estado:
 - Blockbench — [Bedrock multi-file integration](https://github.com/JannisX11/blockbench/blob/master/js/formats/bedrock/bedrock_multi_file.ts)
 
 Este documento deve ser atualizado no mesmo PR da Frente D sempre que a cobertura de importação/exportação mudar.
+## 12. Implementação posterior — fluxo de exportação no editor
+
+A revisão posterior conectou o conversor Geometry JSON ao Criador de Personagens: após importar um .bbmodel, o usuário pode exportar o Geometry JSON derivado da cena editada. Para exatamente uma textura incorporada em data URI, há também download direto do PNG/JPEG/WebP. O editor informa a resolução do atlas e a versão de Geometry exigida.
+
+Restrições explícitas: não há importação direta de .geo.json pela interface; múltiplas texturas e referências externas não são empacotadas automaticamente; malhas livres não são convertidas em cubos; o Geometry JSON não contém o PNG. A associação com client_entity/Resource Pack permanece externa.
+
+O CI confirma sintaxe, conversão e build do APK, mas ainda faltam abrir o Geometry JSON no Blockbench e carregar a combinação geometria+textura em Minecraft Bedrock com modelos reais representativos do corpus.
