@@ -431,7 +431,7 @@ renderer.domElement.addEventListener('pointerup',e=>{
   if(bodyHits.length){
     let o=bodyHits[0].object;
     while(o.parent&&!Object.keys(groups).includes(o.name))o=o.parent;
-    if(Object.keys(groups).includes(o.name)){selectPart(o.name);return}
+    if(Object.keys(groups).includes(o.name)){selectPart(o.name,bodyHits[0].object);return}
   }
   // Clique no vazio remove as alças, sem alterar objetos.
   transform.detach();selectedObject=null;selectedKind='none';selected=null;
