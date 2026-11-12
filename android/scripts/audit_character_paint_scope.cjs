@@ -50,7 +50,7 @@ const checks = [
   ['modelo inteiro inclui o personagem', source.includes('paintMaterials(character,color,true)')],
   ['modelo inteiro inclui voxels e formas', source.includes('paintMaterials(voxelGroup,color,true)')],
   ['modelo inteiro inclui modelo Blockbench ativo', source.includes('if(bbmodelState?.rootGroup)paintMaterials(bbmodelState.rootGroup,color,true)')],
-  ['grupo Blockbench é encontrado sem alcançar irmãos', source.includes('parent!==character&&parent!==voxelGroup&&!parent.userData?.bbGroupUuid')],
+  ['grupo Blockbench é encontrado sem alcançar irmãos', source.includes('while(parent&&parent!==bbmodelState?.rootGroup&&!parent.userData?.bbGroupUuid)parent=parent.parent;')],
   ['pintura não usa mais traverse irrestrito do grupo selecionado', !source.includes("part?.traverse(node=>{if(node.isMesh)")],
   ['exportador Blockbench recebe a cena atual do RoboTV', source.includes('function nyraApplyRoboTVTransferToBBModel(doc)')],
   ['serializador compartilhado é usado pelo exportador .bbmodel', source.includes('const out=buildBBModelExportData()')],
