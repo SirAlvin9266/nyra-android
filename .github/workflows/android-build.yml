@@ -72,6 +72,9 @@ jobs:
       - name: Test Character Creator paint scope
         run: node android/scripts/audit_character_paint_scope.cjs
 
+      - name: Test Pixel Lab touch painting
+        run: node android/scripts/audit_pixel_lab_paint.cjs
+
       - name: Test Character Creator export bridge
         run: node android/scripts/audit_character_export_bridge.cjs
 
