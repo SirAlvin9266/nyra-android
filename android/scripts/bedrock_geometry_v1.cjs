@@ -58,25 +58,38 @@ function nodeChildren(nodes) {
 }
 function getBoneOrigin(node, byId, memo=new Map()) {
   if(memo.has(node.id)) return memo.get(node.id).slice();
-  const raw=node.sourceData?.origin || node.sourceData?.bedrock?.pivot;
-  if(Array.isArray(raw)) { const value=vec3(raw,'bone.origin'); memo.set(node.id,value); return value.slice(); }
-  if(Array.isArray(node.pivot)) {
-    const value=node.pivot.map(v=>v*16);
-    memo.set(node.id,value); return value.slice();
+  // Scene-transfer transforms are local and editable. They must take
+  // precedence over the immutable source snapshot, otherwise moving a bone
+  // in Nyra would export its old Bedrock pivot.
+  const localPosition=node.transform?.position;
+  if(Array.isArray(localPosition)) {
+    const parent=node.parentId ? byId.get(node.parentId) : null;
+    const base=parent && (parent.type==='bone'||parent.type==='group'||parent.type==='empty')
+      ? getBoneOrigin(parent,byId,memo) : [0,0,0];
+    const value=base.map((v,i)=>v+finite(localPosition[i], 'bone.position')*16);
+    memo.set(node.id,value);
+    return value.slice();
   }
-  const local=node.transform?.position || [0,0,0];
-  const parent=node.parentId ? byId.get(node.parentId) : null;
-  const base=parent && (parent.type==='bone'||parent.type==='group'||parent.type==='empty')
-    ? getBoneOrigin(parent,byId,memo) : [0,0,0];
-  const value=base.map((v,i)=>v+local[i]*16);
+  if(Array.isArray(node.pivot)) {
+    const value=node.pivot.map(v=>finite(v,'bone.pivot')*16);
+    memo.set(node.id,value);
+    return value.slice();
+  }
+  const raw=node.sourceData?.origin || node.sourceData?.bedrock?.pivot;
+  const value=Array.isArray(raw)?vec3(raw,'bone.origin'):[0,0,0];
   memo.set(node.id,value);
   return value.slice();
 }
 function getNodeRotation(node, fallback=[0,0,0]) {
-  if(Array.isArray(node.sourceData?.rotation)) return vec3(node.sourceData.rotation,'sourceData.rotation');
   const transform=node.transform||{};
-  const value=vec3(transform.rotation||fallback,'transform.rotation');
-  return transform.rotationUnit==='radians'?radiansToDegrees(value):value;
+  // The live scene transform is authoritative. Source rotation is a fallback
+  // only for legacy nodes that do not expose an editable transform.
+  if(Array.isArray(transform.rotation)) {
+    const value=vec3(transform.rotation,'transform.rotation');
+    return transform.rotationUnit==='radians'?radiansToDegrees(value):value;
+  }
+  if(Array.isArray(node.sourceData?.rotation)) return vec3(node.sourceData.rotation,'sourceData.rotation');
+  return vec3(fallback,'fallback rotation');
 }
 function normalizeFaceUV(face, faceName) {
   if(!isObject(face)) return null;
@@ -137,7 +150,7 @@ function normalizeCube(node, boneMetadata={}) {
   if(!boxUv&&mirror!==undefined) cube.mirror=!!mirror;
   const rotation=getNodeRotation(node);
   if(rotation.some(v=>v!==0)){
-    const origin=source.origin||source.pivot||node.pivot?.map(v=>v*16);
+    const origin=node.pivot?.map(v=>v*16)||source.origin||source.pivot;
     if(!Array.isArray(origin)) throw new Error('Cubo rotacionado sem pivô de origem: '+node.name);
     cube.pivot=bbPositionToBedrock(origin);
     cube.rotation=bbRotationToBedrock(rotation);
@@ -222,7 +235,7 @@ function exportBedrockGeometry(documentData, options={}) {
     else delete item.rotation;
     for(const key of ['binding','reset','mirror','inflate','material','render_group_id','debug','neverRender']){
       if(metadata[key]!==undefined)item[key]=metadata[key];
-      else if(key!=='binding' && key!=='reset') delete item[key];
+      else delete item[key];
     }
     if(item.binding)hasBinding=true;
     const cubes=[];
