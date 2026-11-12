@@ -248,13 +248,13 @@ const status=msg=>{$('status').textContent=msg};
 function getPose(){
  const object=nyraGetSelectedTransferObject();
  if(!object)return null;
- return {nodeId:nyraSelectedNodeId,position:object.position.toArray(),rotation:object.rotation.toArray(),scale:object.scale.toArray()};
+ return {nodeId:nyraSelectedNodeId,position:object.position.toArray(),rotation:[object.rotation.x,object.rotation.y,object.rotation.z],rotationOrder:object.rotation.order,scale:object.scale.toArray()};
 }
 function setPose(pose){
  if(!pose||!pose.nodeId)return;
  const object=nyraNodeObjects.get(pose.nodeId);if(!object)return;
  if(Array.isArray(pose.position))object.position.fromArray(pose.position);
- if(Array.isArray(pose.rotation))object.rotation.fromArray(pose.rotation);
+ if(Array.isArray(pose.rotation))object.rotation.set(pose.rotation[0]||0,pose.rotation[1]||0,pose.rotation[2]||0,pose.rotationOrder||object.rotation.order);
  if(Array.isArray(pose.scale))object.scale.fromArray(pose.scale);
  object.updateMatrix();object.updateMatrixWorld(true);
  nyraSelectTransferNode(pose.nodeId);
@@ -287,10 +287,10 @@ function stopPlayback(){
  $('play').textContent='▶ Reproduzir';
 }
 function interpolatePose(a,b,t){
- const out={};
+ const out={nodeId:a.nodeId,rotationOrder:a.rotationOrder||'XYZ'};
  for(const key of ['position','rotation','scale']){
   const av=a[key]||[],bv=b[key]||[];
-  out[key]=av.map((value,index)=>value+(bv[index]-value)*t);
+  out[key]=av.slice(0,3).map((value,index)=>value+((bv[index]??value)-value)*t);
  }
  return out;
 }
@@ -522,8 +522,11 @@ function nyraDetachNode(id){
  const node=nyraTransferData?.scene?.nodes?.find(item=>item.id===id);if(!node?.parentId)return;
  const object=nyraNodeObjects.get(id);if(!object)throw new Error('Objeto selecionado não encontrado.');
  object.updateWorldMatrix(true,false);
+ nyraTransferRoot.updateWorldMatrix(true,false);
  const position=new THREE.Vector3(),quaternion=new THREE.Quaternion(),scale=new THREE.Vector3();
- object.matrixWorld.decompose(position,quaternion,scale);
+ const inverseRoot=nyraTransferRoot.matrixWorld.clone().invert();
+ const localMatrix=inverseRoot.multiply(object.matrixWorld.clone());
+ localMatrix.decompose(position,quaternion,scale);
  nyraTransferRoot.add(object);object.position.copy(position);object.quaternion.copy(quaternion);object.scale.copy(scale);
  object.updateMatrix();object.updateMatrixWorld(true);
  node.parentId=null;nyraStoreObjectTransform(node,object);
