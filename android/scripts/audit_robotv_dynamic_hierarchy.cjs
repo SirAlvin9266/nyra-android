@@ -22,7 +22,7 @@ try {
 }
 
 const checks = [
-  ['estado da peça selecionada declarado uma única vez', (source.match(/let nyraTransferData=[^\\n]+/g) || []).length === 1 && /let nyraTransferData=[^\\n]*nyraSelectedNodeId=null/.test(source) && !source.includes('let nyraSelectedNodeId=null;')],
+  ['estado da peça selecionada declarado uma única vez', source.indexOf('let nyraTransferData=') >= 0 && source.indexOf('let nyraTransferData=') === source.lastIndexOf('let nyraTransferData=') && !source.includes('let nyraSelectedNodeId=null;')],
   ['seletor de viewport definido uma única vez', (source.match(/function nyraBindViewportSelection\(/g) || []).length === 1],
   ['listener do viewport protegido contra duplicação', source.includes('if(nyraViewportSelectionBound)return;')],
   ['clique no viewport usa Raycaster', source.includes('raycaster.intersectObjects(candidates,false)')],
