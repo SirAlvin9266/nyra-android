@@ -8,22 +8,22 @@ const { spawnSync } = require('node:child_process');
 
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/robotv.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
-const match = html.match(/<script type="module">([\\s\\S]*?)<\\/script>/);
-assert.ok(match, 'RoboTV deve conter exatamente o script de módulo esperado.');
+const match = html.match(/<script type="module">([\s\S]*?)<\/script>/);
+assert.ok(match, 'RoboTV deve conter o script de módulo esperado.');
 
 const source = match[1];
 const tempPath = path.join(os.tmpdir(), 'nyra-robotv-audit-' + process.pid + '.mjs');
 try {
   fs.writeFileSync(tempPath, source, 'utf8');
   const syntax = spawnSync(process.execPath, ['--check', tempPath], { encoding: 'utf8' });
-  assert.equal(syntax.status, 0, 'Sintaxe JavaScript do RoboTV inválida:\\n' + syntax.stderr + syntax.stdout);
+  assert.equal(syntax.status, 0, 'Sintaxe JavaScript do RoboTV inválida:\n' + syntax.stderr + syntax.stdout);
 } finally {
   try { fs.unlinkSync(tempPath); } catch (_) {}
 }
 
 const checks = [
   ['estado da peça selecionada declarado uma única vez', (source.match(/nyraSelectedNodeId=null/g) || []).length === 1],
-  ['seletor de viewport definido uma única vez', (source.match(/function nyraBindViewportSelection\\(/g) || []).length === 1],
+  ['seletor de viewport definido uma única vez', (source.match(/function nyraBindViewportSelection\(/g) || []).length === 1],
   ['listener do viewport protegido contra duplicação', source.includes('if(nyraViewportSelectionBound)return;')],
   ['clique no viewport usa Raycaster', source.includes('raycaster.intersectObjects(candidates,false)')],
   ['hierarquia oferece seleção por clique', source.includes("row.addEventListener('click',()=>nyraSelectTransferNode(node.id))")],
@@ -38,6 +38,6 @@ const checks = [
 
 for (const [label, passed] of checks) {
   assert.ok(passed, 'Falha na auditoria: ' + label);
-  process.stdout.write('PASS ' + label + '\\n');
+  process.stdout.write('PASS ' + label + '\n');
 }
-process.stdout.write('RoboTV dynamic hierarchy audit: ' + checks.length + '/' + checks.length + ' passed.\\n');
+process.stdout.write('RoboTV dynamic hierarchy audit: ' + checks.length + '/' + checks.length + ' passed.\n');
