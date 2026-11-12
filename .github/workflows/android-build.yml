@@ -69,6 +69,9 @@ jobs:
       - name: Test Blockbench to RoboTV transfer mapping
         run: node android/scripts/audit_bbmodel_transfer.cjs
 
+      - name: Test Character Creator paint scope
+        run: node android/scripts/audit_character_paint_scope.cjs
+
       - name: Test RoboTV dynamic hierarchy and selection
         run: node android/scripts/audit_robotv_dynamic_hierarchy.cjs
 
