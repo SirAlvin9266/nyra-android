@@ -315,17 +315,39 @@ const nyraTransferStatus=$('nyraTransferStatus'),nyraTransferTree=$('nyraTransfe
 function nyraSetTransferStatus(text){if(nyraTransferStatus)nyraTransferStatus.textContent=text;status(text);}
 function nyraValidateTransfer(doc){
  if(!doc||doc.schema!=='nyra.scene-transfer'||doc.schemaVersion!==1||!doc.scene||!Array.isArray(doc.scene.nodes)||!doc.animations||!Array.isArray(doc.animations.clips))throw new Error('Documento de transferência Nyra v1 inválido.');
- const ids=new Set();for(const n of doc.scene.nodes){if(!n||typeof n.id!=='string'||!n.id||ids.has(n.id))throw new Error('ID de nó ausente ou duplicado.');ids.add(n.id);}
- const map=new Map(doc.scene.nodes.map(n=>[n.id,n]));
- for(const n of doc.scene.nodes)if(n.parentId&&!map.has(n.parentId))throw new Error('Pai inexistente para '+(n.name||n.id)+'.');
+ const ids=new Set(),map=new Map();
+ for(const node of doc.scene.nodes){
+  if(!node||typeof node.id!=='string'||!node.id||ids.has(node.id))throw new Error('ID de nó ausente ou duplicado.');
+  ids.add(node.id);map.set(node.id,node);
+ }
+ for(const node of doc.scene.nodes)if(node.parentId&&!map.has(node.parentId))throw new Error('Pai inexistente para '+(node.name||node.id)+'.');
+ const visit=new Set(),visited=new Set();
+ const walk=id=>{if(visit.has(id))throw new Error('Ciclo detectado na hierarquia.');if(visited.has(id))return;visit.add(id);const node=map.get(id);if(node?.parentId)walk(node.parentId);visit.delete(id);visited.add(id);};
+ for(const id of ids)walk(id);
  for(const clip of doc.animations.clips)for(const channel of clip.channels||[])if(!map.has(channel.targetNodeId))throw new Error('Canal aponta para nó inexistente.');
  return doc;
 }
 function nyraRemovePreviousTransfer(){
- if(nyraClipFrame)cancelAnimationFrame(nyraClipFrame);nyraClipFrame=0;nyraClipState=null;
- if(nyraGltfFrame)cancelAnimationFrame(nyraGltfFrame);nyraGltfFrame=0;nyraGltfLastTime=0;if(nyraGltfMixer){nyraGltfMixer.stopAllAction();if(nyraTransferRoot)nyraGltfMixer.uncacheRoot(nyraTransferRoot);}nyraGltfMixer=null;nyraGltfAction=null;nyraGltfAnimations=[];
- if(nyraTransferRoot){scene.remove(nyraTransferRoot);nyraTransferRoot.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const a=Array.isArray(o.material)?o.material:[o.material];a.forEach(m=>m?.dispose());}});}
- nyraTransferRoot=null;nyraTransferData=null;nyraSelectedNodeId=null;nyraNodeObjects.clear();nyraBaseRotations.clear();nyraBaseTransforms.clear();if(nyraTransferTree)nyraTransferTree.replaceChildren();if(nyraClipControls)nyraClipControls.style.display='none';if(nyraExportTransfer)nyraExportTransfer.disabled=true;if(nyraExportGLB)nyraExportGLB.disabled=true;
+ nyraStopClip(true);
+ if(nyraTransferRoot){scene.remove(nyraTransferRoot);nyraTransferRoot.traverse(object=>{
+  if(object.geometry)object.geometry.dispose();
+  if(object.material){const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>{
+   if(material?.map)material.map.dispose();material?.dispose();
+  });}
+ });}
+ nyraTransferRoot=null;nyraTransferData=null;nyraSelectedNodeId=null;
+ nyraNodeObjects.clear();nyraBaseRotations.clear();nyraBaseTransforms.clear();
+ if(nyraTransferTree)nyraTransferTree.replaceChildren();
+ if(nyraClipControls)nyraClipControls.style.display='none';
+ if(nyraClipSelect){nyraClipSelect.replaceChildren();nyraClipSelect.disabled=true;}
+ if($('nyraClipPlay'))$('nyraClipPlay').disabled=true;
+ if($('nyraClipStop'))$('nyraClipStop').disabled=true;
+ if(nyraExportTransfer)nyraExportTransfer.disabled=true;
+ if(nyraExportGLB)nyraExportGLB.disabled=true;
+ if($('zeroJoint'))$('zeroJoint').disabled=true;
+ if($('nyraAssociateMode'))$('nyraAssociateMode').disabled=true;
+ if($('nyraDetachNode'))$('nyraDetachNode').disabled=true;
+ if($('nyraCancelAssociation'))$('nyraCancelAssociation').disabled=true;
 }
 function nyraBuildTransferScene(doc){
  const root=new THREE.Group();root.name=doc.project?.name||'Projeto Nyra';
