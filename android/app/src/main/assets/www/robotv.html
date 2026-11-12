@@ -418,20 +418,24 @@ function nyraGetSelectedTransferObject(){
 }
 function nyraSyncTransformControls(){
  const object=nyraGetSelectedTransferObject();
- const controls=[['px','x',object?.position],['py','y',object?.position],['pz','z',object?.position],
+ const fields=[['px','x',object?.position],['py','y',object?.position],['pz','z',object?.position],
  ['rx','x',object?.rotation],['ry','y',object?.rotation],['rz','z',object?.rotation],
  ['sx','x',object?.scale],['sy','y',object?.scale],['sz','z',object?.scale]];
- for(const [id,axis,vector] of controls){
+ for(const [id,axis,vector] of fields){
   const input=$(id),label=$(id+'Val');if(!input||!vector)continue;
-  const factor=id[0]==='r'?180/Math.PI:1;
-  const value=vector[axis]*factor;input.value=String(value);if(label)label.textContent=(id[0]==='r'?value.toFixed(0)+'°':value.toFixed(2));
+  const radians=id[0]==='r',value=vector[axis]*(radians?180/Math.PI:1);
+  input.value=String(value);if(label)label.textContent=radians?Math.round(value)+'°':value.toFixed(2);
  }
+ if($('zeroJoint'))$('zeroJoint').disabled=!object;
+ if($('nyraAssociateMode'))$('nyraAssociateMode').disabled=!object;
+ if($('nyraDetachNode'))$('nyraDetachNode').disabled=!object||!nyraTransferData?.scene?.nodes?.find(node=>node.id===nyraSelectedNodeId)?.parentId;
 }
 function nyraUpdateSelectedVector(axis,value){
  const object=nyraGetSelectedTransferObject();if(!object)return;
  const vector=axis[0]==='p'?object.position:axis[0]==='r'?object.rotation:object.scale;
  const dimension=axis[1],factor=axis[0]==='r'?Math.PI/180:1;
  const number=Number(value);if(!Number.isFinite(number))return;
+ if(axis[0]==='s'&&number<=0)return;
  vector[dimension]=number*factor;
  object.updateMatrix();object.updateMatrixWorld(true);
  const label=$(axis+'Val');if(label)label.textContent=axis[0]==='r'?number.toFixed(0)+'°':number.toFixed(2);
