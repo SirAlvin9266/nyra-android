@@ -184,6 +184,39 @@ Compartilhar apresentação e infraestrutura; não forçar os três domínios a 
 - **Não reorganizar apenas para aumentar o número de arquivos**: modularizar por responsabilidade e fronteira testável.
 - **Não alterar funcionalidades 3D e formatos** como parte de uma reforma visual sem testes de equivalência.
 
-## 10. Limites desta auditoria
+## 10. Achados detalhados da inspeção estática dos controles
+
+### Oficina de Itens
+- Foram encontrados 7 botões de ação explícitos no payload, além da seleção de item por abas.
+- A pintura está ligada a `pointerdown`; não foi encontrado listener `pointermove` no documento de referência. Portanto, a pintura contínua por arraste não está presente nesse payload.
+- Há controles explícitos para borracha, restauração, cor, grade, exportação PNG, matriz JSON e geração de MCAddon.
+- Ainda é necessário verificar no WebView se desenho, grade e prévias usam a mesma matriz e se os arquivos exportados preservam dimensões, transparência e conteúdo esperado.
+- A inexistência de `pointermove` foi observada no código; a experiência de gesto e a melhor forma de adicionar arraste exigem ensaio de toque.
+
+### Criador de Personagens
+- O payload contém controles para centralizar câmera, cor aleatória, adicionar forma, mover/girar/escalar, apagar/restaurar componente, modos de seleção/adição/remoção, importar e exportar.
+- Os eventos localizados incluem eventos de controles 3D, `input`, `change`, teclado e ponteiros; isso não garante por si só que os botões e controles estejam corretos em todas as situações.
+- O shell injeta uma camada de I/O e DSL no documento do Criador. Essa camada acrescenta árvore de modelos, importação/exportação e geração matemática. A coexistência de controles originais e controles injetados deve ser analisada como uma provável fonte de densidade e sobreposição; não há prova de botão duplicado apenas pela presença de duas camadas.
+- A seleção de objeto e os modos voxel são conceitos diferentes. O inventário de eventos deve verificar conflito entre transform controls, picking e gestos de toque.
+- A auditoria de adaptadores verifica presença de marcadores e sintaxe do módulo gerado, não o resultado visual de cada ação.
+
+### RoboTV / Animação
+- O payload contém controles explícitos de câmera, quadros, duplicar/excluir pose, reprodução/parada, velocidade, seleção de articulação e rotação X/Y/Z, pose rápida, equipamentos, mochila, salvar, abrir e exportar.
+- A timeline/frames, os controles de junta e a reprodução dependem do mesmo estado de pose. A consistência entre editar, duplicar, excluir e reproduzir precisa de teste funcional com projetos de várias poses.
+- Foram encontrados poucos listeners globais explícitos no recorte estático, com parte da interação delegada por handlers e controles individuais. Isso pede teste de fluxo, não permite concluir que existam botões sem ação.
+
+### Limitação do teste automatizado de controles
+O script `audit_application_controls.cjs`:
+- confirma presença de IDs e nomes de funções esperadas;
+- verifica unicidade de IDs por documento;
+- verifica sintaxe de scripts inline;
+- confirma alguns marcadores do shell/guia.
+
+Ele **não** cria um navegador real, não dispara cada evento de usuário, não verifica se cada botão tem listener/handler correto, não simula pointer/touch, não verifica duplicação semântica de comandos e não mede layout. A saída PASS deve ser interpretada como verificação estrutural/sintática, não como teste funcional completo.
+
+### Evidência de build
+No commit `338b7575dfcc0a3deb5bc7636d8ad1d201af78ec`, a execução GitHub Actions `43130468008` terminou com conclusão `success`. Os passos automatizados de auditoria dos editores, adaptadores, controles, DSL, importador BBModel, pré-análise GLB, compilação e auditoria de assets do APK passaram. O artefato `nyra-android-debug-apk` foi gerado (ZIP de aproximadamente 1,9 MB); seu digest SHA-256 publicado pelo GitHub é `d15c6bd9d844954c7603f79d72cb39110aed62a8ecccc25ea017ee960b2ef6f7`. Isso não comprova execução/inspeção no aparelho.
+
+## 11. Limites desta auditoria
 
 Esta análise foi feita a partir dos arquivos versionados na branch de recuperação e de leitura estática. Não foi possível inspecionar o APK instalado, medir performance real, observar renderização e navegação em aparelho, ou validar cada botão com toque. Esses itens permanecem explicitamente pendentes e não devem ser apresentados como problemas comprovados. A próxima etapa de validação visual precisa usar um APK construído do commit identificado e capturas de telas/fluxos do aparelho.
