@@ -477,50 +477,57 @@ function nyraSetAssociationMode(active){
   :'Modo de associação desativado.';
  nyraSyncTransformControls();
 }
+function nyraRebuildTransferChildren(){
+ const nodes=nyraTransferData.scene.nodes;
+ const children=new Map();
+ for(const node of nodes){
+  delete node.children;
+  if(node.parentId){if(!children.has(node.parentId))children.set(node.parentId,[]);children.get(node.parentId).push(node.id);}
+ }
+ for(const node of nodes)node.children=children.get(node.id)||[];
+}
+function nyraStoreObjectTransform(node,object){
+ node.transform={...(node.transform||{}),position:object.position.toArray(),rotation:[object.rotation.x,object.rotation.y,object.rotation.z],rotationOrder:object.rotation.order,rotationUnit:'radians',scale:object.scale.toArray()};
+}
 function nyraAssociateNodes(childId,parentId){
  if(!nyraTransferData)throw new Error('Nenhum modelo está carregado.');
  if(!childId||!parentId||childId===parentId)throw new Error('Escolha duas peças diferentes.');
- const nodes=nyraTransferData.scene.nodes;
- const child=nodes.find(node=>node.id===childId),parent=nodes.find(node=>node.id===parentId);
+ const nodes=nyraTransferData.scene.nodes,child=nodes.find(node=>node.id===childId),parent=nodes.find(node=>node.id===parentId);
  if(!child||!parent)throw new Error('Peça de origem ou destino não encontrada.');
  let cursor=parent;
- while(cursor){
-  if(cursor.id===childId)throw new Error('Associação inválida: isso criaria um ciclo.');
-  cursor=cursor.parentId?nodes.find(node=>node.id===cursor.parentId):null;
- }
+ while(cursor){if(cursor.id===childId)throw new Error('Associação inválida: isso criaria um ciclo.');cursor=cursor.parentId?nodes.find(node=>node.id===cursor.parentId):null;}
  const childObject=nyraNodeObjects.get(childId),parentObject=nyraNodeObjects.get(parentId);
  if(!childObject||!parentObject)throw new Error('Os objetos 3D da associação não estão disponíveis.');
- // Preserve world-space pose while changing parent.
- childObject.updateWorldMatrix(true,false);
+ childObject.updateWorldMatrix(true,false);parentObject.updateWorldMatrix(true,false);
  const worldPosition=new THREE.Vector3(),worldQuaternion=new THREE.Quaternion(),worldScale=new THREE.Vector3();
  childObject.matrixWorld.decompose(worldPosition,worldQuaternion,worldScale);
- parentObject.add(childObject);
- const parentInverse=parentObject.matrixWorld.clone().invert();
- const localMatrix=parentInverse.multiply(new THREE.Matrix4().compose(worldPosition,worldQuaternion,worldScale));
- localMatrix.decompose(childObject.position,childObject.quaternion,childObject.scale);
- childObject.rotation.order=child.transform?.rotationOrder||childObject.rotation.order;
- childObject.updateMatrix();childObject.updateMatrixWorld(true);
- child.parentId=parentId;
- nyraTransferData=nyraValidateTransfer(nyraTransferData);
- for(const node of nodes){delete node.children;}
- const childMap=new Map();for(const node of nodes){if(node.parentId){if(!childMap.has(node.parentId))childMap.set(node.parentId,[]);childMap.get(node.parentId).push(node.id);}}
- for(const node of nodes)node.children=childMap.get(node.id)||[];
- nyraRenderTransferTree(nyraTransferData);
- nyraSelectTransferNode(childId);
+ const oldParent=childObject.parent;
+ try{
+  parentObject.add(childObject);
+  const inverse=parentObject.matrixWorld.clone().invert();
+  const local=inverse.multiply(new THREE.Matrix4().compose(worldPosition,worldQuaternion,worldScale));
+  local.decompose(childObject.position,childObject.quaternion,childObject.scale);
+  childObject.updateMatrix();childObject.updateMatrixWorld(true);
+  child.parentId=parentId;nyraStoreObjectTransform(child,childObject);
+  nyraRebuildTransferChildren();nyraValidateTransfer(nyraTransferData);
+ }catch(error){
+  if(oldParent)oldParent.add(childObject);
+  child.parentId=oldParent?.userData?.nyraTransferNodeId||null;
+  throw error;
+ }
+ nyraRenderTransferTree(nyraTransferData);nyraSelectTransferNode(childId);
  nyraSetTransferStatus('Associação criada: '+(child.name||child.id)+' agora pertence a '+(parent.name||parent.id)+'.');
 }
 function nyraDetachNode(id){
  const node=nyraTransferData?.scene?.nodes?.find(item=>item.id===id);if(!node?.parentId)return;
  const object=nyraNodeObjects.get(id);if(!object)throw new Error('Objeto selecionado não encontrado.');
  object.updateWorldMatrix(true,false);
- const wp=new THREE.Vector3(),wq=new THREE.Quaternion(),ws=new THREE.Vector3();
- object.matrixWorld.decompose(wp,wq,ws);
- nyraTransferRoot.add(object);
- object.position.copy(wp);object.quaternion.copy(wq);object.scale.copy(ws);
- node.parentId=null;node.transform={...(node.transform||{}),position:object.position.toArray(),rotation:[object.rotation.x,object.rotation.y,object.rotation.z],scale:object.scale.toArray()};
- for(const item of nyraTransferData.scene.nodes)delete item.children;
- const map=new Map();for(const item of nyraTransferData.scene.nodes)if(item.parentId){if(!map.has(item.parentId))map.set(item.parentId,[]);map.get(item.parentId).push(item.id);}
- for(const item of nyraTransferData.scene.nodes)item.children=map.get(item.id)||[];
+ const position=new THREE.Vector3(),quaternion=new THREE.Quaternion(),scale=new THREE.Vector3();
+ object.matrixWorld.decompose(position,quaternion,scale);
+ nyraTransferRoot.add(object);object.position.copy(position);object.quaternion.copy(quaternion);object.scale.copy(scale);
+ object.updateMatrix();object.updateMatrixWorld(true);
+ node.parentId=null;nyraStoreObjectTransform(node,object);
+ nyraRebuildTransferChildren();nyraValidateTransfer(nyraTransferData);
  nyraRenderTransferTree(nyraTransferData);nyraSelectTransferNode(id);
  nyraSetTransferStatus('Associação removida. A peça foi preservada na posição visual atual.');
 }
