@@ -314,13 +314,24 @@ $('play').onclick=()=>{
  animationId=requestAnimationFrame(playLoop);
 };
 $('stop').onclick=()=>{stopPlayback();if(selectedFrame>=0)setPose(frames[selectedFrame].pose);status('Reprodução parada.')};
-function projectData(){return {format:'Nyra3DStudio',version:1,model:'RoboTV-blocky',savedAt:new Date().toISOString(),pose:getPose(),frames:frames}}
-function download(name,data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function projectData(){return {format:'Nyra3DStudio',version:2,model:'NyraSceneTransfer',savedAt:new Date().toISOString(),transfer:nyraTransferData,frames:frames}}
+function download(name,data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 $('exportProject').onclick=()=>download('RoboTV_Nyra3DStudio.json',projectData());
-$('exportAnim').onclick=()=>download('RoboTV_Animacao.json',{format:'Nyra3DAnimation',version:1,model:'RoboTV-blocky',frames});
-$('saveProject').onclick=()=>{try{localStorage.setItem('nyra3d-robotv-project',JSON.stringify(projectData()));status('Projeto salvo neste navegador. Use Exportar JSON para ter uma cópia.')}catch(e){status('O navegador bloqueou o salvamento local. Use Exportar JSON.')}};
+$('exportAnim').onclick=()=>download('RoboTV_Animacao.json',{format:'Nyra3DAnimation',version:2,model:'NyraSceneTransfer',frames});
+$('saveProject').onclick=()=>{try{localStorage.setItem('nyra3d-robotv-project',JSON.stringify(projectData()));status('Projeto e animações salvos neste navegador. Use Exportar JSON para criar uma cópia.')}catch(error){status('O navegador bloqueou o salvamento local. Use Exportar JSON.')}};
 $('loadProject').onclick=()=>$('fileInput').click();
-$('fileInput').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{const d=JSON.parse(await file.text());if(!d||!Array.isArray(d.frames))throw new Error('Arquivo não contém quadros válidos');frames=d.frames.filter(f=>f&&f.pose&&typeof f.time==='number');selectedFrame=frames.length?0:-1;if(selectedFrame>=0)setPose(frames[0].pose);else if(d.pose)setPose(d.pose);renderFrames();status('Projeto carregado: '+frames.length+' quadro(s).')}catch(err){status('Não foi possível abrir esse JSON: '+err.message)}e.target.value=''};
+$('fileInput').onchange=async event=>{
+ const file=event.target.files?.[0];if(!file)return;
+ try{
+  const data=JSON.parse(await file.text());
+  if(!data||!Array.isArray(data.frames))throw new Error('Arquivo não contém quadros válidos.');
+  if(data.transfer){await nyraLoadTransfer(data.transfer,null);}
+  frames=data.frames.filter(frame=>frame&&frame.pose&&typeof frame.time==='number');
+  selectedFrame=frames.length?0:-1;if(selectedFrame>=0)setPose(frames[0].pose);
+  renderFrames();status('Projeto carregado: '+frames.length+' quadro(s).');
+ }catch(error){status('Não foi possível abrir esse JSON: '+(error?.message||String(error)));}
+ event.target.value='';
+};
 document.querySelectorAll('[data-item]').forEach(b=>b.addEventListener('click',()=>equiparItem(b.dataset.item)));
 document.querySelectorAll('[data-unequip]').forEach(b=>b.addEventListener('click',()=>desequiparItem(b.dataset.unequip)));
 $('backpackToggle').onclick=()=>{backpack.visible=!backpack.visible;$('backpackToggle').textContent=backpack.visible?'🎒 Desequipar mochila de fios':'🎒 Equipar mochila de fios';$('backpackToggle').classList.toggle('selected',backpack.visible);status(backpack.visible?'Mochila de fios equipada.':'Mochila de fios removida.')};
