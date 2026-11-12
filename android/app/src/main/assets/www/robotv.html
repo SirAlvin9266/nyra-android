@@ -504,12 +504,18 @@ function nyraRenderTransferTree(doc){
 }
 async function nyraLoadTransfer(doc,glb){
  const normalized=nyraValidateTransfer(doc);
- let candidate=null,clips=[];
+ let candidate=null,clips=[],nodeObjects=new Map(),baseTransforms=new Map();
  if(glb instanceof ArrayBuffer&&glb.byteLength>0){
   const loader=new GLTFLoader();
   const parsed=await new Promise((resolve,reject)=>loader.parse(glb,'',resolve,reject));
   candidate=parsed.scene;clips=parsed.animations||[];
- }else candidate=nyraBuildTransferScene(normalized);
+  // Map known transfer IDs to parsed GLTF nodes when exporter preserved names.
+  const byName=new Map();candidate.traverse(object=>{if(object.name&&!byName.has(object.name))byName.set(object.name,object);});
+  for(const node of normalized.scene.nodes){const object=byName.get(node.name)||byName.get(node.id);if(object){object.userData.nyraTransferNodeId=node.id;nodeObjects.set(node.id,object);}}
+ }else{
+  candidate=nyraBuildTransferScene(normalized);
+  nodeObjects=new Map(nyraNodeObjects);
+ }
  if(!candidate)throw new Error('Não foi possível construir a cena recebida.');
  candidate.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(candidate);
@@ -518,7 +524,14 @@ async function nyraLoadTransfer(doc,glb){
   candidate.position.sub(center);candidate.scale.multiplyScalar(4.8/max);
   controls.target.set(0,0,0);camera.position.set(8,5,8);controls.update();
  }
- nyraRemovePreviousTransfer();nyraTransferRoot=candidate;nyraTransferData=normalized;nyraGltfAnimations=clips;scene.add(candidate);robot.visible=false;
+ candidate.traverse(object=>{
+  const id=object.userData?.nyraTransferNodeId;
+  if(id){nodeObjects.set(id,object);baseTransforms.set(id,{position:object.position.clone(),rotation:object.rotation.clone(),scale:object.scale.clone()});}
+ });
+ nyraRemovePreviousTransfer();
+ nyraTransferRoot=candidate;nyraTransferData=normalized;nyraGltfAnimations=clips;scene.add(candidate);
+ nyraNodeObjects=nodeObjects;nyraBaseTransforms=baseTransforms;
+ robot.visible=false;
  nyraRenderTransferTree(normalized);nyraBindViewportSelection();
  nyraClipSelect.replaceChildren();
  const visibleClips=clips.length?clips:normalized.animations.clips;
@@ -529,8 +542,8 @@ async function nyraLoadTransfer(doc,glb){
  nyraExportTransfer.disabled=false;nyraExportGLB.disabled=false;
  $('zeroJoint').disabled=true;$('nyraAssociateMode').disabled=true;$('nyraDetachNode').disabled=true;$('nyraCancelAssociation').disabled=true;
  nyraSetTransferStatus('Projeto recebido: '+normalized.scene.nodes.length+' nós e '+normalized.animations.clips.length+' animação(ões). '+(clips.length?'Visor GLB com materiais, UVs e clips compatíveis carregado.':'Pré-visualização simplificada; documento e dados originais preservados.'));
- if(normalized.scene.nodes.length){const first=normalized.scene.nodes.find(node=>!node.parentId)||normalized.scene.nodes[0];nyraSelectTransferNode(first.id);}
-
+ const first=normalized.scene.nodes.find(node=>!node.parentId&&nodeObjects.has(node.id))||normalized.scene.nodes.find(node=>nodeObjects.has(node.id));
+ if(first)nyraSelectTransferNode(first.id);
 }
 function nyraInterpolateChannel(frames,time,base){
  if(!frames.length)return base;
