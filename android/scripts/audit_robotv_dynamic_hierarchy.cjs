@@ -44,6 +44,13 @@ const checks = [
   ['remoção da associação preserva a transformação mundial', source.includes('inverseRoot.multiply(object.matrixWorld.clone())')],
   ['importação da cena continua disponível', source.includes("event.data.type==='NYRA_SCENE_TRANSFER_IMPORT'")],
   ['exportação GLB continua disponível', source.includes('nyraExportGLB.onclick=async()=>')],
+  ['exportação .bbmodel reutiliza o Criador de Personagens', html.includes('id="nyraExportBBModel"') && source.includes("type:'NYRA_ROBOTV_EXPORT_BBMODEL'")],
+  ['exportação JSON sincroniza transformações atuais', source.includes('if(object)nyraStoreObjectTransform(node,object)')],
+  ['associação Blockbench aceita somente grupos como pai', source.includes("!['bone','group'].includes(parent.type)")],
+  ['host encaminha exportação ao Criador de Personagens', integratedHtml.includes("type==='NYRA_ROBOTV_EXPORT_BBMODEL'") && integratedHtml.includes("type:'NYRA_ROBOTV_EXPORT_BBMODEL'")],
+  ['host devolve o resultado da exportação ao RoboTV', integratedHtml.includes("type==='NYRA_ROBOTV_EXPORT_RESULT'")],
+  ['importação Blockbench retorna o mesmo requestId', integratedHtml.includes("type==='NYRA_SCENE_TRANSFER_ACK'") && integratedHtml.includes("requestId:event.data.requestId")],
+
   ['exportação do contrato de cena continua disponível', source.includes('nyraExportTransfer.onclick=')],
 ];
 
