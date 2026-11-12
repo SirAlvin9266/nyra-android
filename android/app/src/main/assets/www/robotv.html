@@ -342,6 +342,27 @@ const nyraTreeStyle=document.createElement('style');
 nyraTreeStyle.textContent='.nyra-tree-row{display:block;width:100%;text-align:left;border:0;border-radius:5px;background:transparent;color:var(--muted);padding-top:5px;padding-bottom:5px;cursor:pointer;font:inherit}.nyra-tree-row:hover,.nyra-tree-row.selected{background:rgba(100,227,206,.14);color:var(--text)}';
 document.head.appendChild(nyraTreeStyle);
 let nyraSelectedNodeId=null;
+function nyraBindViewportSelection(){
+ const raycaster=new THREE.Raycaster();
+ const pointer=new THREE.Vector2();
+ let downX=0,downY=0;
+ renderer.domElement.addEventListener('pointerdown',event=>{downX=event.clientX;downY=event.clientY;});
+ renderer.domElement.addEventListener('pointerup',event=>{
+  if(!nyraTransferRoot||Math.hypot(event.clientX-downX,event.clientY-downY)>5)return;
+  const rect=renderer.domElement.getBoundingClientRect();
+  if(!rect.width||!rect.height)return;
+  pointer.x=((event.clientX-rect.left)/rect.width)*2-1;
+  pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(pointer,camera);
+  const candidates=[];
+  nyraTransferRoot.traverse(object=>{if(object.isMesh)candidates.push(object);});
+  const hit=raycaster.intersectObjects(candidates,false)[0];
+  if(!hit)return;
+  let node=hit.object;
+  while(node&&!node.userData?.nyraTransferNodeId)node=node.parent;
+  if(node?.userData?.nyraTransferNodeId)nyraSelectTransferNode(node.userData.nyraTransferNodeId);
+ });
+}
 function nyraSelectTransferNode(id){
  const object=nyraNodeObjects.get(id);if(!object)return;
  nyraSelectedNodeId=id;
