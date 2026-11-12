@@ -65,69 +65,43 @@ footer{color:var(--muted);font-size:11px;padding:0 14px 14px;max-width:1200px;ma
   </div>
  </div>
 </section>
-<section class="panel" id="nyraModelEditorPanel">
- <div class="panel-title">Modelo e hierarquia</div>
+<section class="panel">
+ <div class="panel-title">Articulações e animação</div>
  <div class="controls">
-  <div class="row"><button class="primary" id="nyraImportBBModel">Importar modelo Blockbench (.bbmodel)</button><button id="nyraExportGLB" disabled>Exportar GLB</button><button id="nyraExportTransfer" disabled>Exportar projeto Nyra JSON</button></div>
-  <input type="file" id="nyraTransferFile" accept=".bbmodel,application/json" hidden>
-  <div id="nyraTransferStatus" class="status">Importe um modelo ou envie a cena pelo Criador de Personagens. Selecione uma peça na árvore ou diretamente no viewport.</div>
-  <label>Hierarquia de peças</label>
-  <div id="nyraTransferTree" style="max-height:220px;overflow:auto;margin-top:4px;font-size:12px;color:var(--muted)" role="tree"></div>
-  <div class="divider"></div>
-  <label>Transformação da peça selecionada</label>
-  <div class="transform-grid">
-   <div><label for="px">Posição X: <span id="pxVal">0.00</span></label><input id="px" type="range" min="-8" max="8" step="0.01" value="0"></div>
-   <div><label for="py">Posição Y: <span id="pyVal">0.00</span></label><input id="py" type="range" min="-8" max="8" step="0.01" value="0"></div>
-   <div><label for="pz">Posição Z: <span id="pzVal">0.00</span></label><input id="pz" type="range" min="-8" max="8" step="0.01" value="0"></div>
+  <div><label for="joint">Parte selecionada</label><select id="joint" style="width:100%">
+   <option value="head">Cabeça / TV</option><option value="torso">Tronco</option><option value="armL">Braço esquerdo</option><option value="armR">Braço direito</option><option value="legL">Perna esquerda</option><option value="legR">Perna direita</option>
+  </select></div>
+  <div class="joint-list" id="jointButtons"></div>
+  <div class="slider-row">
    <div><label for="rx">Rotação X: <span id="rxVal">0°</span></label><input id="rx" type="range" min="-180" max="180" value="0"></div>
    <div><label for="ry">Rotação Y: <span id="ryVal">0°</span></label><input id="ry" type="range" min="-180" max="180" value="0"></div>
    <div><label for="rz">Rotação Z: <span id="rzVal">0°</span></label><input id="rz" type="range" min="-180" max="180" value="0"></div>
-   <div><label for="sx">Escala X: <span id="sxVal">1.00</span></label><input id="sx" type="range" min="0.05" max="4" step="0.01" value="1"></div>
-   <div><label for="sy">Escala Y: <span id="syVal">1.00</span></label><input id="sy" type="range" min="0.05" max="4" step="0.01" value="1"></div>
-   <div><label for="sz">Escala Z: <span id="szVal">1.00</span></label><input id="sz" type="range" min="0.05" max="4" step="0.01" value="1"></div>
+   <div><label>Pose rápida</label><button id="zeroJoint" style="width:100%">Zerar articulação</button></div>
   </div>
-  <div class="row"><button id="zeroJoint" disabled>Resetar rotação</button></div>
-  <div class="divider"></div>
-  <label>Associação entre peças</label>
-  <div class="row"><button id="nyraAssociateMode" disabled>Associar peça selecionada…</button><button id="nyraCancelAssociation" disabled>Cancelar</button></div>
-  <div id="nyraAssociationStatus" class="status">Selecione uma peça e inicie a associação para escolher seu novo objeto pai.</div>
-  <div class="row"><button id="nyraDetachNode" disabled>Remover associação</button></div>
- </div>
-</section>
-<section class="panel" id="nyraAnimationPanel">
- <div class="panel-title">Animação e quadros-chave</div>
- <div class="controls">
-  <div class="row">
-   <button class="primary" id="addFrame">＋ Guardar pose</button>
-   <button id="duplicateFrame">Duplicar</button>
-   <button class="danger" id="deleteFrame">Excluir pose</button>
+  <div id="samplePoses" style="display:none">
+   <label>Animações prontas (aplicam pose editável)</label>
+   <div class="row"><button data-preset="idle">Neutro</button><button data-preset="walk">Caminhada</button><button data-preset="attack">Ataque</button></div>
   </div>
-  <div id="frames"></div>
-  <div class="row">
-   <button class="primary" id="play">▶ Reproduzir</button>
-   <button id="stop">■ Parar</button>
-   <label style="flex:1;min-width:110px">Velocidade
-    <select id="speed"><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="1.5">1,5×</option><option value="2">2×</option></select>
-   </label>
+  <div class="equipamentos-container" id="sampleEquipment" style="display:none">
+   <label style="font-size:14px;color:var(--text);font-weight:700">Equipamentos voxel</label>
+   <div class="row">
+    <button type="button" data-item="sword">⚔ Equipar espada</button>
+    <button type="button" data-unequip="sword">✕ Desequipar espada</button>
+   </div>
+   <div class="row">
+    <button type="button" data-item="pickaxe">⛏ Equipar picareta</button>
+    <button type="button" data-item="axe">🪓 Equipar machado</button>
+   </div>
+   <div class="row"><button type="button" id="backpackToggle" class="special">🎒 Equipar mochila de fios</button></div>
+   <small style="color:var(--muted)">Espada, picareta e machado ficam presos ao braço direito. A mochila de fios fica presa ao tronco. Os equipamentos não alteram os quadros-chave salvos.</small>
   </div>
-  <div id="nyraClipControls" style="display:none">
-   <div class="row"><button id="nyraClipPlay" disabled>▶ Reproduzir animação do modelo</button><button id="nyraClipStop" disabled>■ Parar animação</button></div>
-   <label for="nyraClipSelect">Clipes importados</label><select id="nyraClipSelect" style="width:100%" disabled></select>
+  <div>
+   <label>Projeto</label>
+   <div class="row"><button class="primary" id="saveProject">Salvar no celular</button><button id="exportProject">Exportar JSON</button></div>
+   <div class="row"><button id="loadProject">Abrir projeto JSON</button><button id="exportAnim">Exportar animação</button></div>
+   <input type="file" id="fileInput" accept=".json,application/json" hidden>
+<div class="row"><button class="primary" id="nyraImportBBModel">Importar modelo Blockbench (.bbmodel)</button><button id="nyraExportGLB" disabled>Exportar modelo GLB</button><button id="nyraExportTransfer" disabled>Exportar projeto Nyra JSON</button></div><input type="file" id="nyraTransferFile" accept=".bbmodel,application/json" hidden><div id="nyraTransferStatus" class="status">Selecione um .bbmodel aqui. O RoboTV usa o importador Blockbench do Criador de Personagens e recebe o modelo com hierarquia e animações.</div><div id="nyraTransferTree" style="max-height:150px;overflow:auto;margin-top:8px;font-size:12px;color:var(--muted)"></div><div id="nyraClipControls" style="display:none;margin-top:8px"><label for="nyraClipSelect">Animação do modelo</label><div class="row"><select id="nyraClipSelect" style="flex:1"></select><button id="nyraClipPlay">Reproduzir</button><button id="nyraClipStop">Parar</button></div></div>
   </div>
-  <div class="divider"></div>
-  <label>Projeto de animação</label>
-  <div class="row"><button class="primary" id="saveProject">Salvar no celular</button><button id="exportProject">Exportar JSON</button></div>
-  <div class="row"><button id="loadProject">Abrir projeto JSON</button><button id="exportAnim">Exportar animação</button></div>
-  <input type="file" id="fileInput" accept=".json,application/json" hidden>
- </div>
-</section>
-<style>
-.transform-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.transform-grid input{width:100%;min-width:0}
-.divider{height:1px;background:var(--border);margin:8px 0}
-#nyraAssociationStatus{min-height:34px}
-#zeroJoint:disabled{opacity:.45}
-</style>
   <div class="status" id="status">Pronto. Escolha uma articulação e mova os controles.</div>
  </div>
 </section>
@@ -216,7 +190,79 @@ let equippedItem='none';
 function setEquipment(type){
  equippedItem=type;
  sword.visible=type==='sword'; pickaxe.visible=type==='pickaxe'; axe.visible=type==='axe';
- $('resetView').onclick=()=>{camera.position.set(5.4,4.4,8.2);controls.target.set(0,1.8,0);controls.update()};
+ document.querySelectorAll('[data-item]').forEach(b=>b.classList.toggle('selected',b.dataset.item===type));
+ status(type==='none'?'Equipamento removido.':'Equipamento equipado: '+({sword:'espada',pickaxe:'picareta',axe:'machado'}[type])+'.');
+}
+function equiparItem(tipoItem){setEquipment(tipoItem)}
+function desequiparItem(tipoItem){if(tipoItem===equippedItem)setEquipment('none');else status('Essa ferramenta não está equipada.')}
+// A inicialização visual é feita depois da declaração de status, para evitar erro de ordem.
+
+// Mochila em blocos presa atrás do tronco; não participa nem altera os keyframes.
+const backpack = new THREE.Group(); backpack.name='Backpack_Attachment';
+backpack.position.set(0,.02,-.39); parts.torso.add(backpack);
+cube(backpack,'Backpack_Main',[0,-.02,-.06],[.66,.72,.30],mat(0x315c50,.85,.05));
+cube(backpack,'Backpack_Flap',[0,.30,.105],[.54,.18,.06],mat(0x477b68,.8,.05));
+cube(backpack,'Backpack_Pocket',[0,-.20,.115],[.42,.25,.06],mat(0x24483f,.9,.02));
+cube(backpack,'Backpack_Buckle',[0,-.18,.15],[.12,.10,.04],mat(0xd2aa59,.5,.35));
+// Antena e fios em cubos, como acessório voxel personalizável.
+cube(backpack,'Backpack_Antenna_Base',[.18,.43,-.01],[.12,.10,.12],mat(0x68788a,.7,.2));
+cube(backpack,'Backpack_Antenna_Stem',[.18,.59,-.01],[.045,.25,.045],mat(0x9aa6b7,.45,.35));
+cube(backpack,'Backpack_Antenna_Tip',[.18,.74,-.01],[.10,.10,.10],mat(0xff5b75,.35,.2));
+cube(backpack,'Backpack_Wire_L',[-.18,-.48,.01],[.055,.28,.055],mat(0x00e6bd,.35,.25)).rotation.z=-.22;
+cube(backpack,'Backpack_Wire_R',[.18,-.48,.01],[.055,.28,.055],mat(0x00bde8,.35,.25)).rotation.z=.22;
+backpack.visible=false;
+parts.legL=pivot(robot,'legL',[-.31,1.62,0]);
+cube(parts.legL,'Leg_L',[0,-.38,0],[.4,.82,.43],materials.white);
+cube(parts.legL,'Foot_L',[0,-.83,.12],[.48,.22,.65],materials.dark);
+parts.legR=pivot(robot,'legR',[.31,1.62,0]);
+cube(parts.legR,'Leg_R',[0,-.38,0],[.4,.82,.43],materials.white);
+cube(parts.legR,'Foot_R',[0,-.83,.12],[.48,.22,.65],materials.dark);
+
+const partNames={head:'Cabeça / TV',torso:'Tronco',armL:'Braço esquerdo',armR:'Braço direito',legL:'Perna esquerda',legR:'Perna direita'};
+let selected='head', frames=[], selectedFrame=-1, playing=false, playStart=0, playDuration=0, playSpeed=1, animationId=null;
+const radians=d=>d*Math.PI/180, degrees=r=>Math.round(r*180/Math.PI);
+const status = msg => {$('status').textContent=msg};
+setEquipment('none');
+function getPose(){const pose={}; for(const [k,p] of Object.entries(parts))pose[k]=[p.rotation.x,p.rotation.y,p.rotation.z];return pose}
+function setPose(pose){for(const [k,rot] of Object.entries(pose||{})){if(parts[k]&&Array.isArray(rot)){parts[k].rotation.set(+rot[0]||0,+rot[1]||0,+rot[2]||0)}};syncSliders()}
+function syncSliders(){const p=parts[selected];[['rx','x'],['ry','y'],['rz','z']].forEach(([id,axis])=>{$(id).value=degrees(p.rotation[axis]);$(id+'Val').textContent=degrees(p.rotation[axis])+'°'})}
+function selectPart(name){selected=name;$('joint').value=name;renderJointButtons();syncSliders()}
+function renderJointButtons(){const root=$('jointButtons');root.innerHTML='';for(const [k,n] of Object.entries(partNames)){const b=document.createElement('button');b.textContent=n;b.className=k===selected?'selected':'';b.onclick=()=>selectPart(k);root.appendChild(b)}}
+$('joint').onchange=e=>selectPart(e.target.value);
+[['rx','x'],['ry','y'],['rz','z']].forEach(([id,axis])=>{$(id).addEventListener('input',e=>{parts[selected].rotation[axis]=radians(+e.target.value);$(id+'Val').textContent=e.target.value+'°';if(selectedFrame>=0&&frames[selectedFrame]){frames[selectedFrame].pose=getPose();renderFrames()}})});
+$('zeroJoint').onclick=()=>{parts[selected].rotation.set(0,0,0);syncSliders();if(selectedFrame>=0&&frames[selectedFrame]){frames[selectedFrame].pose=getPose();renderFrames()}status('Articulação zerada.')};
+function renderFrames(){const root=$('frames');root.innerHTML='';frames.forEach((f,i)=>{const b=document.createElement('button');b.className='frame'+(i===selectedFrame?' active':'');b.textContent='Quadro '+(i+1);b.title='Tempo: '+f.time+' s';b.onclick=()=>{stopPlayback();selectedFrame=i;setPose(f.pose);renderFrames();status('Quadro '+(i+1)+' selecionado.')};root.appendChild(b)})}
+function addFrame(pose=getPose(),time=null){const last=frames[frames.length-1];frames.push({time:time===null?(last?last.time+0.5:0):time,pose:structuredClone(pose)});selectedFrame=frames.length-1;renderFrames();status('Pose guardada no quadro '+(selectedFrame+1)+'.')}
+$('addFrame').onclick=()=>addFrame();
+$('duplicateFrame').onclick=()=>{if(selectedFrame<0){addFrame();return}const f=frames[selectedFrame];addFrame(f.pose,f.time+0.5)};
+$('deleteFrame').onclick=()=>{if(selectedFrame<0)return status('Selecione um quadro para excluir.');frames.splice(selectedFrame,1);selectedFrame=frames.length?Math.min(selectedFrame,frames.length-1):-1;if(selectedFrame>=0)setPose(frames[selectedFrame].pose);renderFrames();status('Quadro excluído.')};
+function makePreset(name){
+ const p={head:[0,0,0],torso:[0,0,0],armL:[0,0,0],armR:[0,0,0],legL:[0,0,0],legR:[0,0,0]};
+ if(name==='walk'){p.armL=[-.55,0,0];p.armR=[.55,0,0];p.legL=[.55,0,0];p.legR=[-.55,0,0];p.head=[.03,0,0]}
+ if(name==='attack'){p.torso=[-.08,0,0];p.armR=[-1.65,0,-.12];p.armL=[.35,0,.3];p.head=[-.12,0,0];p.legL=[-.1,0,0];p.legR=[.15,0,0]}
+ return Object.fromEntries(Object.entries(p).map(([k,v])=>[k,v.map(r=>radians(r* (name==='idle'?0:1)))]));
+}
+document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{stopPlayback();setPose(makePreset(b.dataset.preset));selectedFrame=-1;renderFrames();status('Pose '+b.textContent+' aplicada. Ajuste e guarde como quadro.')});
+function stopPlayback(){playing=false;if(animationId!==null){cancelAnimationFrame(animationId);animationId=null}$('play').textContent='▶ Reproduzir'}
+function interpolate(a,b,t){const out={};for(const k of Object.keys(parts)){out[k]=[0,1,2].map(i=>a[k][i]+(b[k][i]-a[k][i])*t)}return out}
+function playLoop(now){if(!playing)return;if(!playStart)playStart=now;const elapsed=(now-playStart)/1000*playSpeed;const duration=frames[frames.length-1].time-frames[0].time;
+ if(frames.length===1||duration<=0){setPose(frames[0].pose);animationId=requestAnimationFrame(playLoop);return}
+ let t=(elapsed%duration)+frames[0].time;let idx=0;while(idx<frames.length-2&&frames[idx+1].time<t)idx++;
+ const a=frames[idx],b=frames[idx+1],mix=b.time===a.time?0:Math.max(0,Math.min(1,(t-a.time)/(b.time-a.time)));
+ setPose(interpolate(a.pose,b.pose,mix));animationId=requestAnimationFrame(playLoop)}
+$('play').onclick=()=>{if(frames.length<2){status('Guarde pelo menos duas poses para reproduzir.');return}stopPlayback();playing=true;playStart=0;playSpeed=+$('speed').value;$('play').textContent='⏸ Reproduzindo';animationId=requestAnimationFrame(playLoop)};
+$('stop').onclick=()=>{stopPlayback();if(selectedFrame>=0)setPose(frames[selectedFrame].pose);status('Reprodução parada.')};
+function projectData(){return {format:'Nyra3DStudio',version:1,model:'RoboTV-blocky',savedAt:new Date().toISOString(),pose:getPose(),frames:frames}}
+function download(name,data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('exportProject').onclick=()=>download('RoboTV_Nyra3DStudio.json',projectData());
+$('exportAnim').onclick=()=>download('RoboTV_Animacao.json',{format:'Nyra3DAnimation',version:1,model:'RoboTV-blocky',frames});
+$('saveProject').onclick=()=>{try{localStorage.setItem('nyra3d-robotv-project',JSON.stringify(projectData()));status('Projeto salvo neste navegador. Use Exportar JSON para ter uma cópia.')}catch(e){status('O navegador bloqueou o salvamento local. Use Exportar JSON.')}};
+$('loadProject').onclick=()=>$('fileInput').click();
+$('fileInput').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{const d=JSON.parse(await file.text());if(!d||!Array.isArray(d.frames))throw new Error('Arquivo não contém quadros válidos');frames=d.frames.filter(f=>f&&f.pose&&typeof f.time==='number');selectedFrame=frames.length?0:-1;if(selectedFrame>=0)setPose(frames[0].pose);else if(d.pose)setPose(d.pose);renderFrames();status('Projeto carregado: '+frames.length+' quadro(s).')}catch(err){status('Não foi possível abrir esse JSON: '+err.message)}e.target.value=''};
+document.querySelectorAll('[data-item]').forEach(b=>b.addEventListener('click',()=>equiparItem(b.dataset.item)));
+document.querySelectorAll('[data-unequip]').forEach(b=>b.addEventListener('click',()=>desequiparItem(b.dataset.unequip)));
+$('backpackToggle').onclick=()=>{backpack.visible=!backpack.visible;$('backpackToggle').textContent=backpack.visible?'🎒 Desequipar mochila de fios':'🎒 Equipar mochila de fios';$('backpackToggle').classList.toggle('selected',backpack.visible);status(backpack.visible?'Mochila de fios equipada.':'Mochila de fios removida.')};
+$('resetView').onclick=()=>{camera.position.set(5.4,4.4,8.2);controls.target.set(0,1.8,0);controls.update()};
 // O RoboTV de demonstração fica guardado internamente e não pode ser carregado pela interface de trabalho nesta etapa. robot.visible=false;
 let nyraTransferData=null,nyraTransferRoot=null,nyraNodeObjects=new Map(),nyraClipFrame=0,nyraClipState=null,nyraBaseRotations=new Map(),nyraBaseTransforms=new Map(),nyraSelectedNodeId=null,nyraViewportSelectionBound=false;
 let nyraGltfAnimations=[],nyraGltfMixer=null,nyraGltfAction=null,nyraGltfFrame=0,nyraGltfLastTime=0;
