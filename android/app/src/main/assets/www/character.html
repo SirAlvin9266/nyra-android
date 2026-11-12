@@ -480,6 +480,7 @@ async function nyraSendBBModelToRoboTV(){
  if(!bbmodelState?.rawData){document.querySelector('#status').textContent='Importe um .bbmodel antes de enviar ao RoboTV.';return;}
  try{
   const transfer=nyraBuildSceneTransferFromBBModel(bbmodelState.rawData,bbmodelState.fileName);
+  window.__nyraLastTransfer=transfer;
   let glb=null;
   try{
    const {GLTFExporter}=await import('three/addons/exporters/GLTFExporter.js');
@@ -496,10 +497,115 @@ async function nyraSendBBModelToRoboTV(){
    :'Enviando estrutura ao RoboTV. Aviso: '+transfer.diagnostics[0];
  }catch(error){document.querySelector('#status').textContent='Falha ao preparar transferência: '+(error?.message||String(error));}
 }
+function nyraApplyRoboTVTransferToBBModel(doc){
+ if(!bbmodelState?.rawData||!bbmodelState.records)throw new Error('Importe primeiro um modelo Blockbench no Criador de Personagens.');
+ if(!doc||doc.schema!=='nyra.scene-transfer'||doc.schemaVersion!==1||doc.project?.source?.format!=='blockbench')throw new Error('O modelo recebido do RoboTV não é uma transferência Blockbench compatível.');
+ const nodes=doc.scene?.nodes||[],byId=new Map(nodes.map(node=>[node.id,node])),bySource=new Map(nodes.filter(node=>node.sourceId).map(node=>[node.sourceId,node]));
+ const original=window.__nyraLastTransfer;
+ if(!original)throw new Error('A origem Blockbench desta sessão não está disponível.');
+ const originalBySource=new Map((original.scene?.nodes||[]).filter(node=>node.sourceId).map(node=>[node.sourceId,node]));
+ const groupByUuid=new Map((bbmodelState.groups||[]).map(group=>[group.uuid,group]));
+ const recordByUuid=new Map((bbmodelState.records||[]).map(record=>[record.uuid,record]));
+ const closeArray=(a,b)=>Array.isArray(a)&&Array.isArray(b)&&a.length===b.length&&a.every((value,index)=>Math.abs(Number(value)-Number(b[index]))<0.0001);
+ const sameTransform=(a,b)=>a&&b&&closeArray(a.position,b.position)&&closeArray(a.rotation,b.rotation)&&closeArray(a.scale,b.scale);
+ const unitScale=value=>closeArray(value||[1,1,1],[1,1,1]);
+ const rotationFor=t=>(t?.rotation||[0,0,0]).map(value=>t?.rotationUnit==='degrees'?THREE.MathUtils.degToRad(Number(value)||0):Number(value)||0);
+ const parentGroupNode=node=>{const parent=node.parentId?byId.get(node.parentId):null;if(!parent||parent.id==='bbmodel-root')return bbmodelState.rootGroup;if(!['bone','group'].includes(parent.type)||!parent.sourceId||!groupByUuid.has(parent.sourceId))throw new Error('A hierarquia exportada contém um pai que o formato .bbmodel não suporta.');return groupByUuid.get(parent.sourceId).node;};
+ const parentOrigin=node=>{
+  const origin=[0,0,0];let parent=node.parentId?byId.get(node.parentId):null,guard=0;
+  while(parent&&parent.id!=='bbmodel-root'&&guard++<nodes.length){
+   const position=parent.transform?.position||[0,0,0];
+   for(let axis=0;axis<3;axis++)origin[axis]+=Number(position[axis])||0;
+   parent=parent.parentId?byId.get(parent.parentId):null;
+  }
+  return origin;
+ };
+ // Validate every mapping and unsupported operation before mutating the Creator scene.
+ for(const group of bbmodelState.groups||[]){
+  const node=bySource.get(group.uuid);
+  if(!node)throw new Error('Grupo Blockbench ausente na transferência: '+group.uuid);
+  if(!unitScale(node.transform?.scale))throw new Error('O formato .bbmodel não preserva escala aplicada diretamente a grupos. Exporte em GLB ou JSON.');
+  parentGroupNode(node);
+ }
+ for(const record of bbmodelState.records||[]){
+  const node=bySource.get(record.uuid);
+  if(!node)throw new Error('Peça Blockbench ausente na transferência: '+record.uuid);
+  parentGroupNode(node);
+  if(record.freeMesh){
+   const before=originalBySource.get(record.uuid);
+   if(!before||before.parentId!==node.parentId||!sameTransform(before.transform,node.transform)){
+    throw new Error('Esta versão do exportador .bbmodel ainda não converte transformações ou associações de malhas livres. Use GLB ou JSON para preservar essas alterações.');
+   }
+  }else if(!record.pivot)throw new Error('O pivô de uma peça Blockbench não pôde ser recuperado.');
+ }
+ const hasFreeMesh=(bbmodelState.records||[]).some(record=>record.freeMesh);
+ if(hasFreeMesh){
+  for(const group of bbmodelState.groups||[]){
+   const node=bySource.get(group.uuid),before=originalBySource.get(group.uuid);
+   if(!before||before.parentId!==node.parentId||!sameTransform(before.transform,node.transform)){
+    throw new Error('Este modelo contém malhas livres; para não alterar sua posição ao exportar, não é possível modificar os grupos que as contêm nesta exportação .bbmodel. Use GLB ou JSON.');
+   }
+  }
+ }
+ for(const group of bbmodelState.groups||[]){
+  const node=bySource.get(group.uuid),parent=parentGroupNode(node),t=node.transform||{};
+  parent.add(group.node);
+  group.node.position.fromArray(t.position||[0,0,0]);
+  group.node.rotation.order=t.rotationOrder||'XYZ';
+  group.node.rotation.set(...rotationFor(t));
+  group.node.scale.set(1,1,1);
+  group.node.visible=node.visibility!==false;
+  group.parentOrigin=parentOrigin(node);
+ }
+ for(const record of bbmodelState.records||[]){
+  if(record.freeMesh)continue;
+  const node=bySource.get(record.uuid),parent=parentGroupNode(node),t=node.transform||{};
+  parent.add(record.pivot);
+  record.pivot.position.fromArray(t.position||[0,0,0]);
+  record.pivot.rotation.order=t.rotationOrder||'XYZ';
+  record.pivot.rotation.set(...rotationFor(t));
+  record.pivot.scale.set(1,1,1);
+  record.pivot.visible=node.visibility!==false;
+  record.mesh.scale.fromArray(t.scale||[1,1,1]);
+  record.parentOrigin=parentOrigin(node);
+ }
+ const raw=bbmodelState.rawData,definitions=new Map((raw.groups||[]).map(group=>[group.uuid,group]));
+ for(const group of definitions.values())group.children=[];
+ const outliner=[];
+ for(const node of nodes){
+  if(!node.sourceId||node.id==='bbmodel-root')continue;
+  let item;
+  if(node.type==='bone'){
+   item=definitions.get(node.sourceId);if(!item)throw new Error('Definição de grupo não encontrada: '+node.sourceId);
+  }else if(node.type==='cube'||node.type==='mesh'){
+   if(!recordByUuid.has(node.sourceId))throw new Error('Definição de peça não encontrada: '+node.sourceId);
+   item=node.sourceId;
+  }else continue;
+  const parent=node.parentId?byId.get(node.parentId):null;
+  if(parent&&parent.id!=='bbmodel-root'){
+   if(parent.type!=='bone'||!definitions.has(parent.sourceId))throw new Error('Somente grupos Blockbench podem conter outras peças.');
+   definitions.get(parent.sourceId).children.push(item);
+  }else outliner.push(item);
+ }
+ raw.outliner=outliner;
+ window.__nyraLastTransfer=doc;
+}
+
 sendRoboTvButton?.addEventListener('click',nyraSendBBModelToRoboTV);
 window.addEventListener('message',event=>{
  if(event.source!==window.parent||!event.data)return;
  if(event.data.type==='NYRA_TRIGGER_BBMODEL_PICKER'){bbmodelInput?.click();return;}
+ if(event.data.type==='NYRA_ROBOTV_EXPORT_BBMODEL'){
+  try{
+   nyraApplyRoboTVTransferToBBModel(event.data.transfer);
+   if(!bbmodelExport||bbmodelExport.disabled)throw new Error('O exportador .bbmodel não está disponível para este projeto.');
+   bbmodelExport.click();
+   window.parent.postMessage({type:'NYRA_ROBOTV_EXPORT_RESULT',requestId:event.data.requestId,success:true},'*');
+  }catch(error){
+   window.parent.postMessage({type:'NYRA_ROBOTV_EXPORT_RESULT',requestId:event.data.requestId,success:false,error:error?.message||String(error)},'*');
+  }
+  return;
+ }
  if(event.data.type==='NYRA_SCENE_TRANSFER_IMPORT_BBMODEL'&&event.data.file){
   (async()=>{try{const imported=await importBBModelFile(event.data.file);if(imported&&bbmodelState)await nyraSendBBModelToRoboTV();}catch(error){document.querySelector('#status').textContent='Falha ao importar arquivo recebido do RoboTV: '+(error?.message||String(error));}})();
   return;
