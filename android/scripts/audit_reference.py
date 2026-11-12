@@ -32,7 +32,7 @@ required = {
             "face1", "face2", "face3",
         },
         "functions": {"matrixFor", "paintMatrix", "drawPreview", "editPixel", "saveMatrix", "downloadBlob", "slug"},
-        "strings": {"JSZip", "Resource_Pack", "Behavior_Pack", "PNG"},
+        "strings": {"JSZip", "Resource_Pack", "Behavior_Pack", "PNG", "pointerdown", "pointermove", "setPointerCapture", "touch-action:none"},
     },
     "character": {
         "ids": {
