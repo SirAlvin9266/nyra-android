@@ -34,22 +34,27 @@ function paintMaterials(root,color,deep=true){
  else if(root.isMesh)paint(root);
  else root.children.forEach(paint);
 }
+function paintWholeProject(color){
+ paintMaterials(character,color,true);
+ paintMaterials(voxelGroup,color,true);
+ if(bbmodelState?.rootGroup)paintMaterials(bbmodelState.rootGroup,color,true);
+}
 function setSelectedColor(color){
  const scope=document.querySelector('#paintScope')?.value||'piece';
  if(selectedKind==='part'){
   const part=groups[selected];if(!part)return;
-  if(scope==='model')paintMaterials(character,color,true);
+  if(scope==='model')paintWholeProject(color);
   else if(scope==='group')paintMaterials(part,color,true);
   else paintMaterials(part,color,false);
  }else if((selectedKind==='shape'||selectedKind==='voxel'||selectedKind==='bbmodel')&&selectedObject){
   let root=selectedObject;
-  if(scope==='model')root=bbmodelState?.rootGroup||character;
+  if(scope==='model')paintWholeProject(color);
   else if(scope==='group'){
    let parent=selectedObject.parent;
-   while(parent&&parent!==character&&!parent.userData?.bbGroupUuid)parent=parent.parent;
-   root=parent&&parent!==character?parent:(selectedObject.parent||selectedObject);
+   while(parent&&parent!==character&&parent!==voxelGroup&&!parent.userData?.bbGroupUuid)parent=parent.parent;
+   root=parent&&(parent!==character||parent!==voxelGroup)?parent:(selectedObject.parent||selectedObject);
   }
-  paintMaterials(root,color,true);
+  if(scope!=='model')paintMaterials(root,color,true);
   const rec=customObjects.find(x=>x.mesh===selectedObject);if(rec)rec.color=color;
  }else return;
  document.querySelector('#partColor').value=color;
