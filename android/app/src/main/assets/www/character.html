@@ -476,7 +476,7 @@ function nyraBuildSceneTransferFromBBModel(data,fileName){
   animations:{clips},extensions:{blockbenchRaw:data},diagnostics:[]
  };
 }
-async function nyraSendBBModelToRoboTV(){
+async function nyraSendBBModelToRoboTV(requestId=null){
  if(!bbmodelState?.rawData){document.querySelector('#status').textContent='Importe um .bbmodel antes de enviar ao RoboTV.';return;}
  try{
   const transfer=nyraBuildSceneTransferFromBBModel(bbmodelState.rawData,bbmodelState.fileName);
@@ -491,11 +491,11 @@ async function nyraSendBBModelToRoboTV(){
   }catch(exportError){
    transfer.diagnostics.push('Pré-visualização GLB não gerada: '+(exportError?.message||String(exportError))+'. O documento estrutural e os dados originais continuam disponíveis.');
   }
-  window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_SUBMIT',requestId:'nyra-'+Date.now(),transfer,glb},'*',glb?[glb]:[]);
+  window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_SUBMIT',requestId:requestId||'nyra-'+Date.now(),transfer,glb},'*',glb?[glb]:[]);
   document.querySelector('#status').textContent=glb
    ?'Enviando modelo texturizado, hierarquia e '+transfer.animations.clips.length+' animação(ões) ao RoboTV…'
    :'Enviando estrutura ao RoboTV. Aviso: '+transfer.diagnostics[0];
- }catch(error){document.querySelector('#status').textContent='Falha ao preparar transferência: '+(error?.message||String(error));}
+ }catch(error){document.querySelector('#status').textContent='Falha ao preparar transferência: '+(error?.message||String(error));if(requestId)window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',requestId,success:false,error:error?.message||String(error)},'*');}
 }
 function nyraApplyRoboTVTransferToBBModel(doc){
  if(!bbmodelState?.rawData||!bbmodelState.records)throw new Error('Importe primeiro um modelo Blockbench no Criador de Personagens.');
@@ -607,7 +607,14 @@ window.addEventListener('message',event=>{
   return;
  }
  if(event.data.type==='NYRA_SCENE_TRANSFER_IMPORT_BBMODEL'&&event.data.file){
-  (async()=>{try{const imported=await importBBModelFile(event.data.file);if(imported&&bbmodelState)await nyraSendBBModelToRoboTV();}catch(error){document.querySelector('#status').textContent='Falha ao importar arquivo recebido do RoboTV: '+(error?.message||String(error));}})();
+  (async()=>{try{
+   const imported=await importBBModelFile(event.data.file);
+   if(!imported||!bbmodelState)throw new Error('O arquivo não foi importado pelo Criador de Personagens.');
+   await nyraSendBBModelToRoboTV(event.data.requestId);
+  }catch(error){
+   document.querySelector('#status').textContent='Falha ao importar arquivo recebido do RoboTV: '+(error?.message||String(error));
+   window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',requestId:event.data.requestId,success:false,error:error?.message||String(error)},'*');
+  }})();
   return;
  }
  if(event.data.type==='NYRA_SCENE_TRANSFER_RESULT'){
