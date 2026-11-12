@@ -27,7 +27,7 @@ function selectCustom(o){setVoxelMode('select',false);selectedObject=o;selectedK
 function selectVoxel(o){selectCustom(o);document.querySelector('#status').textContent='Voxel selecionado. Você pode mover, girar, redimensionar ou alterar a cor.'}
 function syncEditor(){if(!selectedObject)return;let color;if(selectedKind==='part')color='#'+material(selected).color.getHexString();else {const mat=Array.isArray(selectedObject.material)?selectedObject.material.find(m=>m?.color):selectedObject.material;color='#'+(mat?.color||new THREE.Color('#d5e2ed')).getHexString();}document.querySelector('#partColor').value=color;document.querySelector('#selectedLabel').textContent=selectedKind==='part'?labelFor(selected):selectedObject.name;const sc=selectedObject.scale,po=selectedObject.position;for(const [id,val] of [['dimX',sc.x],['dimY',sc.y],['dimZ',sc.z],['posX',po.x],['posY',po.y],['posZ',po.z]])document.querySelector('#'+id).value=Number(val.toFixed(3));const c=new THREE.Color(color);const hsl={};c.getHSL(hsl);document.querySelector('#hue').value=Math.round(hsl.h*360);document.querySelector('#sat').value=Math.round(hsl.s*100);document.querySelector('#lum').value=Math.round(hsl.l*100)}
 function forEachEditableMaterial(object,callback){const list=Array.isArray(object?.material)?object.material:(object?.material?[object.material]:[]);list.forEach(callback);}
-function paintMaterials(root,deep=true){
+function paintMaterials(root,color,deep=true){
  if(!root)return;
  const paint=node=>{if(node.isMesh)forEachEditableMaterial(node,mat=>{if(mat.color)mat.color.set(color)});};
  if(deep)root.traverse(paint);
@@ -38,9 +38,9 @@ function setSelectedColor(color){
  const scope=document.querySelector('#paintScope')?.value||'piece';
  if(selectedKind==='part'){
   const part=groups[selected];if(!part)return;
-  if(scope==='model')paintMaterials(character,true);
-  else if(scope==='group')paintMaterials(part,true);
-  else paintMaterials(part,false);
+  if(scope==='model')paintMaterials(character,color,true);
+  else if(scope==='group')paintMaterials(part,color,true);
+  else paintMaterials(part,color,false);
  }else if((selectedKind==='shape'||selectedKind==='voxel'||selectedKind==='bbmodel')&&selectedObject){
   let root=selectedObject;
   if(scope==='model')root=bbmodelState?.rootGroup||character;
@@ -49,7 +49,7 @@ function setSelectedColor(color){
    while(parent&&parent!==character&&!parent.userData?.bbGroupUuid)parent=parent.parent;
    root=parent&&parent!==character?parent:(selectedObject.parent||selectedObject);
   }
-  paintMaterials(root,true);
+  paintMaterials(root,color,true);
   const rec=customObjects.find(x=>x.mesh===selectedObject);if(rec)rec.color=color;
  }else return;
  document.querySelector('#partColor').value=color;
