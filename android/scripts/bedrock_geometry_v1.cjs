@@ -110,7 +110,11 @@ function normalizeCube(node, boneMetadata={}) {
   const size=to.map((v,i)=>v-from[i]);
   if(size.some(v=>v<=0)) throw new RangeError('Cubo '+node.name+' tem dimensão zero ou negativa.');
   const cube={...safeClone(bedrock),origin:[-to[0],from[1],from[2]],size};
+  // A cube's source metadata may contain fields not yet understood by the
+  // editor. Preserve them, but overwrite all editable Bedrock properties
+  // from the current Nyra geometry so stale sourceData cannot win.
   delete cube.pivot; delete cube.rotation; delete cube.inflate; delete cube.mirror; delete cube.uv;
+  delete cube.material_instance;
   const inflate=geometry.inflate??source.inflate??bedrock.inflate;
   if(inflate!==undefined&&inflate!==0) cube.inflate=finite(inflate,'cube.inflate');
   const boxUv=geometry.boxUv===true||source.box_uv===true||Array.isArray(source.uv)||Array.isArray(bedrock.uv);
@@ -137,6 +141,11 @@ function normalizeCube(node, boneMetadata={}) {
     if(!Array.isArray(origin)) throw new Error('Cubo rotacionado sem pivô de origem: '+node.name);
     cube.pivot=bbPositionToBedrock(origin);
     cube.rotation=bbRotationToBedrock(rotation);
+  } else {
+    // A cube edited back to zero rotation must not retain an old source
+    // pivot/rotation in the cloned raw object.
+    delete cube.pivot;
+    delete cube.rotation;
   }
   return cube;
 }
@@ -237,6 +246,7 @@ function exportBedrockGeometry(documentData, options={}) {
     if(cubes.length)item.cubes=cubes;
     const locators=bone===synthetic?null:(bone.sourceData?.locators||bone.sourceData?.bedrock?.locators);
     if(locators&&Object.keys(locators).length)item.locators=safeClone(locators);
+    else delete item.locators;
     for(const locator of nodes.filter(n=>n.type==='locator'&&n.parentId===bone.id)){
       const key=String(locator.sourceData?.locatorName||locator.name||'locator');
       const raw=locator.sourceData?.bedrockLocator||locator.sourceData?.locator;
@@ -257,8 +267,16 @@ function exportBedrockGeometry(documentData, options={}) {
   const firstTexture=documentData.scene?.textures?.[0];
   const resolution=documentData.extensions?.blockbenchRaw?.resolution||{};
   const bedrockDescription=documentData.extensions?.bedrockGeometryDescription||{};
-  const width=finite(options.textureWidth??firstTexture?.width??resolution.width??bedrockDescription.texture_width??64,'texture_width');
-  const height=finite(options.textureHeight??firstTexture?.height??resolution.height??bedrockDescription.texture_height??64,'texture_height');
+  const explicitWidth=options.textureWidth;
+  const explicitHeight=options.textureHeight;
+  const width=finite(explicitWidth??firstTexture?.width??resolution.width??bedrockDescription.texture_width??64,'texture_width');
+  const height=finite(explicitHeight??firstTexture?.height??resolution.height??bedrockDescription.texture_height??64,'texture_height');
+  if(firstTexture?.width!=null && explicitWidth!=null && explicitWidth!==firstTexture.width) {
+    throw new Error('textureWidth diverge da resolução da textura incorporada; corrija o asset ou escolha explicitamente um projeto sem essa textura.');
+  }
+  if(firstTexture?.height!=null && explicitHeight!=null && explicitHeight!==firstTexture.height) {
+    throw new Error('textureHeight diverge da resolução da textura incorporada; corrija o asset ou escolha explicitamente um projeto sem essa textura.');
+  }
   if(!Number.isInteger(width)||!Number.isInteger(height)||width<=0||height<=0) throw new RangeError('texture_width/texture_height devem ser inteiros positivos.');
   const identifier=makeGeometryId(options.identifier||documentData.project?.name||'nyra_model');
   const description={
