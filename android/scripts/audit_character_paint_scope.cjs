@@ -42,6 +42,15 @@ const checks = [
   ['modelo inteiro inclui modelo Blockbench ativo', source.includes('if(bbmodelState?.rootGroup)paintMaterials(bbmodelState.rootGroup,color,true)')],
   ['grupo Blockbench é encontrado sem alcançar irmãos', source.includes('parent!==character&&parent!==voxelGroup&&!parent.userData?.bbGroupUuid')],
   ['pintura não usa mais traverse irrestrito do grupo selecionado', !source.includes("part?.traverse(node=>{if(node.isMesh)")],
+  ['exportador Blockbench recebe a cena atual do RoboTV', source.includes('function nyraApplyRoboTVTransferToBBModel(doc)')],
+  ['exportação reaproveita o handler existente do Criador', source.includes('bbmodelExport.click()')],
+  ['transformações de grupos são aplicadas ao exportador', source.includes('group.node.position.fromArray(t.position||[0,0,0])')],
+  ['transformações e visibilidade das peças são aplicadas', source.includes('record.pivot.position.fromArray(t.position||[0,0,0])') && source.includes('record.element.visibility=node.visibility!==false')],
+  ['hierarquia reparentada é serializada no outliner Blockbench', source.includes('raw.outliner=outliner')],
+  ['escala de grupos não é descartada silenciosamente', source.includes('O formato .bbmodel não preserva escala aplicada diretamente a grupos.')],
+  ['malhas livres modificadas recebem erro explícito', source.includes('não converte transformações ou associações de malhas livres')],
+  ['importação mantém requestId entre Criador e RoboTV', source.includes('nyraSendBBModelToRoboTV(event.data.requestId)')],
+
 ];
 
 for (const [label, passed] of checks) {
