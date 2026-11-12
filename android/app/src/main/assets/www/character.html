@@ -52,7 +52,7 @@ function setSelectedColor(color){
   else if(scope==='group'){
    let parent=selectedObject.parent;
    while(parent&&parent!==character&&parent!==voxelGroup&&!parent.userData?.bbGroupUuid)parent=parent.parent;
-   root=parent&&(parent!==character||parent!==voxelGroup)?parent:(selectedObject.parent||selectedObject);
+   root=parent&&(parent!==character&&parent!==voxelGroup)?parent:(selectedObject.parent||selectedObject);
   }
   if(scope!=='model')paintMaterials(root,color,true);
   const rec=customObjects.find(x=>x.mesh===selectedObject);if(rec)rec.color=color;
