@@ -38,7 +38,7 @@ try {
 }
 
 const checks = [
-  ['escopo peça usa a malha exata quando selecionada', source.includes('selectedMesh') && source.includes('selectPart(k,mesh=null)')],
+  ['escopo peça usa a malha exata quando selecionada', source.includes('selectedMesh') && source.includes('selectPart(k,mesh=null)') && source.includes('selectPart(o.name,bodyHits[0].object)')],
 
   ['grupo altera apenas descendentes, sem alcançar ramos irmãos', source.includes('root.traverse(paint)') && source.includes('paintMaterials(part,color,true)')],
   ['escopo peça para grupo aplica material somente no nó selecionado', source.includes('forEachEditableMaterial(root,mat=>{if(mat.color)mat.color.set(color)})')],
