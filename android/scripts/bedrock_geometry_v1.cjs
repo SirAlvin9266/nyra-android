@@ -247,6 +247,7 @@ function exportBedrockGeometry(documentData, options={}) {
     const locators=bone===synthetic?null:(bone.sourceData?.locators||bone.sourceData?.bedrock?.locators);
     if(locators&&Object.keys(locators).length)item.locators=safeClone(locators);
     else delete item.locators;
+    else delete item.locators;
     for(const locator of nodes.filter(n=>n.type==='locator'&&n.parentId===bone.id)){
       const key=String(locator.sourceData?.locatorName||locator.name||'locator');
       const raw=locator.sourceData?.bedrockLocator||locator.sourceData?.locator;
