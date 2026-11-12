@@ -567,6 +567,7 @@ function nyraApplyRoboTVTransferToBBModel(doc){
   record.pivot.scale.set(1,1,1);
   record.pivot.visible=node.visibility!==false;
   record.mesh.scale.fromArray(t.scale||[1,1,1]);
+  record.element.visibility=node.visibility!==false;
   record.parentOrigin=parentOrigin(node);
  }
  const raw=bbmodelState.rawData,definitions=new Map((raw.groups||[]).map(group=>[group.uuid,group]));
