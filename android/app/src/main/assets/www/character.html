@@ -480,21 +480,40 @@ function nyraBuildSceneTransferFromBBModel(data,fileName){
   animations:{clips},extensions:{blockbenchRaw:data},diagnostics:[]
  };
 }
+function nyraTagBBModelForGLBExport(transfer){
+ const nodesBySource=new Map((transfer.scene?.nodes||[]).filter(node=>node.sourceId).map(node=>[node.sourceId,node]));
+ const restore=[];
+ const tag=(object,id)=>{
+  if(!object||!id)throw new Error('Não foi possível associar um nó Blockbench ao identificador de transferência.');
+  object.userData=object.userData||{};
+  const hadId=Object.prototype.hasOwnProperty.call(object.userData,'nyraTransferNodeId');
+  const previousId=object.userData.nyraTransferNodeId,previousName=object.name;
+  object.userData.nyraTransferNodeId=id;object.name='__nyra_transfer_node__:'+id;
+  restore.push(()=>{object.name=previousName;if(hadId)object.userData.nyraTransferNodeId=previousId;else delete object.userData.nyraTransferNodeId;});
+ };
+ try{
+  tag(bbmodelState.rootGroup,'bbmodel-root');
+  for(const group of bbmodelState.groups||[]){const node=nodesBySource.get(group.uuid);if(!node)throw new Error('Grupo ausente na transferência: '+group.uuid);tag(group.node,node.id);}
+  for(const record of bbmodelState.records||[]){const node=nodesBySource.get(record.uuid);if(!node)throw new Error('Peça ausente na transferência: '+record.uuid);tag(record.pivot||record.mesh,node.id);}
+ }catch(error){for(const undo of restore.reverse())undo();throw error;}
+ return ()=>{for(const undo of restore.reverse())undo();};
+}
 async function nyraSendBBModelToRoboTV(requestId=null){
  if(!bbmodelState?.rawData){document.querySelector('#status').textContent='Importe um .bbmodel antes de enviar ao RoboTV.';return;}
  try{
   const transfer=nyraBuildSceneTransferFromBBModel(bbmodelState.rawData,bbmodelState.fileName);
   window.__nyraLastTransfer=transfer;
-  let glb=null;
+  let glb=null,restoreGLBNames=()=>{};
   try{
    const {GLTFExporter}=await import('three/addons/exporters/GLTFExporter.js');
    const exporter=new GLTFExporter();
+   restoreGLBNames=nyraTagBBModelForGLBExport(transfer);
    const generated=await new Promise((resolve,reject)=>exporter.parse(bbmodelState.rootGroup,resolve,reject,{binary:true,animations:bbmodelState.animations||[]}));
    glb=generated instanceof ArrayBuffer?generated:(ArrayBuffer.isView(generated)?generated.buffer.slice(generated.byteOffset,generated.byteOffset+generated.byteLength):null);
    if(!glb)throw new Error('O exportador não retornou um GLB binário.');
   }catch(exportError){
    transfer.diagnostics.push('Pré-visualização GLB não gerada: '+(exportError?.message||String(exportError))+'. O documento estrutural e os dados originais continuam disponíveis.');
-  }
+  }finally{restoreGLBNames();}
   window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_SUBMIT',requestId:requestId||'nyra-'+Date.now(),transfer,glb},'*',glb?[glb]:[]);
   document.querySelector('#status').textContent=glb
    ?'Enviando modelo texturizado, hierarquia e '+transfer.animations.clips.length+' animação(ões) ao RoboTV…'

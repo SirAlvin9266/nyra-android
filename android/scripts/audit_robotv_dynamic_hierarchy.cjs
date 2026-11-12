@@ -4,10 +4,17 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const vm = require('node:vm');
 const { spawnSync } = require('node:child_process');
 
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/robotv.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
+const characterPath = path.resolve(__dirname, '../app/src/main/assets/www/character.html');
+const characterHtml = fs.readFileSync(characterPath, 'utf8');
+const characterScriptStart = characterHtml.indexOf('<script type="module">') + '<script type="module">'.length;
+const characterScriptEnd = characterHtml.indexOf('</script>', characterScriptStart);
+assert.ok(characterScriptStart >= 0 && characterScriptEnd > characterScriptStart, 'Character Creator module must exist for GLB node tagging.');
+const characterSource = characterHtml.slice(characterScriptStart, characterScriptEnd);
 
 const integratedPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const integratedHtml = fs.readFileSync(integratedPath, 'utf8');
@@ -28,6 +35,15 @@ try {
 } finally {
   try { fs.unlinkSync(tempPath); } catch (_) {}
 }
+
+const mapStart=source.indexOf('function nyraMapGLTFTransferObjects(candidate,doc,nodeMap=new Map()){');
+const mapEnd=source.indexOf('\nasync function nyraLoadTransfer',mapStart);
+assert.ok(mapStart>=0&&mapEnd>mapStart,'GLB transfer-node mapper must be extractable.');
+const mapHelper=source.slice(mapStart,mapEnd);
+const tagStart=characterSource.indexOf('function nyraTagBBModelForGLBExport(transfer){');
+const tagEnd=characterSource.indexOf('\nasync function nyraSendBBModelToRoboTV',tagStart);
+assert.ok(tagStart>=0&&tagEnd>tagStart,'Character Creator must tag Blockbench GLB nodes before export.');
+const tagHelper=characterSource.slice(tagStart,tagEnd);
 
 const checks = [
   ['estado da peça selecionada declarado uma única vez', source.indexOf('let nyraTransferData=') >= 0 && source.indexOf('let nyraTransferData=') === source.lastIndexOf('let nyraTransferData=') && !source.includes('let nyraSelectedNodeId=null;')],
@@ -62,7 +78,28 @@ const checks = [
   ['importação Blockbench retorna o mesmo requestId', integratedHtml.includes("type==='NYRA_SCENE_TRANSFER_ACK'") && integratedHtml.includes("requestId:event.data.requestId")],
 
   ['exportação do contrato de cena continua disponível', source.includes('nyraExportTransfer.onclick=')],
+  ['GLB usa mapeamento estável de IDs de transferência', source.includes('nyraMapGLTFTransferObjects(candidate,normalized,nodeObjects)')],
+  ['Criador marca o pivô de cada peça antes de exportar GLB', characterSource.includes('tag(record.pivot||record.mesh,node.id)')],
 ];
+
+
+function mockObject(name,userData={}){const object={name,userData,parent:null,children:[],add(child){child.parent=this;this.children.push(child);},traverse(callback){callback(this);for(const child of this.children)child.traverse(callback);}};return object;}
+const tagRoot=mockObject('Model'),tagGroup=mockObject('Arm group'),tagPivot=mockObject('Arm pivot'),tagMesh=mockObject('Arm cube');
+const tagContext=vm.createContext({bbmodelState:{rootGroup:tagRoot,groups:[{uuid:'g1',node:tagGroup}],records:[{uuid:'e1',pivot:tagPivot,mesh:tagMesh}]}});
+vm.runInContext(tagHelper+';globalThis.tag=nyraTagBBModelForGLBExport;',tagContext);
+const restoreTags=tagContext.tag({scene:{nodes:[{id:'group:g1',sourceId:'g1'},{id:'element:e1',sourceId:'e1'}]}});
+assert.equal(tagRoot.name,'__nyra_transfer_node__:bbmodel-root');assert.equal(tagGroup.userData.nyraTransferNodeId,'group:g1');assert.equal(tagPivot.name,'__nyra_transfer_node__:element:e1');assert.equal(tagMesh.name,'Arm cube');
+restoreTags();assert.equal(tagRoot.name,'Model');assert.equal(tagGroup.name,'Arm group');assert.equal(tagPivot.name,'Arm pivot');assert.equal(tagPivot.userData.nyraTransferNodeId,undefined);
+const scene=mockObject('scene'),glbRoot=mockObject('__nyra_transfer_node__:bbmodel-root'),glbGroup=mockObject('__nyra_transfer_node__:group:g1'),glbPivot=mockObject('__nyra_transfer_node__:element:e1'),glbMesh=mockObject('Arm cube');
+scene.add(glbRoot);glbRoot.add(glbGroup);glbGroup.add(glbPivot);glbPivot.add(glbMesh);
+const doc={scene:{nodes:[{id:'bbmodel-root',name:'Model',type:'group'},{id:'group:g1',name:'Arm group',type:'bone'},{id:'element:e1',name:'Arm cube',type:'cube'}]}};
+const mapContext=vm.createContext({});vm.runInContext(mapHelper+';globalThis.map=nyraMapGLTFTransferObjects;',mapContext);
+const mapped=mapContext.map(scene,doc,new Map());assert.equal(mapped.get('bbmodel-root'),glbRoot);assert.equal(mapped.get('group:g1'),glbGroup);assert.equal(mapped.get('element:e1'),glbPivot);assert.equal(glbPivot.name,'Arm cube');
+const legacyScene=mockObject('scene'),legacyRoot=mockObject('root'),legacyPivot=mockObject('Arm cube pivot',{bbPivot:true}),legacyMesh=mockObject('Arm cube');
+legacyScene.add(legacyRoot);legacyRoot.add(legacyPivot);legacyPivot.add(legacyMesh);
+const legacyMap=mapContext.map(legacyScene,{scene:{nodes:[{id:'element:e1',name:'Arm cube',type:'cube'}]}},new Map());
+assert.equal(legacyMap.get('element:e1'),legacyPivot,'legacy GLBs must fall back to the Blockbench pivot when available');
+process.stdout.write('PASS GLB transfer IDs resolve groups and element pivots, with legacy pivot fallback and name restoration.\\n');
 
 for (const [label, passed] of checks) {
   assert.ok(passed, 'Falha na auditoria: ' + label);

@@ -568,6 +568,28 @@ function nyraRenderTransferTree(doc){
  nyraTransferTree.setAttribute('role','tree');
  walk('',0);
 }
+function nyraMapGLTFTransferObjects(candidate,doc,nodeMap=new Map()){
+ const expected=new Set((doc.scene?.nodes||[]).map(node=>node.id));
+ const byName=new Map(),prefix='__nyra_transfer_node__:';
+ candidate.traverse(object=>{
+  if(object.name&&!byName.has(object.name))byName.set(object.name,object);
+  const tagged=object.userData?.nyraTransferNodeId||(typeof object.name==='string'&&object.name.startsWith(prefix)?object.name.slice(prefix.length):null);
+  if(expected.has(tagged)){object.userData=object.userData||{};object.userData.nyraTransferNodeId=tagged;nodeMap.set(tagged,object);}
+ });
+ for(const node of doc.scene.nodes||[]){
+  let object=nodeMap.get(node.id);
+  if(!object){
+   const named=byName.get(node.name)||byName.get(node.id);
+   if(named){
+    object=named;
+    if(node.type==='cube'||node.type==='mesh'){let pivot=named;while(pivot&&!pivot.userData?.bbPivot)pivot=pivot.parent;if(pivot?.userData?.bbPivot)object=pivot;}
+    object.userData=object.userData||{};object.userData.nyraTransferNodeId=node.id;nodeMap.set(node.id,object);
+   }
+  }
+  if(object&&typeof node.name==='string'&&typeof object.name==='string'&&object.name.startsWith(prefix))object.name=node.name;
+ }
+ return nodeMap;
+}
 async function nyraLoadTransfer(doc,glb){
  const normalized=nyraValidateTransfer(doc);
  let candidate=null,clips=[],nodeObjects=new Map(),baseTransforms=new Map();
@@ -575,9 +597,7 @@ async function nyraLoadTransfer(doc,glb){
   const loader=new GLTFLoader();
   const parsed=await new Promise((resolve,reject)=>loader.parse(glb,'',resolve,reject));
   candidate=parsed.scene;clips=parsed.animations||[];
-  // Map known transfer IDs to parsed GLTF nodes when exporter preserved names.
-  const byName=new Map();candidate.traverse(object=>{if(object.name&&!byName.has(object.name))byName.set(object.name,object);});
-  for(const node of normalized.scene.nodes){const object=byName.get(node.name)||byName.get(node.id);if(object){object.userData.nyraTransferNodeId=node.id;nodeObjects.set(node.id,object);}}
+  nyraMapGLTFTransferObjects(candidate,normalized,nodeObjects);
  }else{
   candidate=nyraBuildTransferScene(normalized,nodeObjects,baseTransforms);
  }
