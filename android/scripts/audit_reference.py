@@ -36,7 +36,7 @@ required = {
     },
     "character": {
         "ids": {
-            "view", "partColor", "hue", "sat", "lum", "shapeType", "addShape",
+            "view", "partColor", "paintScope", "hue", "sat", "lum", "shapeType", "addShape",
             "dimX", "dimY", "dimZ", "posX", "posY", "posZ", "moveTool",
             "rotateTool", "scaleTool", "deleteSelected", "file", "save",
             "saveBBModel", "load", "restorePart",
