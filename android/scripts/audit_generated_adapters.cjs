@@ -192,7 +192,7 @@ for (const [name, page] of Object.entries(generated)) {
   }
   const editorSpecificMarkers = {
     items: ['nyra.items.draft.v1'],
-    character: ['nyra.character.draft.v1', 'nyra.character.draft.mode.v1', 'Rascunho JSON local restaurado automaticamente.', 'NyraModelIO', 'id="nyraModelTree"', 'id="nyraDeleteNode"', 'id="nyraRestoreNode"', 'function refreshModelTree()', 'function deleteSelectedComponent()', 'function restoreLastDeleted()', 'getSelected:()=>selectedObject', 'Gerar modelo por instruções matemáticas', 'id="nyraMathDslInput"', 'nyra.mathDsl.v1', 'nyraMathematicalModel', 'nyraDslId', 'nyraPivot', 'id="sendRoboTv"', 'function nyraBuildSceneTransferFromBBModel', 'NYRA_SCENE_TRANSFER_SUBMIT', 'new GLTFExporter()', 'animations:parsed.animations||[]', 'await importBBModelFile(event.data.file)'],
+    character: ['nyra.character.draft.v1', 'nyra.character.draft.mode.v1', 'Rascunho JSON local restaurado automaticamente.', 'NyraModelIO', 'id="nyraModelTree"', 'id="nyraDeleteNode"', 'id="nyraRestoreNode"', 'function refreshModelTree()', 'function deleteSelectedComponent()', 'function restoreLastDeleted()', 'getSelected:()=>selectedObject', 'Gerar modelo por instruções matemáticas', 'id="nyraMathDslInput"', 'nyra.mathDsl.v1', 'nyraMathematicalModel', 'nyraDslId', 'nyraPivot', 'id="sendRoboTv"', 'id="saveBedrock"', 'id="saveBedrockTexture"', 'embeddedTextures', 'exportBedrockGeometry', "import('./bedrock_geometry_v1.js')", 'function nyraBuildEditedBBModelData()', 'function nyraBuildSceneTransferFromBBModel', 'NYRA_SCENE_TRANSFER_SUBMIT', 'new GLTFExporter()', 'animations:parsed.animations||[]', 'await importBBModelFile(event.data.file)'],
     animation: ['nyra3d-robotv-project', 'id="nyraImportBBModel"', 'id="nyraTransferFile"', 'id="nyraExportGLB"', 'new GLTFLoader()', 'new GLTFExporter()', 'NYRA_SCENE_TRANSFER_IMPORT', 'nyraGltfMixer.stopAllAction()', 'function nyraLoadTransfer(doc,glb)'],
   };
   for (const marker of editorSpecificMarkers[name] || []) {
@@ -253,5 +253,12 @@ for (const [name, page] of Object.entries(generated)) {
   console.log(name + ': generated ' + page.length + ' chars; parsed ' + checked + ' inline script(s)');
 }
 
+const bedrockModulePath = path.resolve(__dirname, '../app/src/main/assets/www/bedrock_geometry_v1.js');
+if (!fs.existsSync(bedrockModulePath)) {
+  console.error('FAIL: browser Bedrock Geometry module is missing from Android assets');
+  process.exitCode = 1;
+} else {
+  checkJs('Bedrock Geometry browser module', fs.readFileSync(bedrockModulePath, 'utf8'));
+}
 if (process.exitCode) process.exit(process.exitCode);
-console.log('PASS: all generated editor scripts parse, CDN dependencies are rewritten, and Android export adapters are present.');
+console.log('PASS: editor scripts, Bedrock Geometry UI/module, CDN rewriting and Android export adapters are present and syntactically valid.');

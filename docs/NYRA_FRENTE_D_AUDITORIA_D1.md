@@ -157,7 +157,25 @@ Regra de preservação:
 - preservar o fluxo legado do RoboTV enquanto a edição genérica de modelos e animações amadurece;
 - não considerar a presença do Robô TV no Guia como evidência de que um modelo importado está carregado no editor de animação.
 
-## 11. Estado técnico da rodada de endurecimento do contrato (11/11/2026)
+## 12. Rodada focada em fidelidade de modelos Bedrock
+
+Esta rodada prioriza a saída de modelo que o usuário consegue abrir novamente na Nyra e utilizar no fluxo Minecraft: Geometry JSON + resolução correta da textura + UVs/cubos/hierarquia. Não amplia o objetivo para gerar Behavior Pack, client entity, controllers ou um Resource Pack instalável completo.
+
+### Correções de exportação
+- O exportador parte de um clone dos metadados de origem para preservar campos conhecidos/desconhecidos. Para propriedades editáveis (rotação, pivô, inflate, mirror, UV e metadados suportados), o estado atual da cena deve prevalecer sobre o snapshot original.
+- Corrigido o risco de propriedades antigas ressurgirem após edição/reset: rotação de bone/cubo e pivô de cubo não podem permanecer apenas porque estavam no documento-fonte quando o usuário os zera.
+- A resolução da textura passa a ser validada contra dimensões explicitamente fornecidas quando há textura incorporada com dimensões conhecidas. Divergência é erro explícito, não exportação potencialmente desalinhada.
+- O material de face é tratado como `material_instance` no formato Bedrock; a representação interna `material_name` é apenas o alias do documento Nyra.
+
+### Testes novos
+- Exportar depois de zerar rotação e remover binding não mantém valores antigos do raw source.
+- Edição de `material_instance` em UV por face é refletida no `.geo.json`.
+- Dimensão de textura incompatível com asset incorporado é rejeitada.
+
+### Corte de escopo para o objetivo atual
+Prioridade alta: cubos, bones, transforms/pivôs, UV box/per-face, dimensões de textura, exportar/reabrir Geometry JSON. Prioridade média: locators e metadados necessários à compatibilidade de entidades. Fora desta entrega: exportar animações/controllers, Behavior Pack, client entity e pacote de entidade completo. Malhas livres continuam bloqueadas no exportador de cubos em vez de serem convertidas com perda silenciosa.
+
+## 13. Estado técnico da rodada de endurecimento do contrato (11/11/2026)
 
 A branch `work/nyra-frente-d-integration` recebeu melhorias no módulo `android/scripts/nyra_scene_transfer_v1.cjs`:
 
@@ -173,3 +191,69 @@ A branch `work/nyra-frente-d-integration` recebeu melhorias no módulo `android/
 A auditoria correspondente foi ampliada com casos negativos e de preservação. A validação de CI da revisão mais recente deve ser consultada pelo SHA exato antes de declarar a bateria aprovada.
 
 **Não comprovado por esses testes:** execução real dos iframes no WebView Android, fidelidade visual de UV/material, playback de toda semântica de animação, round-trip no Blockbench externo e carregamento no Minecraft Bedrock.
+
+
+## 14. Revisão de fidelidade e prioridade — 12/11/2026
+
+### Correção da regressão de pivô
+A primeira execução do CI desta rodada encontrou uma expectativa incorreta no teste: ele exigia que um cubo com rotação zerada continuasse exportando pivô. No formato Bedrock, o pivô do cubo é necessário para a rotação; quando a rotação é zerada, manter o pivô antigo não é o resultado correto. O teste foi ajustado para cobrir os dois estados separadamente:
+- rotação zerada: rotação e pivô antigos não reaparecem;
+- rotação não nula: o pivô editado na cena atual prevalece sobre o pivô do snapshot de origem.
+
+A regressão também verifica que a rotação atual do bone prevalece, que metadado removido não reaparece e que material por face e dimensão de textura divergente são tratados explicitamente.
+
+### Limite de integração que não deve ser confundido com o conversor
+O módulo `android/scripts/bedrock_geometry_v1.cjs` e sua auditoria exercitam importação/exportação por testes Node. Nesta revisão, não encontrei evidência de que os comandos de importar/exportar Geometry JSON estejam ligados a controles visíveis do Criador de Personagens. A integração Character → RoboTV já presente na branch é uma funcionalidade distinta e não torna o exportador Bedrock automaticamente acessível na interface.
+
+Portanto, o próximo bloco funcional necessário para o objetivo Minecraft é conectar o conversor a um fluxo explícito no editor, com:
+1. importação de Geometry JSON e seleção de uma definição quando o arquivo tiver várias;
+2. preservação do documento original e diagnóstico de recursos não editáveis;
+3. exportação da geometria atual editada, nunca apenas do snapshot;
+4. relatório de bones/cubos/UVs/versão exigida e limites;
+5. saída conjunta/claramente relacionada com a textura original, sem afirmar que Geometry JSON incorpora PNG.
+
+### Prioridade ajustada ao objetivo de modelos Minecraft
+- **P0:** fidelidade de cubos, bones, hierarquia, pivôs, rotação, inflate, mirror, UV box/per-face, dimensões de textura e reabertura sem perda silenciosa.
+- **P1:** integração desses fluxos à interface Nyra e exportação/associação correta da textura; diagnóstico legível para o usuário.
+- **P2:** compatibilidade avançada de locators e metadados de entidades, conforme casos reais.
+- **Posterior:** reprodução/exportação de animações Bedrock, controllers/Molang, client entity, Behavior Pack e pacote instalável completo.
+
+O envio de modelos Blockbench e clips ao RoboTV é mantido como trilha complementar. A modelagem e exportação de geometria Minecraft têm precedência sobre expandir playback de animações nesta etapa.
+
+### Validação ainda obrigatória
+CI automatizado não comprova UV visual nem carregamento em jogo. Permanecem necessários round-trip no Blockbench e teste no Minecraft Bedrock com modelos representativos do corpus, incluindo um caso com hierarquia profunda, cubos rotacionados, UV por face e atlas de resolução não quadrada.
+
+
+### Resultado do CI desta rodada
+O commit de código `6d60061c58c85198c2ff284149f543b40fade5fa` passou no workflow #551 (run `43135159064`): auditoria dos editores/adaptadores, DSL, contrato de transferência, round-trip Geometry Bedrock, importador Blockbench, mapeamento para RoboTV, pré-análise GLB, build debug e inspeção dos assets offline no APK.
+
+O APK foi produzido como artefato `nyra-android-debug-apk`; SHA-256 do arquivo ZIP do artefato publicado pelo GitHub: `0c5271835af17c82a365551d3fe5cb8f010b0cc7983d01d6a4a4062517c54aa6`. O artefato é do commit de código acima. O commit posterior que atualiza este documento altera somente documentação; não altera o código testado.
+
+Esse resultado fecha a regressão automatizada desta rodada, não a integração visual do conversor nem o teste no Blockbench/Minecraft.
+
+## 15. Integração do exportador Bedrock ao Criador de Personagens
+
+A partir dos commits be3a6c1758a74916c7ac25e9dde98549280ca42a, c049255ba03ed87101085cc2bff5749bf05addb7 e fb44149564ba958ef340cf5800d9681f632badba, o fluxo de exportação deixou de existir apenas como módulo Node de auditoria e ganhou controles no editor:
+
+- O botão **Exportar Geometry JSON (Bedrock)** aparece no Criador de Personagens e é habilitado após importar um arquivo .bbmodel.
+- Antes de exportar, o editor reconstrói o .bbmodel a partir da cena editada (grupos, transforms, cubos e UVs suportados); o conversor recebe esse estado atualizado, não apenas o snapshot bruto original.
+- O Geometry JSON gerado é baixado com identificador derivado do projeto e apresenta quantidade de bones, cubos, locators, resolução do atlas e versão Bedrock exigida.
+- O botão **Exportar textura PNG** é habilitado quando existe exatamente uma textura de imagem incorporada (PNG/JPEG/WebP em data URI); o download preserva a extensão MIME. Projetos com várias texturas ou referências externas mantêm o .bbmodel original como fonte e não recebem uma exportação parcial enganosa por esse botão.
+- A interface informa que o PNG não está embutido no Geometry JSON e precisa acompanhar o arquivo de geometria no fluxo Minecraft.
+- Malhas livres continuam recusadas pelo exportador cubo-based com diagnóstico explícito.
+
+### Limites da integração atual
+- A interface ainda não oferece importação direta de .geo.json para a cena do Criador; a função de importação Bedrock existe no módulo e é coberta por testes, mas não está conectada a um seletor visível.
+- A exportação direta da textura é intencionalmente limitada a uma única imagem incorporada. Múltiplas imagens/recursos externos precisam de tratamento de atlas/associação próprio.
+- O fluxo começa com um .bbmodel importado; formas genéricas geradas manualmente pelo editor não são convertidas automaticamente em cubos Bedrock.
+- Não há geração de client_entity, animation/controller JSON, Behavior Pack ou Resource Pack instalável completo.
+- A auditoria estática e o build não substituem a inspeção visual de UVs no Blockbench e o carregamento em Minecraft Bedrock.
+
+### Fluxo disponível nesta etapa
+1. Importar um .bbmodel no Criador de Personagens.
+2. Editar cubos/grupos suportados.
+3. Exportar o .geo.json Bedrock atualizado.
+4. Exportar a textura incorporada quando houver exatamente uma imagem.
+5. Usar ambos os arquivos no fluxo de Resource Pack/entidade do Minecraft, configurando os vínculos externos necessários.
+
+Esse é um primeiro fluxo utilizável para geometria cubo-based, não um empacotador de entidade completo.

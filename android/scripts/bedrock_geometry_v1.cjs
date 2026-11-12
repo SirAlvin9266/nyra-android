@@ -58,25 +58,38 @@ function nodeChildren(nodes) {
 }
 function getBoneOrigin(node, byId, memo=new Map()) {
   if(memo.has(node.id)) return memo.get(node.id).slice();
-  const raw=node.sourceData?.origin || node.sourceData?.bedrock?.pivot;
-  if(Array.isArray(raw)) { const value=vec3(raw,'bone.origin'); memo.set(node.id,value); return value.slice(); }
-  if(Array.isArray(node.pivot)) {
-    const value=node.pivot.map(v=>v*16);
-    memo.set(node.id,value); return value.slice();
+  // Scene-transfer transforms are local and editable. They must take
+  // precedence over the immutable source snapshot, otherwise moving a bone
+  // in Nyra would export its old Bedrock pivot.
+  const localPosition=node.transform?.position;
+  if(Array.isArray(localPosition)) {
+    const parent=node.parentId ? byId.get(node.parentId) : null;
+    const base=parent && (parent.type==='bone'||parent.type==='group'||parent.type==='empty')
+      ? getBoneOrigin(parent,byId,memo) : [0,0,0];
+    const value=base.map((v,i)=>v+finite(localPosition[i], 'bone.position')*16);
+    memo.set(node.id,value);
+    return value.slice();
   }
-  const local=node.transform?.position || [0,0,0];
-  const parent=node.parentId ? byId.get(node.parentId) : null;
-  const base=parent && (parent.type==='bone'||parent.type==='group'||parent.type==='empty')
-    ? getBoneOrigin(parent,byId,memo) : [0,0,0];
-  const value=base.map((v,i)=>v+local[i]*16);
+  if(Array.isArray(node.pivot)) {
+    const value=node.pivot.map(v=>finite(v,'bone.pivot')*16);
+    memo.set(node.id,value);
+    return value.slice();
+  }
+  const raw=node.sourceData?.origin || node.sourceData?.bedrock?.pivot;
+  const value=Array.isArray(raw)?vec3(raw,'bone.origin'):[0,0,0];
   memo.set(node.id,value);
   return value.slice();
 }
 function getNodeRotation(node, fallback=[0,0,0]) {
-  if(Array.isArray(node.sourceData?.rotation)) return vec3(node.sourceData.rotation,'sourceData.rotation');
   const transform=node.transform||{};
-  const value=vec3(transform.rotation||fallback,'transform.rotation');
-  return transform.rotationUnit==='radians'?radiansToDegrees(value):value;
+  // The live scene transform is authoritative. Source rotation is a fallback
+  // only for legacy nodes that do not expose an editable transform.
+  if(Array.isArray(transform.rotation)) {
+    const value=vec3(transform.rotation,'transform.rotation');
+    return transform.rotationUnit==='radians'?radiansToDegrees(value):value;
+  }
+  if(Array.isArray(node.sourceData?.rotation)) return vec3(node.sourceData.rotation,'sourceData.rotation');
+  return vec3(fallback,'fallback rotation');
 }
 function normalizeFaceUV(face, faceName) {
   if(!isObject(face)) return null;
@@ -110,7 +123,11 @@ function normalizeCube(node, boneMetadata={}) {
   const size=to.map((v,i)=>v-from[i]);
   if(size.some(v=>v<=0)) throw new RangeError('Cubo '+node.name+' tem dimensão zero ou negativa.');
   const cube={...safeClone(bedrock),origin:[-to[0],from[1],from[2]],size};
+  // A cube's source metadata may contain fields not yet understood by the
+  // editor. Preserve them, but overwrite all editable Bedrock properties
+  // from the current Nyra geometry so stale sourceData cannot win.
   delete cube.pivot; delete cube.rotation; delete cube.inflate; delete cube.mirror; delete cube.uv;
+  delete cube.material_instance;
   const inflate=geometry.inflate??source.inflate??bedrock.inflate;
   if(inflate!==undefined&&inflate!==0) cube.inflate=finite(inflate,'cube.inflate');
   const boxUv=geometry.boxUv===true||source.box_uv===true||Array.isArray(source.uv)||Array.isArray(bedrock.uv);
@@ -133,10 +150,15 @@ function normalizeCube(node, boneMetadata={}) {
   if(!boxUv&&mirror!==undefined) cube.mirror=!!mirror;
   const rotation=getNodeRotation(node);
   if(rotation.some(v=>v!==0)){
-    const origin=source.origin||source.pivot||node.pivot?.map(v=>v*16);
+    const origin=node.pivot?.map(v=>v*16)||source.origin||source.pivot;
     if(!Array.isArray(origin)) throw new Error('Cubo rotacionado sem pivô de origem: '+node.name);
     cube.pivot=bbPositionToBedrock(origin);
     cube.rotation=bbRotationToBedrock(rotation);
+  } else {
+    // A cube edited back to zero rotation must not retain an old source
+    // pivot/rotation in the cloned raw object.
+    delete cube.pivot;
+    delete cube.rotation;
   }
   return cube;
 }
@@ -210,8 +232,10 @@ function exportBedrockGeometry(documentData, options={}) {
     const pivot=bbPositionToBedrock(origin);
     if(pivot.some(Boolean))item.pivot=pivot;
     if(rotation.some(Boolean))item.rotation=bbRotationToBedrock(rotation);
+    else delete item.rotation;
     for(const key of ['binding','reset','mirror','inflate','material','render_group_id','debug','neverRender']){
       if(metadata[key]!==undefined)item[key]=metadata[key];
+      else delete item[key];
     }
     if(item.binding)hasBinding=true;
     const cubes=[];
@@ -237,6 +261,7 @@ function exportBedrockGeometry(documentData, options={}) {
     if(cubes.length)item.cubes=cubes;
     const locators=bone===synthetic?null:(bone.sourceData?.locators||bone.sourceData?.bedrock?.locators);
     if(locators&&Object.keys(locators).length)item.locators=safeClone(locators);
+    else delete item.locators;
     for(const locator of nodes.filter(n=>n.type==='locator'&&n.parentId===bone.id)){
       const key=String(locator.sourceData?.locatorName||locator.name||'locator');
       const raw=locator.sourceData?.bedrockLocator||locator.sourceData?.locator;
@@ -257,8 +282,16 @@ function exportBedrockGeometry(documentData, options={}) {
   const firstTexture=documentData.scene?.textures?.[0];
   const resolution=documentData.extensions?.blockbenchRaw?.resolution||{};
   const bedrockDescription=documentData.extensions?.bedrockGeometryDescription||{};
-  const width=finite(options.textureWidth??firstTexture?.width??resolution.width??bedrockDescription.texture_width??64,'texture_width');
-  const height=finite(options.textureHeight??firstTexture?.height??resolution.height??bedrockDescription.texture_height??64,'texture_height');
+  const explicitWidth=options.textureWidth;
+  const explicitHeight=options.textureHeight;
+  const width=finite(explicitWidth??firstTexture?.width??resolution.width??bedrockDescription.texture_width??64,'texture_width');
+  const height=finite(explicitHeight??firstTexture?.height??resolution.height??bedrockDescription.texture_height??64,'texture_height');
+  if(firstTexture?.width!=null && explicitWidth!=null && explicitWidth!==firstTexture.width) {
+    throw new Error('textureWidth diverge da resolução da textura incorporada; corrija o asset ou escolha explicitamente um projeto sem essa textura.');
+  }
+  if(firstTexture?.height!=null && explicitHeight!=null && explicitHeight!==firstTexture.height) {
+    throw new Error('textureHeight diverge da resolução da textura incorporada; corrija o asset ou escolha explicitamente um projeto sem essa textura.');
+  }
   if(!Number.isInteger(width)||!Number.isInteger(height)||width<=0||height<=0) throw new RangeError('texture_width/texture_height devem ser inteiros positivos.');
   const identifier=makeGeometryId(options.identifier||documentData.project?.name||'nyra_model');
   const description={

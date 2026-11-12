@@ -218,7 +218,17 @@ Estado:
 - [ ] Ensaio visual no Blockbench.
 - [ ] Ensaio de carregamento no Minecraft Bedrock.
 
-## 10. Referências públicas
+## 10. Recorte de prioridade para a meta de modelos Minecraft
+
+**Essencial nesta etapa:** Geometry JSON Bedrock com geometria cubo-based, hierarquia, pivôs, rotações, inflate/mirror, UV box e UV por face, preservação de faces omitidas, dimensões de textura coerentes, abertura/reabertura e diagnósticos de compatibilidade. São as capacidades que afetam diretamente a qualidade estrutural e visual do modelo no pipeline Bedrock.
+
+**Importante, mas secundário:** locators e metadados específicos de bone que sejam necessários para encaixes, attachment points ou compatibilidade do modelo.
+
+**Não bloqueia o objetivo atual:** animações/controller JSON, Molang, client entity, Behavior Pack e empacotamento instalável completo. Esses formatos são camadas separadas. Preservar dados de origem no projeto Nyra é suficiente para não perdê-los nesta entrega.
+
+**Fora da estratégia de conversão:** não converter malhas livres em cubos por aproximação. O Nyra pode manter malhas livres no projeto genérico; a exportação Bedrock cubo-based deve explicar o que está impedindo a saída e não produzir geometria enganosa.
+
+## 11. Referências públicas
 
 - Microsoft Learn — [Geometry v1.12.0 schema](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/schemasreference/schemas/minecraftschema_geometry_1.12.0?view=minecraft-bedrock-stable)
 - Microsoft Learn — [Geometry v1.12.0 visual documentation](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/visualreference/geometry.v1.12.0?view=minecraft-bedrock-stable)
@@ -226,3 +236,10 @@ Estado:
 - Blockbench — [Bedrock multi-file integration](https://github.com/JannisX11/blockbench/blob/master/js/formats/bedrock/bedrock_multi_file.ts)
 
 Este documento deve ser atualizado no mesmo PR da Frente D sempre que a cobertura de importação/exportação mudar.
+## 12. Implementação posterior — fluxo de exportação no editor
+
+A revisão posterior conectou o conversor Geometry JSON ao Criador de Personagens: após importar um .bbmodel, o usuário pode exportar o Geometry JSON derivado da cena editada. Para exatamente uma textura incorporada em data URI, há também download direto do PNG/JPEG/WebP. O editor informa a resolução do atlas e a versão de Geometry exigida.
+
+Restrições explícitas: não há importação direta de .geo.json pela interface; múltiplas texturas e referências externas não são empacotadas automaticamente; malhas livres não são convertidas em cubos; o Geometry JSON não contém o PNG. A associação com client_entity/Resource Pack permanece externa.
+
+O CI confirma sintaxe, conversão e build do APK, mas ainda faltam abrir o Geometry JSON no Blockbench e carregar a combinação geometria+textura em Minecraft Bedrock com modelos reais representativos do corpus.
