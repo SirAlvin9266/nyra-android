@@ -8,15 +8,15 @@ const { spawnSync } = require('node:child_process');
 
 const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/character.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
-
 const integratedPath = path.resolve(__dirname, '../app/src/main/assets/www/index.html');
 const integratedHtml = fs.readFileSync(integratedPath, 'utf8');
 const bundleStart = integratedHtml.indexOf('const pages = {items: "');
 const bundleMatch = bundleStart >= 0 ? integratedHtml.slice(bundleStart).match(/character: "([^"]+)"/) : null;
 assert.ok(bundleMatch, 'O aplicativo deve conter a página Character Creator.');
-assert.equal(Buffer.from(bundleMatch[1], 'base64').toString('utf8'), html,
+const embeddedHtml = Buffer.from(bundleMatch[1], 'base64').toString('utf8');
+assert.equal(embeddedHtml, html,
   'A página Character Creator integrada deve ser idêntica à cópia auditada.');
-assert.ok(html.includes('id="paintScope"'), 'O seletor de escopo de pintura deve existir.');
+assert.ok(embeddedHtml.includes('id="paintScope"'), 'O seletor de escopo de pintura deve existir.');
 
 // The integrated page is the shipped Android source of truth. Character Creator
 // is also kept as an independent audit fixture; both must match byte-for-byte.
@@ -25,7 +25,7 @@ for (const option of ['piece', 'group', 'model']) {
   assert.ok(html.includes('value="' + option + '"'), 'Escopo de pintura ausente: ' + option);
 }
 
-const match = html.match(/<script type="module">([\s\S]*?)<\/script>/);
+const match = embeddedHtml.match(/<script type="module">([\s\S]*?)<\/script>/);
 assert.ok(match, 'O Character Creator deve conter seu script de módulo.');
 const source = match[1];
 const tempPath = path.join(os.tmpdir(), 'nyra-character-paint-audit-' + process.pid + '.mjs');
@@ -38,11 +38,11 @@ try {
 }
 
 const checks = [
-  ['escopo peça limita a pintura aos meshes diretamente ligados à peça', source.includes("paintMaterials(part,color,false)")],
+  ['escopo peça usa a malha exata quando selecionada', source.includes('selectedMesh') && source.includes('selectPart(k,mesh=null)')],
 
   ['grupo altera apenas descendentes, sem alcançar ramos irmãos', source.includes('root.traverse(paint)') && source.includes('paintMaterials(part,color,true)')],
   ['escopo peça para grupo aplica material somente no nó selecionado', source.includes('forEachEditableMaterial(root,mat=>{if(mat.color)mat.color.set(color)})')],
-  ['peça selecionada por raycast é mantida separada do nó de transformação', source.includes('selectedMesh') && source.includes('selectPart(k,mesh=null)')],
+  ['peça selecionada por raycast é mantida separada do nó de transformação', source.includes('selectedMesh') && source.includes('selectPart(k,mesh=null)') && source.includes('selectPart(o.name,bodyHits[0].object)')],
   ['escopo grupo de forma não sobe ao contêiner global indiscriminadamente', source.includes('selectedObject.parent&&selectedObject.parent!==voxelGroup')],
   ['escopo grupo Blockbench parte de grupo UUID selecionado', source.includes('parent.userData?.bbGroupUuid')],
   ['escopo grupo percorre apenas a subárvore selecionada', source.includes("paintMaterials(part,color,true)")],
