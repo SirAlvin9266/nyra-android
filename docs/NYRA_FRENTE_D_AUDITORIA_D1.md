@@ -222,3 +222,11 @@ O envio de modelos Blockbench e clips ao RoboTV é mantido como trilha complemen
 
 ### Validação ainda obrigatória
 CI automatizado não comprova UV visual nem carregamento em jogo. Permanecem necessários round-trip no Blockbench e teste no Minecraft Bedrock com modelos representativos do corpus, incluindo um caso com hierarquia profunda, cubos rotacionados, UV por face e atlas de resolução não quadrada.
+
+
+### Resultado do CI desta rodada
+O commit de código `6d60061c58c85198c2ff284149f543b40fade5fa` passou no workflow #551 (run `43135159064`): auditoria dos editores/adaptadores, DSL, contrato de transferência, round-trip Geometry Bedrock, importador Blockbench, mapeamento para RoboTV, pré-análise GLB, build debug e inspeção dos assets offline no APK.
+
+O APK foi produzido como artefato `nyra-android-debug-apk`; SHA-256 do arquivo ZIP do artefato publicado pelo GitHub: `0c5271835af17c82a365551d3fe5cb8f010b0cc7983d01d6a4a4062517c54aa6`. O artefato é do commit de código acima. O commit posterior que atualiza este documento altera somente documentação; não altera o código testado.
+
+Esse resultado fecha a regressão automatizada desta rodada, não a integração visual do conversor nem o teste no Blockbench/Minecraft.
