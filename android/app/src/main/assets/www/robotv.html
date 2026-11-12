@@ -71,13 +71,13 @@ footer{color:var(--muted);font-size:11px;padding:0 14px 14px;max-width:1200px;ma
  <div class="controls">
   <label>Importar e exportar modelo</label>
   <div class="row">
-   <button class="primary" id="nyraImportBBModel">Importar modelo Blockbench (.bbmodel)</button>
+   <button class="primary" id="nyraImportBBModel">Importar modelo (.bbmodel / JSON do Criador)</button>
    <button id="nyraExportGLB" disabled>Exportar modelo GLB</button>
    <button id="nyraExportBBModel" disabled>Exportar .bbmodel editado</button>
    <button id="nyraExportCharacterJSON" disabled>Exportar personagem JSON</button>
    <button id="nyraExportTransfer" disabled>Exportar projeto Nyra JSON</button>
   </div>
-  <input type="file" id="nyraTransferFile" accept=".bbmodel" hidden>
+  <input type="file" id="nyraTransferFile" accept=".bbmodel,.json,application/json" hidden>
   <div id="nyraTransferStatus" class="status">Importe um modelo Blockbench ou envie uma cena pelo Criador de Personagens. Selecione uma peça na árvore ou diretamente no viewport.</div>
   <label>Hierarquia de peças</label>
   <div id="nyraTransferTree" role="tree" style="max-height:220px;overflow:auto;margin-top:4px;font-size:12px;color:var(--muted)"></div>
@@ -682,13 +682,13 @@ function nyraPlayClip(){
 $('nyraImportBBModel').onclick=()=>$('nyraTransferFile').click();
 $('nyraTransferFile').onchange=event=>{
  const file=event.target.files?.[0];if(!file)return;
- if(!/\.bbmodel$/i.test(file.name)){nyraSetTransferStatus('Selecione um arquivo .bbmodel.');event.target.value='';return;}
- const requestId='robotv-bbmodel-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+ if(!/\.(?:bbmodel|json)$/i.test(file.name)){nyraSetTransferStatus('Selecione um arquivo .bbmodel ou um projeto JSON do Criador de Personagens.');event.target.value='';return;}
+ const requestId='robotv-model-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
  const onResult=messageEvent=>{
   if(messageEvent.source!==window.parent||messageEvent.data?.type!=='NYRA_SCENE_TRANSFER_RESULT'||messageEvent.data.requestId!==requestId)return;
   window.removeEventListener('message',onResult);
   if(messageEvent.data.success)nyraSetTransferStatus('Modelo importado e carregado no RoboTV com sucesso.');
-  else nyraSetTransferStatus('Falha na importação Blockbench: '+(messageEvent.data.error||'erro não especificado'));
+  else nyraSetTransferStatus('Falha na importação: '+(messageEvent.data.error||'erro não especificado'));
  };
  window.addEventListener('message',onResult);
  window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT_BBMODEL',requestId,file,name:file.name},'*');

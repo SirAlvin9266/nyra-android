@@ -80,6 +80,8 @@ const checks = [
   ['exportação do contrato de cena continua disponível', source.includes('nyraExportTransfer.onclick=')],
   ['GLB usa mapeamento estável de IDs de transferência', source.includes('nyraMapGLTFTransferObjects(candidate,normalized,nodeObjects)')],
   ['Criador marca o pivô de cada peça antes de exportar GLB', characterSource.includes('tag(record.pivot||record.mesh,node.id)')],
+  ['importação do RoboTV aceita .bbmodel e JSON', html.includes('accept=".bbmodel,.json,application/json"') && source.includes('/\\.(?:bbmodel|json)$/i')],
+  ['Criador encaminha JSON com modelo Blockbench ao importador compartilhado', characterSource.includes('project?.bbmodel&&Array.isArray(project.bbmodel.elements)') && characterSource.includes('importBBModelFile(modelFile)')],
 ];
 
 

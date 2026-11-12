@@ -643,7 +643,22 @@ window.addEventListener('message',event=>{
  }
  if(event.data.type==='NYRA_SCENE_TRANSFER_IMPORT_BBMODEL'&&event.data.file){
   (async()=>{try{
-   const imported=await importBBModelFile(event.data.file);
+   const file=event.data.file;
+   let imported=false;
+   if(/\.json$/i.test(file.name)){
+    const project=JSON.parse(await file.text());
+    if(Array.isArray(project?.elements)){
+     imported=await importBBModelFile(file);
+    }else if(project?.bbmodel&&Array.isArray(project.bbmodel.elements)){
+     apply(project);
+     const modelFile=new File([JSON.stringify(project.bbmodel)],String(project.bbmodel.name||project.name||'nyra-importado')+'.bbmodel',{type:'application/json'});
+     imported=await importBBModelFile(modelFile);
+    }else{
+     throw new Error('Este JSON não contém um modelo Blockbench. Use um .bbmodel ou um projeto JSON do Criador que contenha o campo bbmodel.');
+    }
+   }else{
+    imported=await importBBModelFile(file);
+   }
    if(!imported||!bbmodelState)throw new Error('O arquivo não foi importado pelo Criador de Personagens.');
    await nyraSendBBModelToRoboTV(event.data.requestId);
   }catch(error){
