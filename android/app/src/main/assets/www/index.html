@@ -379,20 +379,27 @@ window.addEventListener('message',event=>{
   else{
    const relay=()=>{
     if(!frame.contentWindow){fail('Criador de Personagens ainda não está disponível.');return;}
-    const onImportResult=reply=>{
-     if(reply.source!==frame.contentWindow||reply.data?.type!=='NYRA_SCENE_TRANSFER_RESULT'||reply.data.requestId!==event.data.requestId)return;
-     window.removeEventListener('message',onImportResult);
-     event.source.postMessage(reply.data,'*');
-    };
-    window.addEventListener('message',onImportResult);
     frame.contentWindow.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT_BBMODEL',requestId:event.data.requestId,file:event.data.file,name:event.data.name},'*');
    };
    try{if(frame.contentDocument?.readyState==='complete')relay();else frame.addEventListener('load',relay,{once:true});}
    catch(error){fail(error?.message||String(error));}
   }
  }
+ if(event.data?.type==='NYRA_ROBOTV_EXPORT_BBMODEL'&&sourceKey==='animation'){
+  const target=editorFrames.character?.contentWindow;
+  if(!target)event.source.postMessage({type:'NYRA_ROBOTV_EXPORT_RESULT',requestId:event.data.requestId,success:false,error:'Criador de Personagens não está disponível.'},'*');
+  else target.postMessage({type:'NYRA_ROBOTV_EXPORT_BBMODEL',requestId:event.data.requestId,transfer:event.data.transfer},'*');
+ }
+ if(event.data?.type==='NYRA_ROBOTV_EXPORT_RESULT'&&sourceKey==='character'){
+  editorFrames.animation?.contentWindow?.postMessage(event.data,'*');
+ }
+ if(event.data?.type==='NYRA_SCENE_TRANSFER_RESULT'&&sourceKey==='character'&&event.data.requestId){
+  editorFrames.animation?.contentWindow?.postMessage(event.data,'*');
+ }
  if(event.data?.type==='NYRA_SCENE_TRANSFER_ACK'&&sourceKey==='animation'){
-  editorFrames.character?.contentWindow?.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',success:event.data.success,projectName:event.data.projectName,error:event.data.error,warnings:event.data.warnings},'*');
+  const result={type:'NYRA_SCENE_TRANSFER_RESULT',requestId:event.data.requestId,success:event.data.success,projectName:event.data.projectName,error:event.data.error,warnings:event.data.warnings};
+  editorFrames.character?.contentWindow?.postMessage(result,'*');
+  editorFrames.animation?.contentWindow?.postMessage(result,'*');
   message.textContent=event.data.success?'Transferência concluída: '+(event.data.projectName||'modelo')+'.':'RoboTV recusou a transferência: '+(event.data.error||'erro desconhecido');
  }
 });
