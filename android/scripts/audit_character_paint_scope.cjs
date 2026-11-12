@@ -17,6 +17,10 @@ assert.ok(bundleMatch, 'O aplicativo deve conter a página Character Creator.');
 assert.equal(Buffer.from(bundleMatch[1], 'base64').toString('utf8'), html,
   'A página Character Creator integrada deve ser idêntica à cópia auditada.');
 assert.ok(html.includes('id="paintScope"'), 'O seletor de escopo de pintura deve existir.');
+
+// The integrated page is the shipped Android source of truth. Character Creator
+// is also kept as an independent audit fixture; both must match byte-for-byte.
+
 for (const option of ['piece', 'group', 'model']) {
   assert.ok(html.includes('value="' + option + '"'), 'Escopo de pintura ausente: ' + option);
 }
