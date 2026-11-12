@@ -616,7 +616,7 @@ $('nyraTransferFile').onchange=event=>{
  const onResult=messageEvent=>{
   if(messageEvent.source!==window.parent||messageEvent.data?.type!=='NYRA_SCENE_TRANSFER_RESULT'||messageEvent.data.requestId!==requestId)return;
   window.removeEventListener('message',onResult);
-  if(messageEvent.data.success)nyraSetTransferStatus('Modelo importado pelo Criador de Personagens. Envie-o ao RoboTV pelo botão de transferência na tela do Criador.');
+  if(messageEvent.data.success)nyraSetTransferStatus('Modelo importado e carregado no RoboTV com sucesso.');
   else nyraSetTransferStatus('Falha na importação Blockbench: '+(messageEvent.data.error||'erro não especificado'));
  };
  window.addEventListener('message',onResult);
