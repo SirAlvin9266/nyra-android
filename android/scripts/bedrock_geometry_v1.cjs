@@ -219,8 +219,10 @@ function exportBedrockGeometry(documentData, options={}) {
     const pivot=bbPositionToBedrock(origin);
     if(pivot.some(Boolean))item.pivot=pivot;
     if(rotation.some(Boolean))item.rotation=bbRotationToBedrock(rotation);
+    else delete item.rotation;
     for(const key of ['binding','reset','mirror','inflate','material','render_group_id','debug','neverRender']){
       if(metadata[key]!==undefined)item[key]=metadata[key];
+      else if(key!=='binding' && key!=='reset') delete item[key];
     }
     if(item.binding)hasBinding=true;
     const cubes=[];
@@ -246,7 +248,6 @@ function exportBedrockGeometry(documentData, options={}) {
     if(cubes.length)item.cubes=cubes;
     const locators=bone===synthetic?null:(bone.sourceData?.locators||bone.sourceData?.bedrock?.locators);
     if(locators&&Object.keys(locators).length)item.locators=safeClone(locators);
-    else delete item.locators;
     else delete item.locators;
     for(const locator of nodes.filter(n=>n.type==='locator'&&n.parentId===bone.id)){
       const key=String(locator.sourceData?.locatorName||locator.name||'locator');
