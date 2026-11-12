@@ -49,10 +49,13 @@ required = {
     },
     "animation": {
         "ids": {
-            "viewport", "joint", "jointButtons", "rx", "ry", "rz", "rxVal", "ryVal",
-            "rzVal", "addFrame", "deleteFrame", "duplicateFrame", "play", "stop",
+            "viewport", "rx", "ry", "rz", "rxVal", "ryVal", "rzVal",
+            "addFrame", "deleteFrame", "duplicateFrame", "play", "stop",
             "saveProject", "loadProject", "exportProject", "exportAnim", "speed",
-            "samplePoses", "sampleEquipment", "backpackToggle",
+            "nyraImportBBModel", "nyraExportGLB", "nyraExportTransfer", "nyraTransferFile",
+            "nyraTransferStatus", "nyraTransferTree", "px", "py", "pz", "sx", "sy", "sz",
+            "zeroJoint", "nyraAssociateMode", "nyraCancelAssociation", "nyraDetachNode",
+            "nyraAssociationStatus", "nyraClipSelect", "nyraClipPlay", "nyraClipStop",
         },
         "functions": {
             "getPose", "setPose", "interpolate", "projectData", "renderFrames",
@@ -70,6 +73,11 @@ for key, page in pages.items():
     missing_ids = sorted(spec["ids"] - ids)
     missing_functions = sorted(spec["functions"] - functions)
     missing_strings = sorted(s for s in spec["strings"] if s not in page)
+    if key == "animation":
+        legacy_ids = {"joint", "jointButtons", "samplePoses", "sampleEquipment", "backpackToggle"}
+        remaining_legacy = sorted(legacy_ids & ids)
+        if remaining_legacy:
+            errors.append(f"animation: legacy fixed-part controls must be removed: {remaining_legacy}")
     if missing_ids or missing_functions or missing_strings:
         errors.append(
             f"{key}: missing IDs={missing_ids}; functions={missing_functions}; strings={missing_strings}"
