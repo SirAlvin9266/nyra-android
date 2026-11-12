@@ -82,7 +82,9 @@ footer{color:var(--muted);font-size:11px;padding:0 14px 14px;max-width:1200px;ma
   <label>Hierarquia de peças</label>
   <div id="nyraTransferTree" role="tree" style="max-height:220px;overflow:auto;margin-top:4px;font-size:12px;color:var(--muted)"></div>
   <div class="divider"></div>
-  <label>Transformação da peça selecionada</label>
+  <label>Manipulação no viewport</label>
+  <div class="row"><button id="nyraMoveTool" disabled>Mover</button><button id="nyraRotateTool" disabled>Rotacionar</button><button id="nyraScaleTool" disabled>Escalar</button></div>
+  <label>Transformação numérica</label>
   <div class="transform-grid">
    <div><label for="px">Posição X: <span id="pxVal">0.00</span></label><input id="px" type="range" min="-8" max="8" step="0.01" value="0"></div>
    <div><label for="py">Posição Y: <span id="pyVal">0.00</span></label><input id="py" type="range" min="-8" max="8" step="0.01" value="0"></div>
@@ -116,6 +118,7 @@ footer{color:var(--muted);font-size:11px;padding:0 14px 14px;max-width:1200px;ma
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const $ = id => document.getElementById(id);
@@ -132,6 +135,15 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 viewport.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.target.set(0,1.8,0); controls.minDistance=3; controls.maxDistance=16;
+const transformControls = new TransformControls(camera,renderer.domElement);
+scene.add(typeof transformControls.getHelper==='function'?transformControls.getHelper():transformControls);
+transformControls.addEventListener('dragging-changed',event=>{controls.enabled=!event.value;});
+transformControls.addEventListener('objectChange',()=>{
+ const object=transformControls.object;
+ const node=nyraSelectedNodeId?nyraTransferData?.scene?.nodes?.find(item=>item.id===nyraSelectedNodeId):null;
+ if(object&&node)nyraStoreObjectTransform(node,object);
+ if(object)nyraSyncTransformControls();
+});
 scene.add(new THREE.HemisphereLight(0xc9e4ff,0x3a3444,2.1));
 const keyLight = new THREE.DirectionalLight(0xffffff,2.5); keyLight.position.set(4,8,5); keyLight.castShadow=true; scene.add(keyLight);
 const fillLight = new THREE.DirectionalLight(0x72e6d0,1.0); fillLight.position.set(-5,3,-4); scene.add(fillLight);
