@@ -507,6 +507,7 @@ function nyraApplyRoboTVTransferToBBModel(doc){
  const nodes=doc.scene?.nodes||[],byId=new Map(nodes.map(node=>[node.id,node])),bySource=new Map(nodes.filter(node=>node.sourceId).map(node=>[node.sourceId,node]));
  const original=window.__nyraLastTransfer;
  if(!original)throw new Error('A origem Blockbench desta sessão não está disponível.');
+ if(doc.project?.id!==original.project?.id)throw new Error('O modelo ativo no RoboTV não corresponde mais ao modelo aberto no Criador de Personagens. Reenvie o modelo antes de exportar.');
  const originalBySource=new Map((original.scene?.nodes||[]).filter(node=>node.sourceId).map(node=>[node.sourceId,node]));
  const groupByUuid=new Map((bbmodelState.groups||[]).map(group=>[group.uuid,group]));
  const recordByUuid=new Map((bbmodelState.records||[]).map(record=>[record.uuid,record]));
