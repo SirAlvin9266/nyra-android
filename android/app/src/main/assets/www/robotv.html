@@ -272,7 +272,8 @@ $('resetView').onclick=()=>{camera.position.set(5.4,4.4,8.2);controls.target.set
 // O RoboTV de demonstração fica guardado internamente e não pode ser carregado pela interface de trabalho nesta etapa. robot.visible=false;
 let nyraTransferData=null,nyraTransferRoot=null,nyraNodeObjects=new Map(),nyraClipFrame=0,nyraClipState=null,nyraBaseRotations=new Map(),nyraBaseTransforms=new Map(),nyraSelectedNodeId=null,nyraViewportSelectionBound=false;
 let nyraGltfAnimations=[],nyraGltfMixer=null,nyraGltfAction=null,nyraGltfFrame=0,nyraGltfLastTime=0;
-const nyraTransferStatus=$('nyraTransferStatus'),nyraTransferTree=$('nyraTransferTree'),nyraClipSelect=$('nyraClipSelect'),nyraClipControls=$('nyraClipControls'),nyraExportTransfer=$('nyraExportTransfer'),nyraExportGLB=$('nyraExportGLB'),nyraExportBBModel=$('nyraExportBBModel');nyraExportCharacterJSON=$('nyraExportCharacterJSON');
+const nyraTransferStatus=$('nyraTransferStatus'),nyraTransferTree=$('nyraTransferTree'),nyraClipSelect=$('nyraClipSelect'),nyraClipControls=$('nyraClipControls'),nyraExportTransfer=$('nyraExportTransfer'),nyraExportGLB=$('nyraExportGLB'),nyraExportBBModel=$('nyraExportBBModel');
+const nyraExportCharacterJSON=$('nyraExportCharacterJSON');
 function nyraSetTransferStatus(text){if(nyraTransferStatus)nyraTransferStatus.textContent=text;status(text);}
 function nyraValidateTransfer(doc){
  if(!doc||doc.schema!=='nyra.scene-transfer'||doc.schemaVersion!==1||!doc.scene||!Array.isArray(doc.scene.nodes)||!doc.animations||!Array.isArray(doc.animations.clips))throw new Error('Documento de transferência Nyra v1 inválido.');
