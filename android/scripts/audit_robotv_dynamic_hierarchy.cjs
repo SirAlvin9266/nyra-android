@@ -45,6 +45,7 @@ const checks = [
   ['importação da cena continua disponível', source.includes("event.data.type==='NYRA_SCENE_TRANSFER_IMPORT'")],
   ['exportação GLB continua disponível', source.includes('nyraExportGLB.onclick=async()=>')],
   ['exportação .bbmodel reutiliza o Criador de Personagens', html.includes('id="nyraExportBBModel"') && source.includes("type:'NYRA_ROBOTV_EXPORT_BBMODEL'")],
+  ['exportação de projeto JSON reutiliza o Criador de Personagens', html.includes('id="nyraExportCharacterJSON"') && source.includes("type:'NYRA_ROBOTV_EXPORT_PROJECT_JSON'")],
   ['exportação JSON sincroniza transformações atuais', source.includes('if(object)nyraStoreObjectTransform(node,object)')],
   ['associação Blockbench aceita somente grupos como pai', source.includes("!['bone','group'].includes(parent.type)")],
   ['host encaminha exportação ao Criador de Personagens', integratedHtml.includes("type==='NYRA_ROBOTV_EXPORT_BBMODEL'") && integratedHtml.includes("type:'NYRA_ROBOTV_EXPORT_BBMODEL'")],
