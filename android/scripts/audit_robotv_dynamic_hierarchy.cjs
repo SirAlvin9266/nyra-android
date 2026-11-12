@@ -49,6 +49,7 @@ const checks = [
   ['exportação JSON sincroniza transformações atuais', source.includes('if(object)nyraStoreObjectTransform(node,object)')],
   ['associação Blockbench aceita somente grupos como pai', source.includes("!['bone','group'].includes(parent.type)")],
   ['host encaminha exportação ao Criador de Personagens', integratedHtml.includes("type==='NYRA_ROBOTV_EXPORT_BBMODEL'") && integratedHtml.includes("type:'NYRA_ROBOTV_EXPORT_BBMODEL'")],
+  ['host encaminha exportação de projeto JSON', integratedHtml.includes("type==='NYRA_ROBOTV_EXPORT_PROJECT_JSON'") && integratedHtml.includes("type:'NYRA_ROBOTV_EXPORT_PROJECT_JSON'")],
   ['host devolve o resultado da exportação ao RoboTV', integratedHtml.includes("type==='NYRA_ROBOTV_EXPORT_RESULT'")],
   ['importação Blockbench retorna o mesmo requestId', integratedHtml.includes("type==='NYRA_SCENE_TRANSFER_ACK'") && integratedHtml.includes("requestId:event.data.requestId")],
 
