@@ -519,11 +519,18 @@ async function nyraLoadTransfer(doc,glb){
   controls.target.set(0,0,0);camera.position.set(8,5,8);controls.update();
  }
  nyraRemovePreviousTransfer();nyraTransferRoot=candidate;nyraTransferData=normalized;nyraGltfAnimations=clips;scene.add(candidate);robot.visible=false;
- nyraRenderTransferTree(normalized);nyraBindViewportSelection();nyraClipSelect.replaceChildren();
+ nyraRenderTransferTree(normalized);nyraBindViewportSelection();
+ nyraClipSelect.replaceChildren();
  const visibleClips=clips.length?clips:normalized.animations.clips;
- for(const [i,clip] of visibleClips.entries())nyraClipSelect.add(new Option(clip.name||('Animação '+(i+1)),String(i)));
- nyraClipControls.style.display=visibleClips.length?'block':'none';nyraExportTransfer.disabled=false;nyraExportGLB.disabled=false;
+ for(const [index,clip] of visibleClips.entries())nyraClipSelect.add(new Option(clip.name||('Animação '+(index+1)),String(index)));
+ nyraClipSelect.disabled=visibleClips.length===0;
+ $('nyraClipPlay').disabled=visibleClips.length===0;$('nyraClipStop').disabled=visibleClips.length===0;
+ nyraClipControls.style.display=visibleClips.length?'block':'none';
+ nyraExportTransfer.disabled=false;nyraExportGLB.disabled=false;
+ $('zeroJoint').disabled=true;$('nyraAssociateMode').disabled=true;$('nyraDetachNode').disabled=true;$('nyraCancelAssociation').disabled=true;
  nyraSetTransferStatus('Projeto recebido: '+normalized.scene.nodes.length+' nós e '+normalized.animations.clips.length+' animação(ões). '+(clips.length?'Visor GLB com materiais, UVs e clips compatíveis carregado.':'Pré-visualização simplificada; documento e dados originais preservados.'));
+ if(normalized.scene.nodes.length){const first=normalized.scene.nodes.find(node=>!node.parentId)||normalized.scene.nodes[0];nyraSelectTransferNode(first.id);}
+
 }
 function nyraInterpolateChannel(frames,time,base){
  if(!frames.length)return base;
