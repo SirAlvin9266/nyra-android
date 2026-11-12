@@ -475,7 +475,21 @@ function nyraPlayClip(){
  nyraClipFrame=requestAnimationFrame(tick);nyraSetTransferStatus('Reproduzindo '+clip.name+'.');
 }
 $('nyraImportBBModel').onclick=()=>$('nyraTransferFile').click();
-$('nyraTransferFile').onchange=event=>{const file=event.target.files?.[0];if(!file)return;if(!/\.bbmodel$/i.test(file.name)){nyraSetTransferStatus('Selecione um arquivo .bbmodel.');event.target.value='';return;}window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT_BBMODEL',file,name:file.name},'*');nyraSetTransferStatus('Arquivo enviado ao importador Blockbench; aguardando o resultado…');event.target.value='';};
+$('nyraTransferFile').onchange=event=>{
+ const file=event.target.files?.[0];if(!file)return;
+ if(!/\.bbmodel$/i.test(file.name)){nyraSetTransferStatus('Selecione um arquivo .bbmodel.');event.target.value='';return;}
+ const requestId='robotv-bbmodel-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+ const onResult=messageEvent=>{
+  if(messageEvent.source!==window.parent||messageEvent.data?.type!=='NYRA_SCENE_TRANSFER_RESULT'||messageEvent.data.requestId!==requestId)return;
+  window.removeEventListener('message',onResult);
+  if(messageEvent.data.success)nyraSetTransferStatus('Modelo importado pelo Criador de Personagens. Envie-o ao RoboTV pelo botão de transferência na tela do Criador.');
+  else nyraSetTransferStatus('Falha na importação Blockbench: '+(messageEvent.data.error||'erro não especificado'));
+ };
+ window.addEventListener('message',onResult);
+ window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT_BBMODEL',requestId,file,name:file.name},'*');
+ nyraSetTransferStatus('Enviando '+file.name+' ao importador do Criador de Personagens…');
+ event.target.value='';
+};
 $('nyraClipPlay').onclick=nyraPlayClip;$('nyraClipStop').onclick=()=>{nyraStopClip(true);nyraSetTransferStatus('Animação parada; pose base restaurada.');};
 nyraExportTransfer.onclick=()=>{if(!nyraTransferData)return;const url=URL.createObjectURL(new Blob([JSON.stringify(nyraTransferData,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='nyra-scene-transfer.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);};
 nyraExportGLB.onclick=async()=>{
