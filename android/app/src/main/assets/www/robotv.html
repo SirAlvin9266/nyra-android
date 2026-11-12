@@ -242,60 +242,77 @@ parts.legR=pivot(robot,'legR',[.31,1.62,0]);
 cube(parts.legR,'Leg_R',[0,-.38,0],[.4,.82,.43],materials.white);
 cube(parts.legR,'Foot_R',[0,-.83,.12],[.48,.22,.65],materials.dark);
 
-const partNames={head:'Cabeça / TV',torso:'Tronco',armL:'Braço esquerdo',armR:'Braço direito',legL:'Perna esquerda',legR:'Perna direita'};
-let selected='head', frames=[], selectedFrame=-1, playing=false, playStart=0, playDuration=0, playSpeed=1, animationId=null;
-const radians=d=>d*Math.PI/180, degrees=r=>Math.round(r*180/Math.PI);
-const status = msg => {$('status').textContent=msg};
-setEquipment('none');
-function getPose(){const pose={}; for(const [k,p] of Object.entries(parts))pose[k]=[p.rotation.x,p.rotation.y,p.rotation.z];return pose}
-function setPose(pose){for(const [k,rot] of Object.entries(pose||{})){if(parts[k]&&Array.isArray(rot)){parts[k].rotation.set(+rot[0]||0,+rot[1]||0,+rot[2]||0)}};syncSliders()}
-function syncSliders(){
- const imported=nyraGetSelectedTransferObject();
- if(imported){nyraSyncTransformControls();return;}
- const rotation=parts[selected].rotation;
- [['rx','x'],['ry','y'],['rz','z']].forEach(([id,axis])=>{
-  const value=degrees(rotation[axis]);$(id).value=Math.max(-180,Math.min(180,value));$(id+'Val').textContent=value+'°';
+let frames=[],selectedFrame=-1,playing=false,playStart=0,playSpeed=1,animationId=null;
+const radians=d=>d*Math.PI/180,degrees=r=>Math.round(r*180/Math.PI);
+const status=msg=>{$('status').textContent=msg};
+function getPose(){
+ const object=nyraGetSelectedTransferObject();
+ if(!object)return null;
+ return {nodeId:nyraSelectedNodeId,position:object.position.toArray(),rotation:object.rotation.toArray(),scale:object.scale.toArray()};
+}
+function setPose(pose){
+ if(!pose||!pose.nodeId)return;
+ const object=nyraNodeObjects.get(pose.nodeId);if(!object)return;
+ if(Array.isArray(pose.position))object.position.fromArray(pose.position);
+ if(Array.isArray(pose.rotation))object.rotation.fromArray(pose.rotation);
+ if(Array.isArray(pose.scale))object.scale.fromArray(pose.scale);
+ object.updateMatrix();object.updateMatrixWorld(true);
+ nyraSelectTransferNode(pose.nodeId);
+}
+function syncSliders(){if(nyraGetSelectedTransferObject())nyraSyncTransformControls();}
+function renderFrames(){
+ const root=$('frames');root.replaceChildren();
+ frames.forEach((frame,index)=>{
+  const button=document.createElement('button');button.className='frame'+(index===selectedFrame?' active':'');
+  button.textContent='Quadro '+(index+1);button.title='Tempo: '+frame.time+' s';
+  button.onclick=()=>{stopPlayback();selectedFrame=index;setPose(frame.pose);renderFrames();status('Quadro '+(index+1)+' selecionado.')};
+  root.appendChild(button);
  });
 }
-function selectPart(name){nyraSelectedNodeId=null;selected=name;$('joint').value=name;renderJointButtons();syncSliders()}
-function renderJointButtons(){const root=$('jointButtons');root.innerHTML='';for(const [k,n] of Object.entries(partNames)){const b=document.createElement('button');b.textContent=n;b.className=k===selected?'selected':'';b.onclick=()=>selectPart(k);root.appendChild(b)}}
-$('joint').onchange=e=>selectPart(e.target.value);
-[['px','position'],['py','position'],['pz','position'],['rx','rotation'],['ry','rotation'],['rz','rotation'],['sx','scale'],['sy','scale'],['sz','scale']].forEach(([id])=>$(id)?.addEventListener('input',event=>{
- if(nyraGetSelectedTransferObject()){nyraUpdateSelectedVector(id,event.target.value);return;}
- if(id[0]!=='r')return;
- const axis=id[1];parts[selected].rotation[axis]=radians(+event.target.value);
- $(id+'Val').textContent=event.target.value+'°';
- if(selectedFrame>=0&&frames[selectedFrame]){frames[selectedFrame].pose=getPose();renderFrames();}
-}));
-$('zeroJoint').onclick=()=>{
- const imported=nyraGetSelectedTransferObject();
- if(imported){
-  imported.rotation.set(0,0,0);nyraSyncTransformControls();nyraSetTransferStatus('Rotação da peça zerada.');return;
- }
- parts[selected].rotation.set(0,0,0);syncSliders();
- if(selectedFrame>=0&&frames[selectedFrame]){frames[selectedFrame].pose=getPose();renderFrames()}
- status('Articulação zerada.')
-};
-function renderFrames(){const root=$('frames');root.innerHTML='';frames.forEach((f,i)=>{const b=document.createElement('button');b.className='frame'+(i===selectedFrame?' active':'');b.textContent='Quadro '+(i+1);b.title='Tempo: '+f.time+' s';b.onclick=()=>{stopPlayback();selectedFrame=i;setPose(f.pose);renderFrames();status('Quadro '+(i+1)+' selecionado.')};root.appendChild(b)})}
-function addFrame(pose=getPose(),time=null){const last=frames[frames.length-1];frames.push({time:time===null?(last?last.time+0.5:0):time,pose:structuredClone(pose)});selectedFrame=frames.length-1;renderFrames();status('Pose guardada no quadro '+(selectedFrame+1)+'.')}
-$('addFrame').onclick=()=>addFrame();
-$('duplicateFrame').onclick=()=>{if(selectedFrame<0){addFrame();return}const f=frames[selectedFrame];addFrame(f.pose,f.time+0.5)};
-$('deleteFrame').onclick=()=>{if(selectedFrame<0)return status('Selecione um quadro para excluir.');frames.splice(selectedFrame,1);selectedFrame=frames.length?Math.min(selectedFrame,frames.length-1):-1;if(selectedFrame>=0)setPose(frames[selectedFrame].pose);renderFrames();status('Quadro excluído.')};
-function makePreset(name){
- const p={head:[0,0,0],torso:[0,0,0],armL:[0,0,0],armR:[0,0,0],legL:[0,0,0],legR:[0,0,0]};
- if(name==='walk'){p.armL=[-.55,0,0];p.armR=[.55,0,0];p.legL=[.55,0,0];p.legR=[-.55,0,0];p.head=[.03,0,0]}
- if(name==='attack'){p.torso=[-.08,0,0];p.armR=[-1.65,0,-.12];p.armL=[.35,0,.3];p.head=[-.12,0,0];p.legL=[-.1,0,0];p.legR=[.15,0,0]}
- return Object.fromEntries(Object.entries(p).map(([k,v])=>[k,v.map(r=>radians(r* (name==='idle'?0:1)))]));
+function addFrame(pose=getPose(),time=null){
+ if(!pose?.nodeId)return nyraSetTransferStatus('Selecione uma peça importada antes de guardar um quadro-chave.');
+ const last=frames[frames.length-1];
+ frames.push({time:time===null?(last?last.time+0.5:0):time,pose:structuredClone(pose)});
+ selectedFrame=frames.length-1;renderFrames();status('Pose guardada no quadro '+(selectedFrame+1)+'.');
 }
-document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{stopPlayback();setPose(makePreset(b.dataset.preset));selectedFrame=-1;renderFrames();status('Pose '+b.textContent+' aplicada. Ajuste e guarde como quadro.')});
-function stopPlayback(){playing=false;if(animationId!==null){cancelAnimationFrame(animationId);animationId=null}$('play').textContent='▶ Reproduzir'}
-function interpolate(a,b,t){const out={};for(const k of Object.keys(parts)){out[k]=[0,1,2].map(i=>a[k][i]+(b[k][i]-a[k][i])*t)}return out}
-function playLoop(now){if(!playing)return;if(!playStart)playStart=now;const elapsed=(now-playStart)/1000*playSpeed;const duration=frames[frames.length-1].time-frames[0].time;
- if(frames.length===1||duration<=0){setPose(frames[0].pose);animationId=requestAnimationFrame(playLoop);return}
- let t=(elapsed%duration)+frames[0].time;let idx=0;while(idx<frames.length-2&&frames[idx+1].time<t)idx++;
- const a=frames[idx],b=frames[idx+1],mix=b.time===a.time?0:Math.max(0,Math.min(1,(t-a.time)/(b.time-a.time)));
- setPose(interpolate(a.pose,b.pose,mix));animationId=requestAnimationFrame(playLoop)}
-$('play').onclick=()=>{if(frames.length<2){status('Guarde pelo menos duas poses para reproduzir.');return}stopPlayback();playing=true;playStart=0;playSpeed=+$('speed').value;$('play').textContent='⏸ Reproduzindo';animationId=requestAnimationFrame(playLoop)};
+$('addFrame').onclick=()=>addFrame();
+$('duplicateFrame').onclick=()=>{if(selectedFrame<0)return addFrame();const frame=frames[selectedFrame];addFrame(frame.pose,frame.time+0.5)};
+$('deleteFrame').onclick=()=>{
+ if(selectedFrame<0)return status('Selecione um quadro para excluir.');
+ frames.splice(selectedFrame,1);selectedFrame=frames.length?Math.min(selectedFrame,frames.length-1):-1;
+ if(selectedFrame>=0)setPose(frames[selectedFrame].pose);renderFrames();status('Quadro excluído.');
+};
+function stopPlayback(){
+ playing=false;if(animationId!==null){cancelAnimationFrame(animationId);animationId=null;}
+ $('play').textContent='▶ Reproduzir';
+}
+function interpolatePose(a,b,t){
+ const out={};
+ for(const key of ['position','rotation','scale']){
+  const av=a[key]||[],bv=b[key]||[];
+  out[key]=av.map((value,index)=>value+(bv[index]-value)*t);
+ }
+ return out;
+}
+function playLoop(now){
+ if(!playing||!frames.length)return;
+ if(!playStart)playStart=now;
+ const first=frames[0],last=frames[frames.length-1],duration=last.time-first.time;
+ if(duration<=0){setPose(first.pose);stopPlayback();return;}
+ const elapsed=(now-playStart)/1000*playSpeed;
+ let time=(elapsed%duration)+first.time,index=0;
+ while(index<frames.length-2&&frames[index+1].time<time)index++;
+ const left=frames[index],right=frames[index+1],mix=right.time===left.time?0:Math.max(0,Math.min(1,(time-left.time)/(right.time-left.time)));
+ const pose=interpolatePose(left.pose,right.pose,mix);pose.nodeId=left.pose.nodeId;
+ if(right.pose.nodeId===left.pose.nodeId)setPose(pose);else setPose(left.pose);
+ animationId=requestAnimationFrame(playLoop);
+}
+$('play').onclick=()=>{
+ if(frames.length<2){status('Guarde pelo menos duas poses da mesma peça para reproduzir.');return;}
+ if(frames.some(frame=>frame.pose.nodeId!==frames[0].pose.nodeId)){status('A timeline atual anima uma peça por sequência. Selecione quadros da mesma peça.');return;}
+ stopPlayback();playing=true;playStart=0;playSpeed=+$('speed').value;$('play').textContent='⏸ Reproduzindo';
+ animationId=requestAnimationFrame(playLoop);
+};
 $('stop').onclick=()=>{stopPlayback();if(selectedFrame>=0)setPose(frames[selectedFrame].pose);status('Reprodução parada.')};
 function projectData(){return {format:'Nyra3DStudio',version:1,model:'RoboTV-blocky',savedAt:new Date().toISOString(),pose:getPose(),frames:frames}}
 function download(name,data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
