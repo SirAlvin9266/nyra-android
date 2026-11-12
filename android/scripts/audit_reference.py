@@ -52,7 +52,7 @@ required = {
             "viewport", "rx", "ry", "rz", "rxVal", "ryVal", "rzVal",
             "addFrame", "deleteFrame", "duplicateFrame", "play", "stop",
             "saveProject", "loadProject", "exportProject", "exportAnim", "speed",
-            "nyraImportBBModel", "nyraExportGLB", "nyraExportTransfer", "nyraTransferFile",
+            "nyraImportBBModel", "nyraExportGLB", "nyraExportBBModel", "nyraExportTransfer", "nyraTransferFile",
             "nyraTransferStatus", "nyraTransferTree", "px", "py", "pz", "sx", "sy", "sz",
             "zeroJoint", "nyraAssociateMode", "nyraCancelAssociation", "nyraDetachNode",
             "nyraAssociationStatus", "nyraClipSelect", "nyraClipPlay", "nyraClipStop",
