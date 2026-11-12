@@ -54,7 +54,7 @@ required = {
             "saveProject", "loadProject", "exportProject", "exportAnim", "speed",
             "nyraImportBBModel", "nyraExportGLB", "nyraExportBBModel", "nyraExportCharacterJSON", "nyraExportTransfer", "nyraTransferFile",
             "nyraTransferStatus", "nyraTransferTree", "px", "py", "pz", "sx", "sy", "sz",
-            "zeroJoint", "nyraAssociateMode", "nyraCancelAssociation", "nyraDetachNode",
+            "zeroJoint", "nyraMoveTool", "nyraRotateTool", "nyraScaleTool", "nyraAssociateMode", "nyraCancelAssociation", "nyraDetachNode", "nyraUndoAssociation",
             "nyraAssociationStatus", "nyraClipSelect", "nyraClipPlay", "nyraClipStop",
         },
         "functions": {
