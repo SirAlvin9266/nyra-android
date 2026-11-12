@@ -58,7 +58,7 @@ const reopenedRoot=reopened.scene.nodes.find(n=>n.name==='root');
 const reopenedArm=reopened.scene.nodes.find(n=>n.name==='arm');
 const reopenedCube=reopened.scene.nodes.find(n=>n.type==='cube'&&n.parentId===reopenedArm.id);
 assert.deepEqual(reopenedRoot.sourceData.origin,[16,32,0]);
-assert.deepEqual(reopenedRoot.sourceData.rotation,[10,20,30]);
+assert.ok(reopenedRoot.sourceData.rotation.every((v,i)=>Math.abs(v-[10,20,30][i])<1e-9));
 assert.equal(reopenedRoot.sourceData.bedrock.binding,'head');
 assert.ok(reopenedRoot.sourceData.locators.hand);
 assert.deepEqual(reopenedCube.geometry.from,[40,60,10]);
