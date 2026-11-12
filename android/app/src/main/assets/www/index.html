@@ -385,6 +385,11 @@ window.addEventListener('message',event=>{
    catch(error){fail(error?.message||String(error));}
   }
  }
+ if(event.data?.type==='NYRA_ROBOTV_EXPORT_PROJECT_JSON'&&sourceKey==='animation'){
+  const target=editorFrames.character?.contentWindow;
+  if(!target)event.source.postMessage({type:'NYRA_ROBOTV_EXPORT_RESULT',requestId:event.data.requestId,success:false,format:'json',error:'Criador de Personagens não está disponível.'},'*');
+  else target.postMessage({type:'NYRA_ROBOTV_EXPORT_PROJECT_JSON',requestId:event.data.requestId,transfer:event.data.transfer},'*');
+ }
  if(event.data?.type==='NYRA_ROBOTV_EXPORT_BBMODEL'&&sourceKey==='animation'){
   const target=editorFrames.character?.contentWindow;
   if(!target)event.source.postMessage({type:'NYRA_ROBOTV_EXPORT_RESULT',requestId:event.data.requestId,success:false,error:'Criador de Personagens não está disponível.'},'*');
