@@ -65,43 +65,67 @@ footer{color:var(--muted);font-size:11px;padding:0 14px 14px;max-width:1200px;ma
   </div>
  </div>
 </section>
-<section class="panel">
- <div class="panel-title">Articulações e animação</div>
+<section class="panel" id="nyraModelEditorPanel">
+ <div class="panel-title">Modelo e hierarquia</div>
  <div class="controls">
-  <div><label for="joint">Parte selecionada</label><select id="joint" style="width:100%">
-   <option value="head">Cabeça / TV</option><option value="torso">Tronco</option><option value="armL">Braço esquerdo</option><option value="armR">Braço direito</option><option value="legL">Perna esquerda</option><option value="legR">Perna direita</option>
-  </select></div>
-  <div class="joint-list" id="jointButtons"></div>
-  <div class="slider-row">
+  <div class="row"><button class="primary" id="nyraImportBBModel">Importar modelo Blockbench (.bbmodel)</button><button id="nyraExportGLB" disabled>Exportar GLB</button><button id="nyraExportTransfer" disabled>Exportar projeto Nyra JSON</button></div>
+  <input type="file" id="nyraTransferFile" accept=".bbmodel,application/json" hidden>
+  <div id="nyraTransferStatus" class="status">Importe um modelo ou envie a cena pelo Criador de Personagens. Selecione uma peça na árvore ou diretamente no viewport.</div>
+  <label>Hierarquia de peças</label>
+  <div id="nyraTransferTree" style="max-height:220px;overflow:auto;margin-top:4px;font-size:12px;color:var(--muted)" role="tree"></div>
+  <div class="divider"></div>
+  <label>Transformação da peça selecionada</label>
+  <div class="transform-grid">
+   <div><label for="px">Posição X: <span id="pxVal">0.00</span></label><input id="px" type="range" min="-8" max="8" step="0.01" value="0"></div>
+   <div><label for="py">Posição Y: <span id="pyVal">0.00</span></label><input id="py" type="range" min="-8" max="8" step="0.01" value="0"></div>
+   <div><label for="pz">Posição Z: <span id="pzVal">0.00</span></label><input id="pz" type="range" min="-8" max="8" step="0.01" value="0"></div>
    <div><label for="rx">Rotação X: <span id="rxVal">0°</span></label><input id="rx" type="range" min="-180" max="180" value="0"></div>
    <div><label for="ry">Rotação Y: <span id="ryVal">0°</span></label><input id="ry" type="range" min="-180" max="180" value="0"></div>
    <div><label for="rz">Rotação Z: <span id="rzVal">0°</span></label><input id="rz" type="range" min="-180" max="180" value="0"></div>
-   <div><label>Pose rápida</label><button id="zeroJoint" style="width:100%">Zerar articulação</button></div>
+   <div><label for="sx">Escala X: <span id="sxVal">1.00</span></label><input id="sx" type="range" min="0.05" max="4" step="0.01" value="1"></div>
+   <div><label for="sy">Escala Y: <span id="syVal">1.00</span></label><input id="sy" type="range" min="0.05" max="4" step="0.01" value="1"></div>
+   <div><label for="sz">Escala Z: <span id="szVal">1.00</span></label><input id="sz" type="range" min="0.05" max="4" step="0.01" value="1"></div>
   </div>
-  <div id="samplePoses" style="display:none">
-   <label>Animações prontas (aplicam pose editável)</label>
-   <div class="row"><button data-preset="idle">Neutro</button><button data-preset="walk">Caminhada</button><button data-preset="attack">Ataque</button></div>
+  <div class="row"><button id="zeroJoint" disabled>Resetar rotação</button></div>
+  <div class="divider"></div>
+  <label>Associação entre peças</label>
+  <div class="row"><button id="nyraAssociateMode" disabled>Associar peça selecionada…</button><button id="nyraCancelAssociation" disabled>Cancelar</button></div>
+  <div id="nyraAssociationStatus" class="status">Selecione uma peça e inicie a associação para escolher seu novo objeto pai.</div>
+  <div class="row"><button id="nyraDetachNode" disabled>Remover associação</button></div>
+ </div>
+</section>
+<section class="panel" id="nyraAnimationPanel">
+ <div class="panel-title">Animação e quadros-chave</div>
+ <div class="controls">
+  <div class="row">
+   <button class="primary" id="addFrame">＋ Guardar pose</button>
+   <button id="duplicateFrame">Duplicar</button>
+   <button class="danger" id="deleteFrame">Excluir pose</button>
   </div>
-  <div class="equipamentos-container" id="sampleEquipment" style="display:none">
-   <label style="font-size:14px;color:var(--text);font-weight:700">Equipamentos voxel</label>
-   <div class="row">
-    <button type="button" data-item="sword">⚔ Equipar espada</button>
-    <button type="button" data-unequip="sword">✕ Desequipar espada</button>
-   </div>
-   <div class="row">
-    <button type="button" data-item="pickaxe">⛏ Equipar picareta</button>
-    <button type="button" data-item="axe">🪓 Equipar machado</button>
-   </div>
-   <div class="row"><button type="button" id="backpackToggle" class="special">🎒 Equipar mochila de fios</button></div>
-   <small style="color:var(--muted)">Espada, picareta e machado ficam presos ao braço direito. A mochila de fios fica presa ao tronco. Os equipamentos não alteram os quadros-chave salvos.</small>
+  <div id="frames"></div>
+  <div class="row">
+   <button class="primary" id="play">▶ Reproduzir</button>
+   <button id="stop">■ Parar</button>
+   <label style="flex:1;min-width:110px">Velocidade
+    <select id="speed"><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="1.5">1,5×</option><option value="2">2×</option></select>
+   </label>
   </div>
-  <div>
-   <label>Projeto</label>
-   <div class="row"><button class="primary" id="saveProject">Salvar no celular</button><button id="exportProject">Exportar JSON</button></div>
-   <div class="row"><button id="loadProject">Abrir projeto JSON</button><button id="exportAnim">Exportar animação</button></div>
-   <input type="file" id="fileInput" accept=".json,application/json" hidden>
-<div class="row"><button class="primary" id="nyraImportBBModel">Importar modelo Blockbench (.bbmodel)</button><button id="nyraExportGLB" disabled>Exportar modelo GLB</button><button id="nyraExportTransfer" disabled>Exportar projeto Nyra JSON</button></div><input type="file" id="nyraTransferFile" accept=".bbmodel,application/json" hidden><div id="nyraTransferStatus" class="status">Selecione um .bbmodel aqui. O RoboTV usa o importador Blockbench do Criador de Personagens e recebe o modelo com hierarquia e animações.</div><div id="nyraTransferTree" style="max-height:150px;overflow:auto;margin-top:8px;font-size:12px;color:var(--muted)"></div><div id="nyraClipControls" style="display:none;margin-top:8px"><label for="nyraClipSelect">Animação do modelo</label><div class="row"><select id="nyraClipSelect" style="flex:1"></select><button id="nyraClipPlay">Reproduzir</button><button id="nyraClipStop">Parar</button></div></div>
-  </div>
+  <div class="row"><button id="nyraClipPlay" disabled>▶ Reproduzir animação do modelo</button><button id="nyraClipStop" disabled>■ Parar animação</button></div>
+  <label for="nyraClipSelect">Clipes importados</label><select id="nyraClipSelect" style="width:100%" disabled></select>
+  <div class="divider"></div>
+  <label>Projeto de animação</label>
+  <div class="row"><button class="primary" id="saveProject">Salvar no celular</button><button id="exportProject">Exportar JSON</button></div>
+  <div class="row"><button id="loadProject">Abrir projeto JSON</button><button id="exportAnim">Exportar animação</button></div>
+  <input type="file" id="fileInput" accept=".json,application/json" hidden>
+ </div>
+</section>
+<style>
+.transform-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.transform-grid input{width:100%;min-width:0}
+.divider{height:1px;background:var(--border);margin:8px 0}
+#nyraAssociationStatus{min-height:34px}
+#zeroJoint:disabled{opacity:.45}
+</style>
   <div class="status" id="status">Pronto. Escolha uma articulação e mova os controles.</div>
  </div>
 </section>
