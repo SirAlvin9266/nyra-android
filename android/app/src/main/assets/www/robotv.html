@@ -218,7 +218,7 @@ function setEquipment(type){
  sword.visible=type==='sword'; pickaxe.visible=type==='pickaxe'; axe.visible=type==='axe';
  $('resetView').onclick=()=>{camera.position.set(5.4,4.4,8.2);controls.target.set(0,1.8,0);controls.update()};
 // O RoboTV de demonstração fica guardado internamente e não pode ser carregado pela interface de trabalho nesta etapa. robot.visible=false;
-let nyraTransferData=null,nyraTransferRoot=null,nyraNodeObjects=new Map(),nyraClipFrame=0,nyraClipState=null,nyraBaseRotations=new Map(),nyraBaseTransforms=new Map(),nyraSelectedNodeId=null;
+let nyraTransferData=null,nyraTransferRoot=null,nyraNodeObjects=new Map(),nyraClipFrame=0,nyraClipState=null,nyraBaseRotations=new Map(),nyraBaseTransforms=new Map(),nyraSelectedNodeId=null,nyraViewportSelectionBound=false;
 let nyraGltfAnimations=[],nyraGltfMixer=null,nyraGltfAction=null,nyraGltfFrame=0,nyraGltfLastTime=0;
 const nyraTransferStatus=$('nyraTransferStatus'),nyraTransferTree=$('nyraTransferTree'),nyraClipSelect=$('nyraClipSelect'),nyraClipControls=$('nyraClipControls'),nyraExportTransfer=$('nyraExportTransfer'),nyraExportGLB=$('nyraExportGLB');
 function nyraSetTransferStatus(text){if(nyraTransferStatus)nyraTransferStatus.textContent=text;status(text);}
@@ -300,8 +300,9 @@ function nyraBuildTransferScene(doc,nodeMap=new Map(),baseMap=new Map()){
 const nyraTreeStyle=document.createElement('style');
 nyraTreeStyle.textContent='.nyra-tree-row{display:block;width:100%;text-align:left;border:0;border-radius:5px;background:transparent;color:var(--muted);padding-top:5px;padding-bottom:5px;cursor:pointer;font:inherit}.nyra-tree-row:hover,.nyra-tree-row.selected{background:rgba(100,227,206,.14);color:var(--text)}';
 document.head.appendChild(nyraTreeStyle);
-let nyraSelectedNodeId=null;
 function nyraBindViewportSelection(){
+ if(nyraViewportSelectionBound)return;
+ nyraViewportSelectionBound=true;
  const raycaster=new THREE.Raycaster();
  const pointer=new THREE.Vector2();
  let downX=0,downY=0;
@@ -396,6 +397,7 @@ function nyraAssociateNodes(childId,parentId){
   child.parentId=oldParent?.userData?.nyraTransferNodeId||null;
   throw error;
  }
+ nyraSetAssociationMode(false);
  nyraRenderTransferTree(nyraTransferData);nyraSelectTransferNode(childId);
  nyraSetTransferStatus('Associação criada: '+(child.name||child.id)+' agora pertence a '+(parent.name||parent.id)+'.');
 }
@@ -418,6 +420,9 @@ function nyraDetachNode(id){
 $('nyraAssociateMode').onclick=()=>nyraSetAssociationMode(true);
 $('nyraCancelAssociation').onclick=()=>nyraSetAssociationMode(false);
 $('nyraDetachNode').onclick=()=>{try{nyraDetachNode(nyraSelectedNodeId);}catch(error){nyraSetTransferStatus(error.message||String(error));}};
+for(const id of ['px','py','pz','rx','ry','rz','sx','sy','sz']){
+ $(id).addEventListener('input',event=>nyraUpdateSelectedVector(id,event.target.value));
+}
 function nyraSelectTransferNode(id){
  const object=nyraNodeObjects.get(id);if(!object)return;
  if(nyraAssociationMode&&nyraSelectedNodeId){
