@@ -1,0 +1,43 @@
+'use strict';
+
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+
+const htmlPath = path.resolve(__dirname, '../app/src/main/assets/www/character.html');
+const html = fs.readFileSync(htmlPath, 'utf8');
+assert.ok(html.includes('id="paintScope"'), 'O seletor de escopo de pintura deve existir.');
+for (const option of ['piece', 'group', 'model']) {
+  assert.ok(html.includes('value="' + option + '"'), 'Escopo de pintura ausente: ' + option);
+}
+
+const match = html.match(/<script type="module">([\s\S]*?)<\/script>/);
+assert.ok(match, 'O Character Creator deve conter seu script de módulo.');
+const source = match[1];
+const tempPath = path.join(os.tmpdir(), 'nyra-character-paint-audit-' + process.pid + '.mjs');
+try {
+  fs.writeFileSync(tempPath, source, 'utf8');
+  const syntax = spawnSync(process.execPath, ['--check', tempPath], { encoding: 'utf8' });
+  assert.equal(syntax.status, 0, 'Sintaxe JavaScript do Character Creator inválida:\n' + syntax.stderr + syntax.stdout);
+} finally {
+  try { fs.unlinkSync(tempPath); } catch (_) {}
+}
+
+const checks = [
+  ['escopo peça limita a pintura aos meshes diretamente ligados à peça', source.includes("paintMaterials(part,color,false)")],
+  ['escopo grupo percorre apenas a subárvore selecionada', source.includes("paintMaterials(part,color,true)")],
+  ['escopo modelo aplica a cor ao projeto inteiro', source.includes('function paintWholeProject(color)')],
+  ['modelo inteiro inclui o personagem', source.includes('paintMaterials(character,color,true)')],
+  ['modelo inteiro inclui voxels e formas', source.includes('paintMaterials(voxelGroup,color,true)')],
+  ['modelo inteiro inclui modelo Blockbench ativo', source.includes('if(bbmodelState?.rootGroup)paintMaterials(bbmodelState.rootGroup,color,true)')],
+  ['grupo Blockbench é encontrado sem alcançar irmãos', source.includes('parent!==character&&parent!==voxelGroup&&!parent.userData?.bbGroupUuid')],
+  ['pintura não usa mais traverse irrestrito do grupo selecionado', !source.includes("part?.traverse(node=>{if(node.isMesh)")],
+];
+
+for (const [label, passed] of checks) {
+  assert.ok(passed, 'Falha na auditoria: ' + label);
+  process.stdout.write('PASS ' + label + '\n');
+}
+process.stdout.write('Character Creator paint-scope audit: ' + checks.length + '/' + checks.length + ' passed.\n');
