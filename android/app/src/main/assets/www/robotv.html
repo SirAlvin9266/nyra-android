@@ -451,12 +451,14 @@ function nyraSyncTransformControls(){
  ['sx','x',object?.scale],['sy','y',object?.scale],['sz','z',object?.scale]];
  for(const [id,axis,vector] of fields){
   const input=$(id),label=$(id+'Val');if(!input||!vector)continue;
-  const radians=id[0]==='r',value=vector[axis]*(radians?180/Math.PI:1);
-  input.value=String(value);if(label)label.textContent=radians?Math.round(value)+'°':value.toFixed(2);
+  const isRotation=id[0]==='r',value=vector[axis]*(isRotation?180/Math.PI:1);
+  input.value=String(value);if(label)label.textContent=isRotation?Math.round(value)+'°':value.toFixed(2);
  }
+ const currentNode=nyraTransferData?.scene?.nodes?.find(node=>node.id===nyraSelectedNodeId);
  if($('zeroJoint'))$('zeroJoint').disabled=!object;
- if($('nyraAssociateMode'))$('nyraAssociateMode').disabled=!object;
- if($('nyraDetachNode'))$('nyraDetachNode').disabled=!object||!nyraTransferData?.scene?.nodes?.find(node=>node.id===nyraSelectedNodeId)?.parentId;
+ if($('nyraAssociateMode'))$('nyraAssociateMode').disabled=!object||nyraAssociationMode;
+ if($('nyraDetachNode'))$('nyraDetachNode').disabled=!object||!currentNode?.parentId;
+ if($('nyraCancelAssociation'))$('nyraCancelAssociation').disabled=!nyraAssociationMode;
 }
 function nyraUpdateSelectedVector(axis,value){
  const object=nyraGetSelectedTransferObject();if(!object)return;
@@ -464,12 +466,74 @@ function nyraUpdateSelectedVector(axis,value){
  const dimension=axis[1],factor=axis[0]==='r'?Math.PI/180:1;
  const number=Number(value);if(!Number.isFinite(number))return;
  if(axis[0]==='s'&&number<=0)return;
- vector[dimension]=number*factor;
- object.updateMatrix();object.updateMatrixWorld(true);
+ vector[dimension]=number*factor;object.updateMatrix();object.updateMatrixWorld(true);
  const label=$(axis+'Val');if(label)label.textContent=axis[0]==='r'?number.toFixed(0)+'°':number.toFixed(2);
 }
+let nyraAssociationMode=false;
+function nyraSetAssociationMode(active){
+ nyraAssociationMode=active===true;
+ if($('nyraAssociationStatus'))$('nyraAssociationStatus').textContent=nyraAssociationMode
+  ?'Agora selecione na árvore ou clique no viewport na peça que será o novo objeto pai.'
+  :'Modo de associação desativado.';
+ nyraSyncTransformControls();
+}
+function nyraAssociateNodes(childId,parentId){
+ if(!nyraTransferData)throw new Error('Nenhum modelo está carregado.');
+ if(!childId||!parentId||childId===parentId)throw new Error('Escolha duas peças diferentes.');
+ const nodes=nyraTransferData.scene.nodes;
+ const child=nodes.find(node=>node.id===childId),parent=nodes.find(node=>node.id===parentId);
+ if(!child||!parent)throw new Error('Peça de origem ou destino não encontrada.');
+ let cursor=parent;
+ while(cursor){
+  if(cursor.id===childId)throw new Error('Associação inválida: isso criaria um ciclo.');
+  cursor=cursor.parentId?nodes.find(node=>node.id===cursor.parentId):null;
+ }
+ const childObject=nyraNodeObjects.get(childId),parentObject=nyraNodeObjects.get(parentId);
+ if(!childObject||!parentObject)throw new Error('Os objetos 3D da associação não estão disponíveis.');
+ // Preserve world-space pose while changing parent.
+ childObject.updateWorldMatrix(true,false);
+ const worldPosition=new THREE.Vector3(),worldQuaternion=new THREE.Quaternion(),worldScale=new THREE.Vector3();
+ childObject.matrixWorld.decompose(worldPosition,worldQuaternion,worldScale);
+ parentObject.add(childObject);
+ const parentInverse=parentObject.matrixWorld.clone().invert();
+ const localMatrix=parentInverse.multiply(new THREE.Matrix4().compose(worldPosition,worldQuaternion,worldScale));
+ localMatrix.decompose(childObject.position,childObject.quaternion,childObject.scale);
+ childObject.rotation.order=child.transform?.rotationOrder||childObject.rotation.order;
+ childObject.updateMatrix();childObject.updateMatrixWorld(true);
+ child.parentId=parentId;
+ nyraTransferData=nyraValidateTransfer(nyraTransferData);
+ for(const node of nodes){delete node.children;}
+ const childMap=new Map();for(const node of nodes){if(node.parentId){if(!childMap.has(node.parentId))childMap.set(node.parentId,[]);childMap.get(node.parentId).push(node.id);}}
+ for(const node of nodes)node.children=childMap.get(node.id)||[];
+ nyraRenderTransferTree(nyraTransferData);
+ nyraSelectTransferNode(childId);
+ nyraSetTransferStatus('Associação criada: '+(child.name||child.id)+' agora pertence a '+(parent.name||parent.id)+'.');
+}
+function nyraDetachNode(id){
+ const node=nyraTransferData?.scene?.nodes?.find(item=>item.id===id);if(!node?.parentId)return;
+ const object=nyraNodeObjects.get(id);if(!object)throw new Error('Objeto selecionado não encontrado.');
+ object.updateWorldMatrix(true,false);
+ const wp=new THREE.Vector3(),wq=new THREE.Quaternion(),ws=new THREE.Vector3();
+ object.matrixWorld.decompose(wp,wq,ws);
+ nyraTransferRoot.add(object);
+ object.position.copy(wp);object.quaternion.copy(wq);object.scale.copy(ws);
+ node.parentId=null;node.transform={...(node.transform||{}),position:object.position.toArray(),rotation:[object.rotation.x,object.rotation.y,object.rotation.z],scale:object.scale.toArray()};
+ for(const item of nyraTransferData.scene.nodes)delete item.children;
+ const map=new Map();for(const item of nyraTransferData.scene.nodes)if(item.parentId){if(!map.has(item.parentId))map.set(item.parentId,[]);map.get(item.parentId).push(item.id);}
+ for(const item of nyraTransferData.scene.nodes)item.children=map.get(item.id)||[];
+ nyraRenderTransferTree(nyraTransferData);nyraSelectTransferNode(id);
+ nyraSetTransferStatus('Associação removida. A peça foi preservada na posição visual atual.');
+}
+$('nyraAssociateMode').onclick=()=>nyraSetAssociationMode(true);
+$('nyraCancelAssociation').onclick=()=>nyraSetAssociationMode(false);
+$('nyraDetachNode').onclick=()=>{try{nyraDetachNode(nyraSelectedNodeId);}catch(error){nyraSetTransferStatus(error.message||String(error));}};
 function nyraSelectTransferNode(id){
  const object=nyraNodeObjects.get(id);if(!object)return;
+ if(nyraAssociationMode&&nyraSelectedNodeId){
+  const childId=nyraSelectedNodeId;
+  try{nyraAssociateNodes(childId,id);}catch(error){nyraSetTransferStatus(error.message||String(error));}
+  nyraSetAssociationMode(false);return;
+ }
  nyraSelectedNodeId=id;
  nyraTransferTree?.querySelectorAll('[data-node-id]').forEach(row=>{
   const active=row.dataset.nodeId===id;row.classList.toggle('selected',active);row.setAttribute('aria-selected',active?'true':'false');
