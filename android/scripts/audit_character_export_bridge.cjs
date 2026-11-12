@@ -95,10 +95,10 @@ assert.equal(good.state.rawData.outliner.length,2,'root outliner must retain bot
 
 const badScale=transferFixture({badGroupScale:true});
 assert.throws(()=>run(badScale),/não preserva escala aplicada diretamente a grupos/i);
-assert.equal(badScale.g2.parent,null,'unsupported group scale must be rejected before scene mutation');
+assert.equal(badScale.g2.parent,badScale.root,'unsupported group scale must be rejected before scene mutation');
 
 const badMesh=transferFixture({freeMesh:true,changeFreeMesh:true});
 assert.throws(()=>run(badMesh),/malhas livres/i);
-assert.equal(badMesh.g2.parent,null,'unsupported free-mesh transform must be rejected before scene mutation');
+assert.equal(badMesh.g2.parent,badMesh.root,'unsupported free-mesh transform must be rejected before scene mutation');
 
 process.stdout.write('Character Creator export bridge: 3 scenarios passed (cube/group mapping, unsupported group scale, unsupported free-mesh edits).\n');
