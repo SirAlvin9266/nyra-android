@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Nyra 3D Studio — RoboTV</title>
+<style>
+:root{color-scheme:dark;--bg:#10131b;--panel:#191e2a;--panel2:#222a39;--line:#343e51;--text:#edf2fb;--muted:#aab5c8;--accent:#76e0c1}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,sans-serif}
+header{padding:12px 14px;background:#151a25;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:8px}
+h1{font-size:16px;margin:0}header small{color:var(--muted)}
+main{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,1fr);gap:10px;padding:10px;max-width:1200px;margin:auto}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
+.panel-title{padding:10px 12px;border-bottom:1px solid var(--line);font-weight:700}
+#viewport{height:min(62vh,600px);min-height:320px;position:relative;background:radial-gradient(ellipse at 50% 38%,#27364a,#111722 75%);touch-action:none}
+#viewport canvas{display:block;width:100%;height:100%}
+.hint{position:absolute;left:10px;bottom:8px;color:#c5d0df;background:#111722bb;padding:6px 8px;border-radius:7px;font-size:11px;pointer-events:none}
+.controls{padding:12px;display:grid;gap:12px}
+label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+select,button,input[type=number]{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px;min-height:38px}
+button{cursor:pointer;font-weight:600}button:active{transform:scale(.98)}button.primary{background:#245e57;border-color:#347f73}button.danger{background:#572f3b}
+.row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.row>*{flex:1}
+.equipamentos-container{background:#151922;border:1px solid #242b35;border-radius:8px;padding:12px;display:grid;gap:9px}
+.equipamentos-container button{background:#1e2530;border-color:#3b4656}
+.equipamentos-container button:hover{background:#2c3747}
+.equipamentos-container button.selected{border-color:var(--accent);background:#21423f}
+.equipamentos-container .special{background:#0f684c;border-color:#179c72}
+.slider-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.joint-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.joint-list button{font-size:12px;padding:8px 5px}
+.joint-list button.selected{border-color:var(--accent);background:#21423f}
+.timeline{padding:12px;border-top:1px solid var(--line)}
+#frames{display:flex;gap:7px;overflow-x:auto;padding:8px 0 4px;min-height:54px}
+.frame{min-width:54px;max-width:80px;padding:7px 8px;font-size:12px}
+.frame.active{outline:2px solid var(--accent);background:#21423f}
+.status{font-size:12px;color:var(--muted);min-height:16px}
+footer{color:var(--muted);font-size:11px;padding:0 14px 14px;max-width:1200px;margin:auto}
+@media(max-width:760px){main{grid-template-columns:1fr;padding:8px}#viewport{height:48vh;min-height:290px}.panel-title{padding:9px 11px}.controls{gap:10px}header{padding:10px 12px}}
+</style>
+<script type="importmap">
+{"imports":{"three":"/assets/www/vendor/three/build/three.module.js","three/addons/":"/assets/www/vendor/three/examples/jsm/"}}
+</script>
+</head>
+<body>
+<header><div><h1>Nyra 3D Studio</h1><small>Editor de animação · projeto vazio por padrão</small></div><div class="row"><button id="resetView">Centralizar câmera</button></div></header>
+<main>
+<section class="panel">
+ <div class="panel-title">Visor 3D</div>
+ <div id="viewport"><div class="hint">Arraste para girar · pinça/roda para zoom</div></div>
+ <div class="timeline">
+  <label>Timeline — quadros-chave</label>
+  <div class="row">
+   <button class="primary" id="addFrame">＋ Guardar pose</button>
+   <button id="duplicateFrame">Duplicar</button>
+   <button class="danger" id="deleteFrame">Excluir pose</button>
+  </div>
+  <div id="frames"></div>
+  <div class="row">
+   <button class="primary" id="play">▶ Reproduzir</button>
+   <button id="stop">■ Parar</button>
+   <label style="flex:1;min-width:110px">Velocidade
+    <select id="speed"><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="1.5">1,5×</option><option value="2">2×</option></select>
+   </label>
+  </div>
+ </div>
+</section>
+<section class="panel">
+ <div class="panel-title">Articulações e animação</div>
+ <div class="controls">
+  <div><label for="joint">Parte selecionada</label><select id="joint" style="width:100%">
+   <option value="head">Cabeça / TV</option><option value="torso">Tronco</option><option value="armL">Braço esquerdo</option><option value="armR">Braço direito</option><option value="legL">Perna esquerda</option><option value="legR">Perna direita</option>
+  </select></div>
+  <div class="joint-list" id="jointButtons"></div>
+  <div class="slider-row">
+   <div><label for="rx">Rotação X: <span id="rxVal">0°</span></label><input id="rx" type="range" min="-180" max="180" value="0"></div>
+   <div><label for="ry">Rotação Y: <span id="ryVal">0°</span></label><input id="ry" type="range" min="-180" max="180" value="0"></div>
+   <div><label for="rz">Rotação Z: <span id="rzVal">0°</span></label><input id="rz" type="range" min="-180" max="180" value="0"></div>
+   <div><label>Pose rápida</label><button id="zeroJoint" style="width:100%">Zerar articulação</button></div>
+  </div>
+  <div id="samplePoses" style="display:none">
+   <label>Animações prontas (aplicam pose editável)</label>
+   <div class="row"><button data-preset="idle">Neutro</button><button data-preset="walk">Caminhada</button><button data-preset="attack">Ataque</button></div>
+  </div>
+  <div class="equipamentos-container" id="sampleEquipment" style="display:none">
+   <label style="font-size:14px;color:var(--text);font-weight:700">Equipamentos voxel</label>
+   <div class="row">
+    <button type="button" data-item="sword">⚔ Equipar espada</button>
+    <button type="button" data-unequip="sword">✕ Desequipar espada</button>
+   </div>
+   <div class="row">
+    <button type="button" data-item="pickaxe">⛏ Equipar picareta</button>
+    <button type="button" data-item="axe">🪓 Equipar machado</button>
+   </div>
+   <div class="row"><button type="button" id="backpackToggle" class="special">🎒 Equipar mochila de fios</button></div>
+   <small style="color:var(--muted)">Espada, picareta e machado ficam presos ao braço direito. A mochila de fios fica presa ao tronco. Os equipamentos não alteram os quadros-chave salvos.</small>
+  </div>
+  <div>
+   <label>Projeto</label>
+   <div class="row"><button class="primary" id="saveProject">Salvar no celular</button><button id="exportProject">Exportar JSON</button></div>
+   <div class="row"><button id="loadProject">Abrir projeto JSON</button><button id="exportAnim">Exportar animação</button></div>
+   <input type="file" id="fileInput" accept=".json,application/json" hidden>
+<div class="row"><button class="primary" id="nyraImportBBModel">Importar modelo Blockbench (.bbmodel)</button><button id="nyraExportGLB" disabled>Exportar modelo GLB</button><button id="nyraExportTransfer" disabled>Exportar projeto Nyra JSON</button></div><input type="file" id="nyraTransferFile" accept=".bbmodel,application/json" hidden><div id="nyraTransferStatus" class="status">Selecione um .bbmodel aqui. O RoboTV usa o importador Blockbench do Criador de Personagens e recebe o modelo com hierarquia e animações.</div><div id="nyraTransferTree" style="max-height:150px;overflow:auto;margin-top:8px;font-size:12px;color:var(--muted)"></div><div id="nyraClipControls" style="display:none;margin-top:8px"><label for="nyraClipSelect">Animação do modelo</label><div class="row"><select id="nyraClipSelect" style="flex:1"></select><button id="nyraClipPlay">Reproduzir</button><button id="nyraClipStop">Parar</button></div></div>
+  </div>
+  <div class="status" id="status">Pronto. Escolha uma articulação e mova os controles.</div>
+ </div>
+</section>
+</main>
+<footer>Esta versão preserva as animações e quadros-chave do RoboTV. Espada, picareta e machado são itens 3D blocados presos ao braço direito; a mochila de fios com antena é um acessório visual preso ao tronco. Equipamentos não alteram os quadros-chave. É necessário internet para carregar o Three.js.</footer>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const $ = id => document.getElementById(id);
+const viewport = $('viewport');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x151d2a);
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+camera.position.set(5.4, 4.4, 8.2);
+const renderer = new THREE.WebGLRenderer({antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+viewport.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.target.set(0,1.8,0); controls.minDistance=3; controls.maxDistance=16;
+scene.add(new THREE.HemisphereLight(0xc9e4ff,0x3a3444,2.1));
+const keyLight = new THREE.DirectionalLight(0xffffff,2.5); keyLight.position.set(4,8,5); keyLight.castShadow=true; scene.add(keyLight);
+const fillLight = new THREE.DirectionalLight(0x72e6d0,1.0); fillLight.position.set(-5,3,-4); scene.add(fillLight);
+const grid = new THREE.GridHelper(12,12,0x52647a,0x2d394b); grid.position.y=-0.02; scene.add(grid);
+const mat = (color, roughness=.7, metalness=.1) => new THREE.MeshStandardMaterial({color,roughness,metalness});
+const materials = {dark:mat(0x252c3c),white:mat(0xcbd5e1),black:mat(0x11151e),teal:mat(0x64e3ce,.35,.25),screen:mat(0x173849,.22,.25),glow: new THREE.MeshStandardMaterial({color:0x6fffe0,emissive:0x1b9985,emissiveIntensity:1.8})};
+const boxGeo = new THREE.BoxGeometry(1,1,1);
+function cube(parent, name, pos, size, material){
+ const mesh = new THREE.Mesh(boxGeo,material); mesh.name=name; mesh.position.set(...pos); mesh.scale.set(...size); mesh.castShadow=true; mesh.receiveShadow=true; parent.add(mesh); return mesh;
+}
+function pivot(parent,name,pos){const g=new THREE.Group();g.name=name;g.position.set(...pos);parent.add(g);return g;}
+const robot = new THREE.Group(); robot.name='RoboTV'; scene.add(robot); robot.visible=false;
+const parts={};
+parts.torso=pivot(robot,'torso',[0,2.25,0]);
+cube(parts.torso,'Torso_Block',[0,0,0],[1.15,1.25,.62],materials.dark);
+cube(parts.torso,'Chest_Panel',[0,.12,.325],[.65,.43,.05],materials.teal);
+cube(parts.torso,'Chest_Light',[-.22,.12,.36],[.07,.07,.025],materials.glow);
+parts.head=pivot(parts.torso,'head',[0,.88,0]);
+cube(parts.head,'TV_Head',[0,.28,0],[1.12,.78,.72],materials.black);
+cube(parts.head,'TV_Bezel',[0,.29,.371],[.92,.57,.035],materials.dark);
+cube(parts.head,'TV_Screen',[0,.3,.395],[.78,.43,.025],materials.screen);
+cube(parts.head,'Screen_Eye_L',[-.19,.34,.416],[.09,.1,.025],materials.glow);
+cube(parts.head,'Screen_Eye_R',[.19,.34,.416],[.09,.1,.025],materials.glow);
+cube(parts.head,'TV_Antenna_L',[-.28,.72,0],[.07,.25,.07],materials.white).rotation.z=-.3;
+cube(parts.head,'TV_Antenna_R',[.28,.72,0],[.07,.25,.07],materials.white).rotation.z=.3;
+parts.armL=pivot(parts.torso,'armL',[-.76,.43,0]);
+cube(parts.armL,'UpperArm_L',[0,-.32,0],[.32,.72,.34],materials.white);
+cube(parts.armL,'Hand_L',[0,-.78,.02],[.38,.25,.38],materials.teal);
+parts.armR=pivot(parts.torso,'armR',[.76,.43,0]);
+cube(parts.armR,'UpperArm_R',[0,-.32,0],[.32,.72,.34],materials.white);
+cube(parts.armR,'Hand_R',[0,-.78,.02],[.38,.25,.38],materials.teal);
+
+// Equipamentos voxel-style presos ao braço direito: seguem a animação do braço.
+const equipment = new THREE.Group();
+equipment.name='Equipment_Attachment';
+equipment.position.set(0,-.91,.20);
+parts.armR.add(equipment);
+function makeToolHandle(parent,name){
+ const g=new THREE.Group(); g.name=name; parent.add(g);
+ cube(g,name+'_Handle',[0,-.18,0],[.12,.66,.12],mat(0x8b5a35,.85,.05));
+ cube(g,name+'_Grip',[0,-.32,.005],[.15,.22,.15],mat(0x5d3926,.9,.02));
+ return g;
+}
+const sword = new THREE.Group(); sword.name='DiamondSword'; equipment.add(sword);
+cube(sword,'Sword_Blade',[0,.31,.015],[.16,.66,.09],mat(0x54e4e8,.3,.5));
+cube(sword,'Sword_Tip',[0,.68,.015],[.11,.12,.08],mat(0x8afaff,.25,.45));
+cube(sword,'Sword_Guard',[0,-.03,.015],[.40,.10,.13],mat(0x9b7446,.65,.2));
+cube(sword,'Sword_Handle',[0,-.20,.015],[.12,.28,.12],mat(0x71452b,.8,.05));
+cube(sword,'Sword_Pommel',[0,-.36,.015],[.17,.11,.14],mat(0xd2aa59,.45,.4));
+const pickaxe = new THREE.Group(); pickaxe.name='DiamondPickaxe'; equipment.add(pickaxe);
+cube(pickaxe,'Pickaxe_Handle',[0,-.12,0],[.12,.72,.12],mat(0x8b5a35,.85,.05));
+cube(pickaxe,'Pickaxe_Head_Center',[0,.30,0],[.20,.14,.15],mat(0x4bdce6,.3,.45));
+cube(pickaxe,'Pickaxe_Head_Left',[-.20,.24,0],[.30,.12,.15],mat(0x4bdce6,.3,.45));
+cube(pickaxe,'Pickaxe_Head_Right',[.20,.24,0],[.30,.12,.15],mat(0x4bdce6,.3,.45));
+cube(pickaxe,'Pickaxe_Tip_Left',[-.34,.16,0],[.12,.12,.15],mat(0x9bffff,.25,.4));
+cube(pickaxe,'Pickaxe_Tip_Right',[.34,.16,0],[.12,.12,.15],mat(0x9bffff,.25,.4));
+const axe = new THREE.Group(); axe.name='BlockAxe'; equipment.add(axe);
+cube(axe,'Axe_Handle',[0,-.13,0],[.12,.72,.12],mat(0x8b5a35,.85,.05));
+cube(axe,'Axe_Blade',[.15,.25,0],[.30,.38,.15],mat(0x50dce6,.3,.45));
+cube(axe,'Axe_Edge',[.28,.25,0],[.10,.28,.16],mat(0xa0ffff,.25,.4));
+let equippedItem='none';
+function setEquipment(type){
+ equippedItem=type;
+ sword.visible=type==='sword'; pickaxe.visible=type==='pickaxe'; axe.visible=type==='axe';
+ document.querySelectorAll('[data-item]').forEach(b=>b.classList.toggle('selected',b.dataset.item===type));
+ status(type==='none'?'Equipamento removido.':'Equipamento equipado: '+({sword:'espada',pickaxe:'picareta',axe:'machado'}[type])+'.');
+}
+function equiparItem(tipoItem){setEquipment(tipoItem)}
+function desequiparItem(tipoItem){if(tipoItem===equippedItem)setEquipment('none');else status('Essa ferramenta não está equipada.')}
+// A inicialização visual é feita depois da declaração de status, para evitar erro de ordem.
+
+// Mochila em blocos presa atrás do tronco; não participa nem altera os keyframes.
+const backpack = new THREE.Group(); backpack.name='Backpack_Attachment';
+backpack.position.set(0,.02,-.39); parts.torso.add(backpack);
+cube(backpack,'Backpack_Main',[0,-.02,-.06],[.66,.72,.30],mat(0x315c50,.85,.05));
+cube(backpack,'Backpack_Flap',[0,.30,.105],[.54,.18,.06],mat(0x477b68,.8,.05));
+cube(backpack,'Backpack_Pocket',[0,-.20,.115],[.42,.25,.06],mat(0x24483f,.9,.02));
+cube(backpack,'Backpack_Buckle',[0,-.18,.15],[.12,.10,.04],mat(0xd2aa59,.5,.35));
+// Antena e fios em cubos, como acessório voxel personalizável.
+cube(backpack,'Backpack_Antenna_Base',[.18,.43,-.01],[.12,.10,.12],mat(0x68788a,.7,.2));
+cube(backpack,'Backpack_Antenna_Stem',[.18,.59,-.01],[.045,.25,.045],mat(0x9aa6b7,.45,.35));
+cube(backpack,'Backpack_Antenna_Tip',[.18,.74,-.01],[.10,.10,.10],mat(0xff5b75,.35,.2));
+cube(backpack,'Backpack_Wire_L',[-.18,-.48,.01],[.055,.28,.055],mat(0x00e6bd,.35,.25)).rotation.z=-.22;
+cube(backpack,'Backpack_Wire_R',[.18,-.48,.01],[.055,.28,.055],mat(0x00bde8,.35,.25)).rotation.z=.22;
+backpack.visible=false;
+parts.legL=pivot(robot,'legL',[-.31,1.62,0]);
+cube(parts.legL,'Leg_L',[0,-.38,0],[.4,.82,.43],materials.white);
+cube(parts.legL,'Foot_L',[0,-.83,.12],[.48,.22,.65],materials.dark);
+parts.legR=pivot(robot,'legR',[.31,1.62,0]);
+cube(parts.legR,'Leg_R',[0,-.38,0],[.4,.82,.43],materials.white);
+cube(parts.legR,'Foot_R',[0,-.83,.12],[.48,.22,.65],materials.dark);
+
+const partNames={head:'Cabeça / TV',torso:'Tronco',armL:'Braço esquerdo',armR:'Braço direito',legL:'Perna esquerda',legR:'Perna direita'};
+let selected='head', frames=[], selectedFrame=-1, playing=false, playStart=0, playDuration=0, playSpeed=1, animationId=null;
+const radians=d=>d*Math.PI/180, degrees=r=>Math.round(r*180/Math.PI);
+const status = msg => {$('status').textContent=msg};
+setEquipment('none');
+function getPose(){const pose={}; for(const [k,p] of Object.entries(parts))pose[k]=[p.rotation.x,p.rotation.y,p.rotation.z];return pose}
+function setPose(pose){for(const [k,rot] of Object.entries(pose||{})){if(parts[k]&&Array.isArray(rot)){parts[k].rotation.set(+rot[0]||0,+rot[1]||0,+rot[2]||0)}};syncSliders()}
+function syncSliders(){const p=parts[selected];[['rx','x'],['ry','y'],['rz','z']].forEach(([id,axis])=>{$(id).value=degrees(p.rotation[axis]);$(id+'Val').textContent=degrees(p.rotation[axis])+'°'})}
+function selectPart(name){selected=name;$('joint').value=name;renderJointButtons();syncSliders()}
+function renderJointButtons(){const root=$('jointButtons');root.innerHTML='';for(const [k,n] of Object.entries(partNames)){const b=document.createElement('button');b.textContent=n;b.className=k===selected?'selected':'';b.onclick=()=>selectPart(k);root.appendChild(b)}}
+$('joint').onchange=e=>selectPart(e.target.value);
+[['rx','x'],['ry','y'],['rz','z']].forEach(([id,axis])=>{$(id).addEventListener('input',e=>{parts[selected].rotation[axis]=radians(+e.target.value);$(id+'Val').textContent=e.target.value+'°';if(selectedFrame>=0&&frames[selectedFrame]){frames[selectedFrame].pose=getPose();renderFrames()}})});
+$('zeroJoint').onclick=()=>{parts[selected].rotation.set(0,0,0);syncSliders();if(selectedFrame>=0&&frames[selectedFrame]){frames[selectedFrame].pose=getPose();renderFrames()}status('Articulação zerada.')};
+function renderFrames(){const root=$('frames');root.innerHTML='';frames.forEach((f,i)=>{const b=document.createElement('button');b.className='frame'+(i===selectedFrame?' active':'');b.textContent='Quadro '+(i+1);b.title='Tempo: '+f.time+' s';b.onclick=()=>{stopPlayback();selectedFrame=i;setPose(f.pose);renderFrames();status('Quadro '+(i+1)+' selecionado.')};root.appendChild(b)})}
+function addFrame(pose=getPose(),time=null){const last=frames[frames.length-1];frames.push({time:time===null?(last?last.time+0.5:0):time,pose:structuredClone(pose)});selectedFrame=frames.length-1;renderFrames();status('Pose guardada no quadro '+(selectedFrame+1)+'.')}
+$('addFrame').onclick=()=>addFrame();
+$('duplicateFrame').onclick=()=>{if(selectedFrame<0){addFrame();return}const f=frames[selectedFrame];addFrame(f.pose,f.time+0.5)};
+$('deleteFrame').onclick=()=>{if(selectedFrame<0)return status('Selecione um quadro para excluir.');frames.splice(selectedFrame,1);selectedFrame=frames.length?Math.min(selectedFrame,frames.length-1):-1;if(selectedFrame>=0)setPose(frames[selectedFrame].pose);renderFrames();status('Quadro excluído.')};
+function makePreset(name){
+ const p={head:[0,0,0],torso:[0,0,0],armL:[0,0,0],armR:[0,0,0],legL:[0,0,0],legR:[0,0,0]};
+ if(name==='walk'){p.armL=[-.55,0,0];p.armR=[.55,0,0];p.legL=[.55,0,0];p.legR=[-.55,0,0];p.head=[.03,0,0]}
+ if(name==='attack'){p.torso=[-.08,0,0];p.armR=[-1.65,0,-.12];p.armL=[.35,0,.3];p.head=[-.12,0,0];p.legL=[-.1,0,0];p.legR=[.15,0,0]}
+ return Object.fromEntries(Object.entries(p).map(([k,v])=>[k,v.map(r=>radians(r* (name==='idle'?0:1)))]));
+}
+document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{stopPlayback();setPose(makePreset(b.dataset.preset));selectedFrame=-1;renderFrames();status('Pose '+b.textContent+' aplicada. Ajuste e guarde como quadro.')});
+function stopPlayback(){playing=false;if(animationId!==null){cancelAnimationFrame(animationId);animationId=null}$('play').textContent='▶ Reproduzir'}
+function interpolate(a,b,t){const out={};for(const k of Object.keys(parts)){out[k]=[0,1,2].map(i=>a[k][i]+(b[k][i]-a[k][i])*t)}return out}
+function playLoop(now){if(!playing)return;if(!playStart)playStart=now;const elapsed=(now-playStart)/1000*playSpeed;const duration=frames[frames.length-1].time-frames[0].time;
+ if(frames.length===1||duration<=0){setPose(frames[0].pose);animationId=requestAnimationFrame(playLoop);return}
+ let t=(elapsed%duration)+frames[0].time;let idx=0;while(idx<frames.length-2&&frames[idx+1].time<t)idx++;
+ const a=frames[idx],b=frames[idx+1],mix=b.time===a.time?0:Math.max(0,Math.min(1,(t-a.time)/(b.time-a.time)));
+ setPose(interpolate(a.pose,b.pose,mix));animationId=requestAnimationFrame(playLoop)}
+$('play').onclick=()=>{if(frames.length<2){status('Guarde pelo menos duas poses para reproduzir.');return}stopPlayback();playing=true;playStart=0;playSpeed=+$('speed').value;$('play').textContent='⏸ Reproduzindo';animationId=requestAnimationFrame(playLoop)};
+$('stop').onclick=()=>{stopPlayback();if(selectedFrame>=0)setPose(frames[selectedFrame].pose);status('Reprodução parada.')};
+function projectData(){return {format:'Nyra3DStudio',version:1,model:'RoboTV-blocky',savedAt:new Date().toISOString(),pose:getPose(),frames:frames}}
+function download(name,data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('exportProject').onclick=()=>download('RoboTV_Nyra3DStudio.json',projectData());
+$('exportAnim').onclick=()=>download('RoboTV_Animacao.json',{format:'Nyra3DAnimation',version:1,model:'RoboTV-blocky',frames});
+$('saveProject').onclick=()=>{try{localStorage.setItem('nyra3d-robotv-project',JSON.stringify(projectData()));status('Projeto salvo neste navegador. Use Exportar JSON para ter uma cópia.')}catch(e){status('O navegador bloqueou o salvamento local. Use Exportar JSON.')}};
+$('loadProject').onclick=()=>$('fileInput').click();
+$('fileInput').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{const d=JSON.parse(await file.text());if(!d||!Array.isArray(d.frames))throw new Error('Arquivo não contém quadros válidos');frames=d.frames.filter(f=>f&&f.pose&&typeof f.time==='number');selectedFrame=frames.length?0:-1;if(selectedFrame>=0)setPose(frames[0].pose);else if(d.pose)setPose(d.pose);renderFrames();status('Projeto carregado: '+frames.length+' quadro(s).')}catch(err){status('Não foi possível abrir esse JSON: '+err.message)}e.target.value=''};
+document.querySelectorAll('[data-item]').forEach(b=>b.addEventListener('click',()=>equiparItem(b.dataset.item)));
+document.querySelectorAll('[data-unequip]').forEach(b=>b.addEventListener('click',()=>desequiparItem(b.dataset.unequip)));
+$('backpackToggle').onclick=()=>{backpack.visible=!backpack.visible;$('backpackToggle').textContent=backpack.visible?'🎒 Desequipar mochila de fios':'🎒 Equipar mochila de fios';$('backpackToggle').classList.toggle('selected',backpack.visible);status(backpack.visible?'Mochila de fios equipada.':'Mochila de fios removida.')};
+$('resetView').onclick=()=>{camera.position.set(5.4,4.4,8.2);controls.target.set(0,1.8,0);controls.update()};
+// O RoboTV de demonstração fica guardado internamente e não pode ser carregado pela interface de trabalho nesta etapa. robot.visible=false;
+let nyraTransferData=null,nyraTransferRoot=null,nyraNodeObjects=new Map(),nyraClipFrame=0,nyraClipState=null,nyraBaseRotations=new Map(),nyraBaseTransforms=new Map();
+let nyraGltfAnimations=[],nyraGltfMixer=null,nyraGltfAction=null,nyraGltfFrame=0,nyraGltfLastTime=0;
+const nyraTransferStatus=$('nyraTransferStatus'),nyraTransferTree=$('nyraTransferTree'),nyraClipSelect=$('nyraClipSelect'),nyraClipControls=$('nyraClipControls'),nyraExportTransfer=$('nyraExportTransfer'),nyraExportGLB=$('nyraExportGLB');
+function nyraSetTransferStatus(text){if(nyraTransferStatus)nyraTransferStatus.textContent=text;status(text);}
+function nyraValidateTransfer(doc){
+ if(!doc||doc.schema!=='nyra.scene-transfer'||doc.schemaVersion!==1||!doc.scene||!Array.isArray(doc.scene.nodes)||!doc.animations||!Array.isArray(doc.animations.clips))throw new Error('Documento de transferência Nyra v1 inválido.');
+ const ids=new Set();for(const n of doc.scene.nodes){if(!n||typeof n.id!=='string'||!n.id||ids.has(n.id))throw new Error('ID de nó ausente ou duplicado.');ids.add(n.id);}
+ const map=new Map(doc.scene.nodes.map(n=>[n.id,n]));
+ for(const n of doc.scene.nodes)if(n.parentId&&!map.has(n.parentId))throw new Error('Pai inexistente para '+(n.name||n.id)+'.');
+ for(const clip of doc.animations.clips)for(const channel of clip.channels||[])if(!map.has(channel.targetNodeId))throw new Error('Canal aponta para nó inexistente.');
+ return doc;
+}
+function nyraRemovePreviousTransfer(){
+ if(nyraClipFrame)cancelAnimationFrame(nyraClipFrame);nyraClipFrame=0;nyraClipState=null;
+ if(nyraGltfFrame)cancelAnimationFrame(nyraGltfFrame);nyraGltfFrame=0;nyraGltfLastTime=0;if(nyraGltfMixer){nyraGltfMixer.stopAllAction();if(nyraTransferRoot)nyraGltfMixer.uncacheRoot(nyraTransferRoot);}nyraGltfMixer=null;nyraGltfAction=null;nyraGltfAnimations=[];
+ if(nyraTransferRoot){scene.remove(nyraTransferRoot);nyraTransferRoot.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const a=Array.isArray(o.material)?o.material:[o.material];a.forEach(m=>m?.dispose());}});}
+ nyraTransferRoot=null;nyraTransferData=null;nyraNodeObjects.clear();nyraBaseRotations.clear();if(nyraClipControls)nyraClipControls.style.display='none';if(nyraExportTransfer)nyraExportTransfer.disabled=true;if(nyraExportGLB)nyraExportGLB.disabled=true;
+}
+function nyraBuildTransferScene(doc){
+ const root=new THREE.Group();root.name=doc.project?.name||'Projeto Nyra';
+ const children=new Map();for(const n of doc.scene.nodes){if(n.parentId){if(!children.has(n.parentId))children.set(n.parentId,[]);children.get(n.parentId).push(n);}}
+ const textureById=new Map((doc.scene.textures||[]).map(t=>[String(t.id),t]));
+ const textureMaterials=new Map();
+ function materialFor(textureId){
+  const key=String(textureId??'none');if(textureMaterials.has(key))return textureMaterials.get(key);
+  const asset=textureById.get(key),source=asset?.source||asset?.data||null;
+  const material=new THREE.MeshStandardMaterial({color:source?0xffffff:0xcbd5e1,roughness:.8,side:THREE.DoubleSide});
+  if(source&&/^data:image\//i.test(source)){const loader=new THREE.TextureLoader();const texture=loader.load(source);texture.colorSpace=THREE.SRGBColorSpace;texture.magFilter=THREE.NearestFilter;material.map=texture;material.needsUpdate=true;}
+  textureMaterials.set(key,material);return material;
+ }
+ function attach(n,parent){
+  let object;
+  if(n.type==='cube'&&n.geometry?.kind==='blockbench_cube'){
+   const from=(n.geometry.from||[0,0,0]).map(v=>Number(v||0)/16),to=(n.geometry.to||[0,0,0]).map(v=>Number(v||0)/16),size=from.map((v,i)=>Math.abs(to[i]-v));
+   if(size.some(v=>!Number.isFinite(v)||v<=0))throw new Error('Dimensão inválida no cubo '+n.name+'.');
+   const holder=new THREE.Group();holder.name=n.name;
+   const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),materialFor(Object.values(n.geometry.faces||{})[0]?.texture));
+   mesh.name=n.name+' · geometria';mesh.position.set(...from.map((v,i)=>(v+to[i])/2-Number(n.pivot?.[i]||0)));holder.add(mesh);object=holder;
+  }else if(n.type==='mesh'&&n.geometry?.kind==='blockbench_mesh'){
+   const geo=new THREE.BufferGeometry(),positions=[],uvs=[];
+   for(const face of Object.values(n.geometry.faces||{})){const ids=face.vertices||[],uv=face.uv||{};for(let i=1;i<ids.length-1;i++)for(const index of [0,i,i+1]){const key=ids[index],vertex=n.geometry.vertices?.[key];if(Array.isArray(vertex)){positions.push(...vertex.map((v,i)=>Number(v||0)/16-Number(n.pivot?.[i]||0)));const pair=uv[key]||[0,0];uvs.push(Number(pair[0]||0),Number(pair[1]||0));}}}
+   if(!positions.length)throw new Error('Malha sem faces válidas: '+n.name+'.');
+   geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));if(uvs.length===positions.length/3*2)geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geo.computeVertexNormals();
+   object=new THREE.Mesh(geo,materialFor(Object.values(n.geometry.faces||{})[0]?.texture));object.name=n.name;
+  }else{object=new THREE.Group();object.name=n.name||n.id;}
+  const t=n.transform||{},p=t.position||[0,0,0],r=t.rotation||[0,0,0],s=t.scale||[1,1,1];
+  object.position.set(...p);object.rotation.order=t.rotationOrder||'XYZ';object.rotation.set(...r.map(v=>t.rotationUnit==='degrees'?THREE.MathUtils.degToRad(v):v));object.scale.set(...s);object.visible=n.visibility!==false;
+  object.userData.nyraTransferNodeId=n.id;parent.add(object);nyraNodeObjects.set(n.id,object);
+  nyraBaseTransforms.set(n.id,{position:object.position.clone(),rotation:object.rotation.clone(),scale:object.scale.clone()});
+  for(const child of children.get(n.id)||[])attach(child,object);
+ }
+ for(const n of doc.scene.nodes)if(!n.parentId)attach(n,root);
+ root.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(root);
+ if(!bounds.isEmpty()){const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3()),scale=4.8/Math.max(size.x,size.y,size.z,1);root.position.sub(center);root.scale.setScalar(scale);controls.target.set(0,0,0);camera.position.set(8,5,8);controls.update();}
+ return root;
+}
+function nyraRenderTransferTree(doc){
+ if(!nyraTransferTree)return;nyraTransferTree.replaceChildren();const byParent=new Map();
+ for(const n of doc.scene.nodes){const k=n.parentId||'';if(!byParent.has(k))byParent.set(k,[]);byParent.get(k).push(n);}
+ const walk=(parent,depth)=>{for(const n of byParent.get(parent)||[]){const row=document.createElement('div');row.textContent='　'.repeat(Math.min(depth,6))+(n.name||n.id)+' · '+n.type;row.style.padding='2px 4px';nyraTransferTree.appendChild(row);walk(n.id,depth+1);}};
+ walk('',0);
+}
+async function nyraLoadTransfer(doc,glb){
+ const normalized=nyraValidateTransfer(doc);
+ let candidate=null,clips=[];
+ if(glb instanceof ArrayBuffer&&glb.byteLength>0){
+  const loader=new GLTFLoader();
+  const parsed=await new Promise((resolve,reject)=>loader.parse(glb,'',resolve,reject));
+  candidate=parsed.scene;clips=parsed.animations||[];
+ }else candidate=nyraBuildTransferScene(normalized);
+ if(!candidate)throw new Error('Não foi possível construir a cena recebida.');
+ candidate.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(candidate);
+ if(!bounds.isEmpty()){
+  const center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3()),max=Math.max(size.x,size.y,size.z,1);
+  candidate.position.sub(center);candidate.scale.multiplyScalar(4.8/max);
+  controls.target.set(0,0,0);camera.position.set(8,5,8);controls.update();
+ }
+ nyraRemovePreviousTransfer();nyraTransferRoot=candidate;nyraTransferData=normalized;nyraGltfAnimations=clips;scene.add(candidate);robot.visible=false;
+ nyraRenderTransferTree(normalized);nyraClipSelect.replaceChildren();
+ const visibleClips=clips.length?clips:normalized.animations.clips;
+ for(const [i,clip] of visibleClips.entries())nyraClipSelect.add(new Option(clip.name||('Animação '+(i+1)),String(i)));
+ nyraClipControls.style.display=visibleClips.length?'block':'none';nyraExportTransfer.disabled=false;nyraExportGLB.disabled=false;
+ nyraSetTransferStatus('Projeto recebido: '+normalized.scene.nodes.length+' nós e '+normalized.animations.clips.length+' animação(ões). '+(clips.length?'Visor GLB com materiais, UVs e clips compatíveis carregado.':'Pré-visualização simplificada; documento e dados originais preservados.'));
+}
+function nyraInterpolateChannel(frames,time,base){
+ if(!frames.length)return base;
+ if(time<=frames[0].time)return frames[0].value;
+ if(time>=frames[frames.length-1].time)return frames[frames.length-1].value;
+ let index=0;while(index<frames.length-2&&frames[index+1].time<time)index++;
+ const a=frames[index],b=frames[index+1],span=b.time-a.time,t=span===0?0:Math.max(0,Math.min(1,(time-a.time)/span));
+ if(a.interpolation==='step')return a.value;
+ if(Array.isArray(a.value)&&Array.isArray(b.value))return a.value.map((v,i)=>v+(b.value[i]-v)*t);
+ if(typeof a.value==='number'&&typeof b.value==='number')return a.value+(b.value-a.value)*t;
+ return a.value;
+}
+function nyraClipEvaluate(clip,time){
+ for(const [id,base] of nyraBaseTransforms){const object=nyraNodeObjects.get(id);if(object){object.position.copy(base.position);object.rotation.copy(base.rotation);object.scale.copy(base.scale);}}
+ for(const channel of clip.channels||[]){
+  if(!['position','rotation','scale'].includes(channel.property))continue;
+  const object=nyraNodeObjects.get(channel.targetNodeId);if(!object)continue;
+  const frames=(channel.keyframes||[]).slice().sort((a,b)=>a.time-b.time);if(!frames.length)continue;
+  const base=channel.property==='position'?object.position.toArray():channel.property==='rotation'?object.rotation.toArray():object.scale.toArray();
+  const value=nyraInterpolateChannel(frames,time,base);
+  if(Array.isArray(value)&&value.length===3)object[channel.property].set(...value);
+ }
+}
+function nyraStopClip(restore=true){
+ if(nyraClipFrame)cancelAnimationFrame(nyraClipFrame);nyraClipFrame=0;nyraClipState=null;
+ if(nyraGltfFrame)cancelAnimationFrame(nyraGltfFrame);nyraGltfFrame=0;nyraGltfLastTime=0;
+ if(nyraGltfMixer){
+  if(restore){nyraGltfMixer.stopAllAction();if(nyraTransferRoot)nyraGltfMixer.uncacheRoot(nyraTransferRoot);nyraGltfMixer=null;nyraGltfAction=null;}
+  else if(nyraGltfAction)nyraGltfAction.paused=true;
+ }
+ if(restore)for(const [id,base] of nyraBaseTransforms){const node=nyraNodeObjects.get(id);if(node){node.position.copy(base.position);node.rotation.copy(base.rotation);node.scale.copy(base.scale);}}
+}
+function nyraPlayClip(){
+ if(!nyraTransferData)return;
+ const index=Number(nyraClipSelect.value);
+ if(nyraGltfAnimations.length&&nyraGltfAnimations[index]){
+  const clip=nyraGltfAnimations[index],source=nyraTransferData.animations.clips.find(item=>item.name===clip.name)||nyraTransferData.animations.clips[index];
+  nyraStopClip(true);nyraGltfMixer=new THREE.AnimationMixer(nyraTransferRoot);nyraGltfAction=nyraGltfMixer.clipAction(clip);nyraGltfAction.reset();
+  const looping=source?.loop===true;nyraGltfAction.setLoop(looping?THREE.LoopRepeat:THREE.LoopOnce,looping?Infinity:1);nyraGltfAction.clampWhenFinished=true;nyraGltfAction.play();
+  nyraGltfLastTime=0;
+  let elapsed=0;const tick=now=>{if(!nyraGltfMixer||!nyraGltfAction)return;const delta=nyraGltfLastTime?Math.min((now-nyraGltfLastTime)/1000,.05):0;nyraGltfLastTime=now;elapsed+=delta;nyraGltfMixer.update(delta);if(!looping&&elapsed>=clip.duration){nyraStopClip(false);nyraSetTransferStatus('Animação finalizada.');return;}nyraGltfFrame=requestAnimationFrame(tick);};
+  nyraGltfFrame=requestAnimationFrame(tick);nyraSetTransferStatus('Reproduzindo '+(source?.name||clip.name)+' com animação GLB.');return;
+ }
+ const clip=nyraTransferData.animations.clips[index];if(!clip)return;
+ nyraStopClip(true);if(!clip.channels?.length){nyraSetTransferStatus('Este clip não contém canais reproduzíveis; os dados foram preservados.');return;}
+ const duration=Math.max(0,Number(clip.duration)||0);if(duration===0){nyraClipEvaluate(clip,0);return;}
+ nyraClipState={clip,start:0};
+ const tick=now=>{if(!nyraClipState)return;if(!nyraClipState.start)nyraClipState.start=now;const elapsed=(now-nyraClipState.start)/1000,t=clip.loop?elapsed%duration:Math.min(duration,elapsed);nyraClipEvaluate(clip,t);if(!clip.loop&&elapsed>=duration){nyraStopClip(false);nyraSetTransferStatus('Animação finalizada.');return;}nyraClipFrame=requestAnimationFrame(tick);};
+ nyraClipFrame=requestAnimationFrame(tick);nyraSetTransferStatus('Reproduzindo '+clip.name+'.');
+}
+$('nyraImportBBModel').onclick=()=>$('nyraTransferFile').click();
+$('nyraTransferFile').onchange=event=>{const file=event.target.files?.[0];if(!file)return;if(!/\.bbmodel$/i.test(file.name)){nyraSetTransferStatus('Selecione um arquivo .bbmodel.');event.target.value='';return;}window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT_BBMODEL',file,name:file.name},'*');nyraSetTransferStatus('Arquivo enviado ao importador Blockbench; aguardando o resultado…');event.target.value='';};
+$('nyraClipPlay').onclick=nyraPlayClip;$('nyraClipStop').onclick=()=>{nyraStopClip(true);nyraSetTransferStatus('Animação parada; pose base restaurada.');};
+nyraExportTransfer.onclick=()=>{if(!nyraTransferData)return;const url=URL.createObjectURL(new Blob([JSON.stringify(nyraTransferData,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='nyra-scene-transfer.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);};
+nyraExportGLB.onclick=async()=>{
+ if(!nyraTransferRoot)return;
+ try{
+  const {GLTFExporter}=await import('three/addons/exporters/GLTFExporter.js');
+  const exporter=new GLTFExporter();
+  const generated=await new Promise((resolve,reject)=>exporter.parse(nyraTransferRoot,resolve,reject,{binary:true,animations:nyraGltfAnimations}));
+  const binary=generated instanceof ArrayBuffer?generated:(ArrayBuffer.isView(generated)?generated.buffer.slice(generated.byteOffset,generated.byteOffset+generated.byteLength):null);
+  if(!binary)throw new Error('O exportador não retornou um GLB binário.');
+  const url=URL.createObjectURL(new Blob([binary],{type:'model/gltf-binary'})),a=document.createElement('a');
+  a.href=url;a.download='nyra-robotv-modelo.glb';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);
+  nyraSetTransferStatus('Modelo GLB exportado. As animações disponíveis no visor foram incluídas.');
+ }catch(error){nyraSetTransferStatus('Falha ao exportar GLB: '+(error?.message||String(error)));}
+};
+window.addEventListener('message',event=>{
+ if(event.source!==window.parent||!event.data)return;
+ if(event.data.type==='NYRA_SCENE_TRANSFER_IMPORT'){(async()=>{try{await nyraLoadTransfer(event.data.transfer,event.data.glb);window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_ACK',requestId:event.data.requestId,success:true,projectName:nyraTransferData.project?.name||'Projeto',warnings:nyraTransferData.diagnostics||[]},'*');}catch(error){window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_ACK',requestId:event.data.requestId,success:false,error:error?.message||String(error)},'*');}})();}
+});
+function resize(){const w=viewport.clientWidth,h=viewport.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+new ResizeObserver(resize).observe(viewport);resize();
+function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
+renderJointButtons();syncSliders();
+try{const saved=localStorage.getItem('nyra3d-robotv-project');if(saved){const d=JSON.parse(saved);if(Array.isArray(d.frames)){frames=d.frames;selectedFrame=frames.length?0:-1;if(selectedFrame>=0)setPose(frames[0].pose);renderFrames();status('Projeto salvo anteriormente encontrado.')}}}catch(e){}
+</script>
+</body>
+</html>
