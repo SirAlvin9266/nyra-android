@@ -110,8 +110,10 @@ footer{color:var(--muted);font-size:11px;padding:0 14px 14px;max-width:1200px;ma
     <select id="speed"><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="1.5">1,5×</option><option value="2">2×</option></select>
    </label>
   </div>
-  <div class="row"><button id="nyraClipPlay" disabled>▶ Reproduzir animação do modelo</button><button id="nyraClipStop" disabled>■ Parar animação</button></div>
-  <label for="nyraClipSelect">Clipes importados</label><select id="nyraClipSelect" style="width:100%" disabled></select>
+  <div id="nyraClipControls" style="display:none">
+   <div class="row"><button id="nyraClipPlay" disabled>▶ Reproduzir animação do modelo</button><button id="nyraClipStop" disabled>■ Parar animação</button></div>
+   <label for="nyraClipSelect">Clipes importados</label><select id="nyraClipSelect" style="width:100%" disabled></select>
+  </div>
   <div class="divider"></div>
   <label>Projeto de animação</label>
   <div class="row"><button class="primary" id="saveProject">Salvar no celular</button><button id="exportProject">Exportar JSON</button></div>
@@ -214,128 +216,7 @@ let equippedItem='none';
 function setEquipment(type){
  equippedItem=type;
  sword.visible=type==='sword'; pickaxe.visible=type==='pickaxe'; axe.visible=type==='axe';
- document.querySelectorAll('[data-item]').forEach(b=>b.classList.toggle('selected',b.dataset.item===type));
- status(type==='none'?'Equipamento removido.':'Equipamento equipado: '+({sword:'espada',pickaxe:'picareta',axe:'machado'}[type])+'.');
-}
-function equiparItem(tipoItem){setEquipment(tipoItem)}
-function desequiparItem(tipoItem){if(tipoItem===equippedItem)setEquipment('none');else status('Essa ferramenta não está equipada.')}
-// A inicialização visual é feita depois da declaração de status, para evitar erro de ordem.
-
-// Mochila em blocos presa atrás do tronco; não participa nem altera os keyframes.
-const backpack = new THREE.Group(); backpack.name='Backpack_Attachment';
-backpack.position.set(0,.02,-.39); parts.torso.add(backpack);
-cube(backpack,'Backpack_Main',[0,-.02,-.06],[.66,.72,.30],mat(0x315c50,.85,.05));
-cube(backpack,'Backpack_Flap',[0,.30,.105],[.54,.18,.06],mat(0x477b68,.8,.05));
-cube(backpack,'Backpack_Pocket',[0,-.20,.115],[.42,.25,.06],mat(0x24483f,.9,.02));
-cube(backpack,'Backpack_Buckle',[0,-.18,.15],[.12,.10,.04],mat(0xd2aa59,.5,.35));
-// Antena e fios em cubos, como acessório voxel personalizável.
-cube(backpack,'Backpack_Antenna_Base',[.18,.43,-.01],[.12,.10,.12],mat(0x68788a,.7,.2));
-cube(backpack,'Backpack_Antenna_Stem',[.18,.59,-.01],[.045,.25,.045],mat(0x9aa6b7,.45,.35));
-cube(backpack,'Backpack_Antenna_Tip',[.18,.74,-.01],[.10,.10,.10],mat(0xff5b75,.35,.2));
-cube(backpack,'Backpack_Wire_L',[-.18,-.48,.01],[.055,.28,.055],mat(0x00e6bd,.35,.25)).rotation.z=-.22;
-cube(backpack,'Backpack_Wire_R',[.18,-.48,.01],[.055,.28,.055],mat(0x00bde8,.35,.25)).rotation.z=.22;
-backpack.visible=false;
-parts.legL=pivot(robot,'legL',[-.31,1.62,0]);
-cube(parts.legL,'Leg_L',[0,-.38,0],[.4,.82,.43],materials.white);
-cube(parts.legL,'Foot_L',[0,-.83,.12],[.48,.22,.65],materials.dark);
-parts.legR=pivot(robot,'legR',[.31,1.62,0]);
-cube(parts.legR,'Leg_R',[0,-.38,0],[.4,.82,.43],materials.white);
-cube(parts.legR,'Foot_R',[0,-.83,.12],[.48,.22,.65],materials.dark);
-
-let frames=[],selectedFrame=-1,playing=false,playStart=0,playSpeed=1,animationId=null;
-const radians=d=>d*Math.PI/180,degrees=r=>Math.round(r*180/Math.PI);
-const status=msg=>{$('status').textContent=msg};
-function getPose(){
- const object=nyraGetSelectedTransferObject();
- if(!object)return null;
- return {nodeId:nyraSelectedNodeId,position:object.position.toArray(),rotation:[object.rotation.x,object.rotation.y,object.rotation.z],rotationOrder:object.rotation.order,scale:object.scale.toArray()};
-}
-function setPose(pose){
- if(!pose||!pose.nodeId)return;
- const object=nyraNodeObjects.get(pose.nodeId);if(!object)return;
- if(Array.isArray(pose.position))object.position.fromArray(pose.position);
- if(Array.isArray(pose.rotation))object.rotation.set(pose.rotation[0]||0,pose.rotation[1]||0,pose.rotation[2]||0,pose.rotationOrder||object.rotation.order);
- if(Array.isArray(pose.scale))object.scale.fromArray(pose.scale);
- object.updateMatrix();object.updateMatrixWorld(true);
- nyraSelectTransferNode(pose.nodeId);
-}
-function syncSliders(){if(nyraGetSelectedTransferObject())nyraSyncTransformControls();}
-function renderFrames(){
- const root=$('frames');root.replaceChildren();
- frames.forEach((frame,index)=>{
-  const button=document.createElement('button');button.className='frame'+(index===selectedFrame?' active':'');
-  button.textContent='Quadro '+(index+1);button.title='Tempo: '+frame.time+' s';
-  button.onclick=()=>{stopPlayback();selectedFrame=index;setPose(frame.pose);renderFrames();status('Quadro '+(index+1)+' selecionado.')};
-  root.appendChild(button);
- });
-}
-function addFrame(pose=getPose(),time=null){
- if(!pose?.nodeId)return nyraSetTransferStatus('Selecione uma peça importada antes de guardar um quadro-chave.');
- const last=frames[frames.length-1];
- frames.push({time:time===null?(last?last.time+0.5:0):time,pose:structuredClone(pose)});
- selectedFrame=frames.length-1;renderFrames();status('Pose guardada no quadro '+(selectedFrame+1)+'.');
-}
-$('addFrame').onclick=()=>addFrame();
-$('duplicateFrame').onclick=()=>{if(selectedFrame<0)return addFrame();const frame=frames[selectedFrame];addFrame(frame.pose,frame.time+0.5)};
-$('deleteFrame').onclick=()=>{
- if(selectedFrame<0)return status('Selecione um quadro para excluir.');
- frames.splice(selectedFrame,1);selectedFrame=frames.length?Math.min(selectedFrame,frames.length-1):-1;
- if(selectedFrame>=0)setPose(frames[selectedFrame].pose);renderFrames();status('Quadro excluído.');
-};
-function stopPlayback(){
- playing=false;if(animationId!==null){cancelAnimationFrame(animationId);animationId=null;}
- $('play').textContent='▶ Reproduzir';
-}
-function interpolatePose(a,b,t){
- const out={nodeId:a.nodeId,rotationOrder:a.rotationOrder||'XYZ'};
- for(const key of ['position','rotation','scale']){
-  const av=a[key]||[],bv=b[key]||[];
-  out[key]=av.slice(0,3).map((value,index)=>value+((bv[index]??value)-value)*t);
- }
- return out;
-}
-function playLoop(now){
- if(!playing||!frames.length)return;
- if(!playStart)playStart=now;
- const first=frames[0],last=frames[frames.length-1],duration=last.time-first.time;
- if(duration<=0){setPose(first.pose);stopPlayback();return;}
- const elapsed=(now-playStart)/1000*playSpeed;
- let time=(elapsed%duration)+first.time,index=0;
- while(index<frames.length-2&&frames[index+1].time<time)index++;
- const left=frames[index],right=frames[index+1],mix=right.time===left.time?0:Math.max(0,Math.min(1,(time-left.time)/(right.time-left.time)));
- const pose=interpolatePose(left.pose,right.pose,mix);pose.nodeId=left.pose.nodeId;
- if(right.pose.nodeId===left.pose.nodeId)setPose(pose);else setPose(left.pose);
- animationId=requestAnimationFrame(playLoop);
-}
-$('play').onclick=()=>{
- if(frames.length<2){status('Guarde pelo menos duas poses da mesma peça para reproduzir.');return;}
- if(frames.some(frame=>frame.pose.nodeId!==frames[0].pose.nodeId)){status('A timeline atual anima uma peça por sequência. Selecione quadros da mesma peça.');return;}
- stopPlayback();playing=true;playStart=0;playSpeed=+$('speed').value;$('play').textContent='⏸ Reproduzindo';
- animationId=requestAnimationFrame(playLoop);
-};
-$('stop').onclick=()=>{stopPlayback();if(selectedFrame>=0)setPose(frames[selectedFrame].pose);status('Reprodução parada.')};
-function projectData(){return {format:'Nyra3DStudio',version:2,model:'NyraSceneTransfer',savedAt:new Date().toISOString(),transfer:nyraTransferData,frames:frames}}
-function download(name,data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-$('exportProject').onclick=()=>download('RoboTV_Nyra3DStudio.json',projectData());
-$('exportAnim').onclick=()=>download('RoboTV_Animacao.json',{format:'Nyra3DAnimation',version:2,model:'NyraSceneTransfer',frames});
-$('saveProject').onclick=()=>{try{localStorage.setItem('nyra3d-robotv-project',JSON.stringify(projectData()));status('Projeto e animações salvos neste navegador. Use Exportar JSON para criar uma cópia.')}catch(error){status('O navegador bloqueou o salvamento local. Use Exportar JSON.')}};
-$('loadProject').onclick=()=>$('fileInput').click();
-$('fileInput').onchange=async event=>{
- const file=event.target.files?.[0];if(!file)return;
- try{
-  const data=JSON.parse(await file.text());
-  if(!data||!Array.isArray(data.frames))throw new Error('Arquivo não contém quadros válidos.');
-  if(data.transfer){await nyraLoadTransfer(data.transfer,null);}
-  frames=data.frames.filter(frame=>frame&&frame.pose&&typeof frame.time==='number');
-  selectedFrame=frames.length?0:-1;if(selectedFrame>=0)setPose(frames[0].pose);
-  renderFrames();status('Projeto carregado: '+frames.length+' quadro(s).');
- }catch(error){status('Não foi possível abrir esse JSON: '+(error?.message||String(error)));}
- event.target.value='';
-};
-document.querySelectorAll('[data-item]').forEach(b=>b.addEventListener('click',()=>equiparItem(b.dataset.item)));
-document.querySelectorAll('[data-unequip]').forEach(b=>b.addEventListener('click',()=>desequiparItem(b.dataset.unequip)));
-$('backpackToggle').onclick=()=>{backpack.visible=!backpack.visible;$('backpackToggle').textContent=backpack.visible?'🎒 Desequipar mochila de fios':'🎒 Equipar mochila de fios';$('backpackToggle').classList.toggle('selected',backpack.visible);status(backpack.visible?'Mochila de fios equipada.':'Mochila de fios removida.')};
-$('resetView').onclick=()=>{camera.position.set(5.4,4.4,8.2);controls.target.set(0,1.8,0);controls.update()};
+ $('resetView').onclick=()=>{camera.position.set(5.4,4.4,8.2);controls.target.set(0,1.8,0);controls.update()};
 // O RoboTV de demonstração fica guardado internamente e não pode ser carregado pela interface de trabalho nesta etapa. robot.visible=false;
 let nyraTransferData=null,nyraTransferRoot=null,nyraNodeObjects=new Map(),nyraClipFrame=0,nyraClipState=null,nyraBaseRotations=new Map(),nyraBaseTransforms=new Map(),nyraSelectedNodeId=null;
 let nyraGltfAnimations=[],nyraGltfMixer=null,nyraGltfAction=null,nyraGltfFrame=0,nyraGltfLastTime=0;
@@ -377,7 +258,7 @@ function nyraRemovePreviousTransfer(){
  if($('nyraDetachNode'))$('nyraDetachNode').disabled=true;
  if($('nyraCancelAssociation'))$('nyraCancelAssociation').disabled=true;
 }
-function nyraBuildTransferScene(doc){
+function nyraBuildTransferScene(doc,nodeMap=new Map(),baseMap=new Map()){
  const root=new THREE.Group();root.name=doc.project?.name||'Projeto Nyra';
  const children=new Map();for(const n of doc.scene.nodes){if(n.parentId){if(!children.has(n.parentId))children.set(n.parentId,[]);children.get(n.parentId).push(n);}}
  const textureById=new Map((doc.scene.textures||[]).map(t=>[String(t.id),t]));
@@ -406,8 +287,8 @@ function nyraBuildTransferScene(doc){
   }else{object=new THREE.Group();object.name=n.name||n.id;}
   const t=n.transform||{},p=t.position||[0,0,0],r=t.rotation||[0,0,0],s=t.scale||[1,1,1];
   object.position.set(...p);object.rotation.order=t.rotationOrder||'XYZ';object.rotation.set(...r.map(v=>t.rotationUnit==='degrees'?THREE.MathUtils.degToRad(v):v));object.scale.set(...s);object.visible=n.visibility!==false;
-  object.userData.nyraTransferNodeId=n.id;parent.add(object);nyraNodeObjects.set(n.id,object);
-  nyraBaseTransforms.set(n.id,{position:object.position.clone(),rotation:object.rotation.clone(),scale:object.scale.clone()});
+  object.userData.nyraTransferNodeId=n.id;parent.add(object);nodeMap.set(n.id,object);
+  baseMap.set(n.id,{position:object.position.clone(),rotation:object.rotation.clone(),scale:object.scale.clone()});
   for(const child of children.get(n.id)||[])attach(child,object);
  }
  for(const n of doc.scene.nodes)if(!n.parentId)attach(n,root);
@@ -587,8 +468,7 @@ async function nyraLoadTransfer(doc,glb){
   const byName=new Map();candidate.traverse(object=>{if(object.name&&!byName.has(object.name))byName.set(object.name,object);});
   for(const node of normalized.scene.nodes){const object=byName.get(node.name)||byName.get(node.id);if(object){object.userData.nyraTransferNodeId=node.id;nodeObjects.set(node.id,object);}}
  }else{
-  candidate=nyraBuildTransferScene(normalized);
-  nodeObjects=new Map(nyraNodeObjects);
+  candidate=nyraBuildTransferScene(normalized,nodeObjects,baseTransforms);
  }
  if(!candidate)throw new Error('Não foi possível construir a cena recebida.');
  candidate.updateMatrixWorld(true);
@@ -706,7 +586,7 @@ window.addEventListener('message',event=>{
 function resize(){const w=viewport.clientWidth,h=viewport.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
 new ResizeObserver(resize).observe(viewport);resize();
 function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
-renderJointButtons();syncSliders();
+syncSliders();
 try{const saved=localStorage.getItem('nyra3d-robotv-project');if(saved){const d=JSON.parse(saved);if(Array.isArray(d.frames)){frames=d.frames;selectedFrame=frames.length?0:-1;if(selectedFrame>=0)setPose(frames[0].pose);renderFrames();status('Projeto salvo anteriormente encontrado.')}}}catch(e){}
 </script>
 </body>
