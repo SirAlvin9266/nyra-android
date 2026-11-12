@@ -90,6 +90,32 @@ assert.equal(looseOut.bones[0].name,'bb_main');
 assert.equal(looseOut.bones[0].cubes.length,1);
 
 assert.throws(()=>exportBedrockGeometry({...normalized,scene:{...normalized.scene,nodes:[...normalized.scene.nodes,{id:'mesh',name:'mesh',type:'mesh',parentId:'root',transform:{position:[0,0,0],rotation:[0,0,0],scale:[1,1,1]},pivot:[0,0,0],geometry:{kind:'blockbench_mesh'}}]}}),/Malhas livres/);
+
+// Regression: edits to current Nyra fields must override the cloned Blockbench
+// source snapshot. Otherwise old rotation, pivot and metadata can silently
+// reappear in the generated .geo.json after a user resets/edits a property.
+const editedSource = JSON.parse(JSON.stringify(normalized));
+const editedRoot = editedSource.scene.nodes.find(n=>n.id==='root');
+const editedArm = editedSource.scene.nodes.find(n=>n.id==='arm');
+const editedCube = editedSource.scene.nodes.find(n=>n.id==='rotated-cube');
+editedRoot.transform.rotation = [0,0,0];
+editedRoot.transform.rotationUnit = 'degrees';
+editedRoot.sourceData.bedrockOriginal.rotation = [12,34,56];
+editedRoot.sourceData.bedrockOriginal.binding = 'stale_binding';
+delete editedRoot.sourceData.bedrock.binding;
+editedCube.transform.rotation = [0,0,0];
+editedCube.sourceData.bedrock.rotation = [15,25,35];
+editedCube.sourceData.bedrock.pivot = [9,9,9];
+editedCube.geometry.faces.up.material_name = 'updated_material';
+const editedOut = JSON.parse(exportBedrockGeometry(normalizeSceneTransfer(editedSource)).json);
+const editedRootOut = editedOut['minecraft:geometry'][0].bones.find(b=>b.name==='root');
+const editedCubeOut = editedOut['minecraft:geometry'][0].bones.find(b=>b.name==='arm').cubes[0];
+assert.equal(editedRootOut.rotation,undefined,'removed bone rotation must not survive from raw source');
+assert.equal(editedRootOut.binding,undefined,'removed binding must not survive from raw source');
+assert.equal(editedCubeOut.rotation,undefined,'zeroed cube rotation must not survive from raw source');
+assert.equal(editedCubeOut.pivot,undefined,'stale cube pivot must not survive after zero rotation');
+assert.equal(editedCubeOut.uv.up.material_instance,'updated_material','edited material_instance must be exported');
+assert.throws(()=>exportBedrockGeometry(normalizeSceneTransfer(normalized),{textureWidth:128}),/diverge da resolução/);
 assert.throws(()=>importBedrockGeometry({format_version:'1.12.0','minecraft:geometry':[]}),/Geometry JSON/);
 assert.throws(()=>importBedrockGeometry({format_version:'bad','minecraft:geometry':[{}]}),/format_version inválido/);
 assert.throws(()=>importBedrockGeometry({format_version:'1.12.0','minecraft:geometry':[{bones:[{name:'a',parent:'missing'}]}]}),/Pai Bedrock inexistente/);
