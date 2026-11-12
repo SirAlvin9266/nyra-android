@@ -399,6 +399,8 @@ function nyraUpdateSelectedVector(axis,value){
  const number=Number(value);if(!Number.isFinite(number))return;
  if(axis[0]==='s'&&number<=0)return;
  vector[dimension]=number*factor;object.updateMatrix();object.updateMatrixWorld(true);
+ const node=nyraTransferData?.scene?.nodes?.find(item=>item.id===nyraSelectedNodeId);
+ if(node)nyraStoreObjectTransform(node,object);
  const label=$(axis+'Val');if(label)label.textContent=axis[0]==='r'?number.toFixed(0)+'°':number.toFixed(2);
 }
 let nyraAssociationMode=false;
@@ -620,7 +622,7 @@ $('nyraTransferFile').onchange=event=>{
  event.target.value='';
 };
 $('nyraClipPlay').onclick=nyraPlayClip;$('nyraClipStop').onclick=()=>{nyraStopClip(true);nyraSetTransferStatus('Animação parada; pose base restaurada.');};
-nyraExportTransfer.onclick=()=>{if(!nyraTransferData)return;const url=URL.createObjectURL(new Blob([JSON.stringify(nyraTransferData,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='nyra-scene-transfer.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);};
+nyraExportTransfer.onclick=()=>{if(!nyraTransferData)return;for(const node of nyraTransferData.scene.nodes){const object=nyraNodeObjects.get(node.id);if(object)nyraStoreObjectTransform(node,object);}const url=URL.createObjectURL(new Blob([JSON.stringify(nyraTransferData,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='nyra-scene-transfer.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);};
 nyraExportGLB.onclick=async()=>{
  if(!nyraTransferRoot)return;
  try{
