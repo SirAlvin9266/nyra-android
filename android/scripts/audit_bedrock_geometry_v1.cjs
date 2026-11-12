@@ -116,7 +116,17 @@ assert.equal(editedRootOut.rotation,undefined,'zeroed live bone rotation must ov
 assert.deepEqual(editedRootOut.pivot,[-32,48,64],'edited local bone position must be exported as a world pivot');
 assert.equal(editedRootOut.binding,undefined,'removed binding must not survive from raw source');
 assert.equal(editedCubeOut.rotation,undefined,'zeroed live cube rotation must override stale source rotation');
-assert.deepEqual(editedCubeOut.pivot,[-80,96,112],'edited cube pivot must override the source pivot');
+assert.equal(editedCubeOut.pivot,undefined,'pivot must be omitted when the live cube rotation is zero');
+const rotatedEdit = JSON.parse(JSON.stringify(editedSource));
+const rotatedEditCube = rotatedEdit.scene.nodes.find(n=>n.id==='rotated-cube');
+rotatedEditCube.transform.rotation = [0,0,10];
+rotatedEditCube.transform.rotationUnit = 'degrees';
+rotatedEditCube.pivot = [5,6,7];
+rotatedEditCube.sourceData.bedrock = {rotation:[15,25,35],pivot:[9,9,9]};
+const rotatedEditOut = JSON.parse(exportBedrockGeometry(normalizeSceneTransfer(rotatedEdit)).json);
+const rotatedEditCubeOut = rotatedEditOut['minecraft:geometry'][0].bones.find(b=>b.name==='arm').cubes[0];
+assert.deepEqual(rotatedEditCubeOut.pivot,[-80,96,112],'edited cube pivot must override the source pivot when rotation remains');
+assert.deepEqual(rotatedEditCubeOut.rotation,[0,0,10]);
 assert.equal(editedCubeOut.uv.up.material_instance,'updated_material','edited material_instance must be exported');
 assert.throws(()=>exportBedrockGeometry(normalizeSceneTransfer(normalized),{textureWidth:256}),/diverge da resolução/);
 assert.throws(()=>importBedrockGeometry({format_version:'1.12.0','minecraft:geometry':[]}),/Geometry JSON/);
