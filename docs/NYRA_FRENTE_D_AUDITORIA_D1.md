@@ -191,3 +191,34 @@ A branch `work/nyra-frente-d-integration` recebeu melhorias no módulo `android/
 A auditoria correspondente foi ampliada com casos negativos e de preservação. A validação de CI da revisão mais recente deve ser consultada pelo SHA exato antes de declarar a bateria aprovada.
 
 **Não comprovado por esses testes:** execução real dos iframes no WebView Android, fidelidade visual de UV/material, playback de toda semântica de animação, round-trip no Blockbench externo e carregamento no Minecraft Bedrock.
+
+
+## 14. Revisão de fidelidade e prioridade — 12/11/2026
+
+### Correção da regressão de pivô
+A primeira execução do CI desta rodada encontrou uma expectativa incorreta no teste: ele exigia que um cubo com rotação zerada continuasse exportando pivô. No formato Bedrock, o pivô do cubo é necessário para a rotação; quando a rotação é zerada, manter o pivô antigo não é o resultado correto. O teste foi ajustado para cobrir os dois estados separadamente:
+- rotação zerada: rotação e pivô antigos não reaparecem;
+- rotação não nula: o pivô editado na cena atual prevalece sobre o pivô do snapshot de origem.
+
+A regressão também verifica que a rotação atual do bone prevalece, que metadado removido não reaparece e que material por face e dimensão de textura divergente são tratados explicitamente.
+
+### Limite de integração que não deve ser confundido com o conversor
+O módulo `android/scripts/bedrock_geometry_v1.cjs` e sua auditoria exercitam importação/exportação por testes Node. Nesta revisão, não encontrei evidência de que os comandos de importar/exportar Geometry JSON estejam ligados a controles visíveis do Criador de Personagens. A integração Character → RoboTV já presente na branch é uma funcionalidade distinta e não torna o exportador Bedrock automaticamente acessível na interface.
+
+Portanto, o próximo bloco funcional necessário para o objetivo Minecraft é conectar o conversor a um fluxo explícito no editor, com:
+1. importação de Geometry JSON e seleção de uma definição quando o arquivo tiver várias;
+2. preservação do documento original e diagnóstico de recursos não editáveis;
+3. exportação da geometria atual editada, nunca apenas do snapshot;
+4. relatório de bones/cubos/UVs/versão exigida e limites;
+5. saída conjunta/claramente relacionada com a textura original, sem afirmar que Geometry JSON incorpora PNG.
+
+### Prioridade ajustada ao objetivo de modelos Minecraft
+- **P0:** fidelidade de cubos, bones, hierarquia, pivôs, rotação, inflate, mirror, UV box/per-face, dimensões de textura e reabertura sem perda silenciosa.
+- **P1:** integração desses fluxos à interface Nyra e exportação/associação correta da textura; diagnóstico legível para o usuário.
+- **P2:** compatibilidade avançada de locators e metadados de entidades, conforme casos reais.
+- **Posterior:** reprodução/exportação de animações Bedrock, controllers/Molang, client entity, Behavior Pack e pacote instalável completo.
+
+O envio de modelos Blockbench e clips ao RoboTV é mantido como trilha complementar. A modelagem e exportação de geometria Minecraft têm precedência sobre expandir playback de animações nesta etapa.
+
+### Validação ainda obrigatória
+CI automatizado não comprova UV visual nem carregamento em jogo. Permanecem necessários round-trip no Blockbench e teste no Minecraft Bedrock com modelos representativos do corpus, incluindo um caso com hierarquia profunda, cubos rotacionados, UV por face e atlas de resolução não quadrada.
