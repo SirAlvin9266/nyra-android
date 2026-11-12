@@ -88,10 +88,10 @@ assert.equal(good.pivot.parent,good.g2,'cube pivot must be reparented to the sel
 assert.deepEqual(good.g2.position.toArray(),[1,0,0],'group position must match RoboTV transform');
 assert.deepEqual(good.pivot.position.toArray(),[0,1,0],'cube pivot local position must be preserved');
 assert.deepEqual(good.mesh.scale.toArray(),[2,1,1],'cube scale must be applied to the existing exporter mesh');
-assert.deepEqual(good.state.records[0].parentOrigin,[1,0,0],'element origin must use the new parent origin');
+assert.equal(good.state.records[0].parentOrigin.join(','),'1,0,0','element origin must use the new parent origin');
 assert.equal(good.element.visibility,false,'piece visibility must be preserved');
 assert.equal(good.rawG1.children.length,0,'old parent group must no longer contain the cube');
-assert.deepEqual(good.rawG2.children,['c1'],'new parent group must contain the cube in Blockbench outliner');
+assert.equal(good.rawG2.children.join(','),'c1','new parent group must contain the cube in Blockbench outliner');
 assert.equal(good.state.rawData.outliner.length,2,'root outliner must retain both groups');
 
 const badScale=transferFixture({badGroupScale:true});
