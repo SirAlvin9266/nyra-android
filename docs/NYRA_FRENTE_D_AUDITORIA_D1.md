@@ -157,7 +157,25 @@ Regra de preservação:
 - preservar o fluxo legado do RoboTV enquanto a edição genérica de modelos e animações amadurece;
 - não considerar a presença do Robô TV no Guia como evidência de que um modelo importado está carregado no editor de animação.
 
-## 11. Estado técnico da rodada de endurecimento do contrato (11/11/2026)
+## 12. Rodada focada em fidelidade de modelos Bedrock
+
+Esta rodada prioriza a saída de modelo que o usuário consegue abrir novamente na Nyra e utilizar no fluxo Minecraft: Geometry JSON + resolução correta da textura + UVs/cubos/hierarquia. Não amplia o objetivo para gerar Behavior Pack, client entity, controllers ou um Resource Pack instalável completo.
+
+### Correções de exportação
+- O exportador parte de um clone dos metadados de origem para preservar campos conhecidos/desconhecidos. Para propriedades editáveis (rotação, pivô, inflate, mirror, UV e metadados suportados), o estado atual da cena deve prevalecer sobre o snapshot original.
+- Corrigido o risco de propriedades antigas ressurgirem após edição/reset: rotação de bone/cubo e pivô de cubo não podem permanecer apenas porque estavam no documento-fonte quando o usuário os zera.
+- A resolução da textura passa a ser validada contra dimensões explicitamente fornecidas quando há textura incorporada com dimensões conhecidas. Divergência é erro explícito, não exportação potencialmente desalinhada.
+- O material de face é tratado como `material_instance` no formato Bedrock; a representação interna `material_name` é apenas o alias do documento Nyra.
+
+### Testes novos
+- Exportar depois de zerar rotação e remover binding não mantém valores antigos do raw source.
+- Edição de `material_instance` em UV por face é refletida no `.geo.json`.
+- Dimensão de textura incompatível com asset incorporado é rejeitada.
+
+### Corte de escopo para o objetivo atual
+Prioridade alta: cubos, bones, transforms/pivôs, UV box/per-face, dimensões de textura, exportar/reabrir Geometry JSON. Prioridade média: locators e metadados necessários à compatibilidade de entidades. Fora desta entrega: exportar animações/controllers, Behavior Pack, client entity e pacote de entidade completo. Malhas livres continuam bloqueadas no exportador de cubos em vez de serem convertidas com perda silenciosa.
+
+## 13. Estado técnico da rodada de endurecimento do contrato (11/11/2026)
 
 A branch `work/nyra-frente-d-integration` recebeu melhorias no módulo `android/scripts/nyra_scene_transfer_v1.cjs`:
 
