@@ -99,7 +99,7 @@ footer{color:var(--muted);font-size:11px;padding:0 14px 14px;max-width:1200px;ma
   <div class="row"><button id="zeroJoint" disabled>Resetar rotação</button></div>
   <div class="divider"></div>
   <label>Associação entre peças</label>
-  <div class="row"><button id="nyraAssociateMode" disabled>Associar peça selecionada…</button><button id="nyraCancelAssociation" disabled>Cancelar</button><button id="nyraDetachNode" disabled>Remover associação</button></div>
+  <div class="row"><button id="nyraAssociateMode" disabled>Associar peça selecionada…</button><button id="nyraCancelAssociation" disabled>Cancelar</button><button id="nyraDetachNode" disabled>Remover associação</button><button id="nyraUndoAssociation" disabled>Desfazer</button></div>
   <div id="nyraAssociationStatus" class="status">Selecione uma peça, inicie a associação e escolha a peça que será seu novo objeto pai.</div>
   <div class="divider"></div>
   <label>Projeto e animação</label>
@@ -309,7 +309,7 @@ function nyraRemovePreviousTransfer(){
    if(material?.map)material.map.dispose();material?.dispose();
   });}
  });}
- nyraTransferRoot=null;nyraTransferData=null;nyraSelectedNodeId=null;
+ transformControls.detach();transformControls.enabled=false;nyraHierarchyHistory=[];nyraTransferRoot=null;nyraTransferData=null;nyraSelectedNodeId=null;
  nyraNodeObjects.clear();nyraBaseRotations.clear();nyraBaseTransforms.clear();
  if(nyraTransferTree)nyraTransferTree.replaceChildren();
  if(nyraClipControls)nyraClipControls.style.display='none';
@@ -321,7 +321,8 @@ function nyraRemovePreviousTransfer(){
  if($('zeroJoint'))$('zeroJoint').disabled=true;
  if($('nyraAssociateMode'))$('nyraAssociateMode').disabled=true;
  if($('nyraDetachNode'))$('nyraDetachNode').disabled=true;
- if($('nyraCancelAssociation'))$('nyraCancelAssociation').disabled=true;
+ if($('nyraCancelAssociation'))$('nyraCancelAssociation').disabled=true;if($('nyraUndoAssociation'))$('nyraUndoAssociation').disabled=true;
+ for(const id of ['nyraMoveTool','nyraRotateTool','nyraScaleTool'])if($(id))$(id).disabled=true;
 }
 function nyraBuildTransferScene(doc,nodeMap=new Map(),baseMap=new Map()){
  const root=new THREE.Group();root.name=doc.project?.name||'Projeto Nyra';
@@ -391,8 +392,38 @@ function nyraBindViewportSelection(){
 function nyraGetSelectedTransferObject(){
  return nyraSelectedNodeId?nyraNodeObjects.get(nyraSelectedNodeId)||null:null;
 }
+let nyraCurrentTransformMode='translate';
+let nyraHierarchyHistory=[];
+function nyraSetTransformMode(mode){
+ if(!['translate','rotate','scale'].includes(mode))return;
+ nyraCurrentTransformMode=mode;transformControls.setMode(mode);
+ for(const [id,value] of [['nyraMoveTool','translate'],['nyraRotateTool','rotate'],['nyraScaleTool','scale']]){$(id).classList.toggle('selected',value===mode);}
+ nyraSyncTransformControls();
+}
+function nyraPushHierarchyHistory(node,object){
+ nyraStoreObjectTransform(node,object);
+ nyraHierarchyHistory.push({id:node.id,parentId:node.parentId||null,transform:JSON.parse(JSON.stringify(node.transform))});
+ if(nyraHierarchyHistory.length>50)nyraHierarchyHistory.shift();
+ if($('nyraUndoAssociation'))$('nyraUndoAssociation').disabled=false;
+}
+function nyraUndoHierarchyChange(){
+ const previous=nyraHierarchyHistory.pop();if(!previous)return;
+ const node=nyraTransferData?.scene?.nodes?.find(item=>item.id===previous.id),object=nyraNodeObjects.get(previous.id);
+ if(!node||!object)throw new Error('A peça da ação anterior não está disponível.');
+ const parent=previous.parentId?nyraNodeObjects.get(previous.parentId):nyraTransferRoot;
+ if(!parent)throw new Error('O grupo pai anterior não está disponível.');
+ parent.add(object);const t=previous.transform||{};
+ object.position.fromArray(t.position||[0,0,0]);object.rotation.order=t.rotationOrder||'XYZ';object.rotation.set(...(t.rotation||[0,0,0]));object.scale.fromArray(t.scale||[1,1,1]);
+ node.parentId=previous.parentId;node.transform=JSON.parse(JSON.stringify(t));object.updateMatrix();object.updateMatrixWorld(true);
+ nyraRebuildTransferChildren();nyraValidateTransfer(nyraTransferData);nyraRenderTransferTree(nyraTransferData);nyraSelectTransferNode(previous.id);
+ if($('nyraUndoAssociation'))$('nyraUndoAssociation').disabled=nyraHierarchyHistory.length===0;
+ nyraSetTransferStatus('Última alteração de hierarquia desfeita.');
+}
 function nyraSyncTransformControls(){
  const object=nyraGetSelectedTransferObject();
+ transformControls.enabled=!!object&&!nyraAssociationMode;
+ if(object){if(transformControls.object!==object)transformControls.attach(object);transformControls.setMode(nyraCurrentTransformMode);}
+ else transformControls.detach();
  const fields=[['px','x',object?.position],['py','y',object?.position],['pz','z',object?.position],
  ['rx','x',object?.rotation],['ry','y',object?.rotation],['rz','z',object?.rotation],
  ['sx','x',object?.scale],['sy','y',object?.scale],['sz','z',object?.scale]];
@@ -406,6 +437,7 @@ function nyraSyncTransformControls(){
  if($('nyraAssociateMode'))$('nyraAssociateMode').disabled=!object||nyraAssociationMode;
  if($('nyraDetachNode'))$('nyraDetachNode').disabled=!object||!currentNode?.parentId;
  if($('nyraCancelAssociation'))$('nyraCancelAssociation').disabled=!nyraAssociationMode;
+ if($('nyraUndoAssociation'))$('nyraUndoAssociation').disabled=nyraHierarchyHistory.length===0;
 }
 function nyraUpdateSelectedVector(axis,value){
  const object=nyraGetSelectedTransferObject();if(!object)return;
@@ -448,6 +480,7 @@ function nyraAssociateNodes(childId,parentId){
  let cursor=parent;
  while(cursor){if(cursor.id===childId)throw new Error('Associação inválida: isso criaria um ciclo.');cursor=cursor.parentId?nodes.find(node=>node.id===cursor.parentId):null;}
  const childObject=nyraNodeObjects.get(childId),parentObject=nyraNodeObjects.get(parentId);
+ nyraStoreObjectTransform(child,childObject);nyraPushHierarchyHistory(child,childObject);
  if(!childObject||!parentObject)throw new Error('Os objetos 3D da associação não estão disponíveis.');
  childObject.updateWorldMatrix(true,false);parentObject.updateWorldMatrix(true,false);
  const worldPosition=new THREE.Vector3(),worldQuaternion=new THREE.Quaternion(),worldScale=new THREE.Vector3();
@@ -473,6 +506,7 @@ function nyraAssociateNodes(childId,parentId){
 function nyraDetachNode(id){
  const node=nyraTransferData?.scene?.nodes?.find(item=>item.id===id);if(!node?.parentId)return;
  const object=nyraNodeObjects.get(id);if(!object)throw new Error('Objeto selecionado não encontrado.');
+ nyraPushHierarchyHistory(node,object);
  object.updateWorldMatrix(true,false);
  nyraTransferRoot.updateWorldMatrix(true,false);
  const position=new THREE.Vector3(),quaternion=new THREE.Quaternion(),scale=new THREE.Vector3();
@@ -489,6 +523,8 @@ function nyraDetachNode(id){
 $('nyraAssociateMode').onclick=()=>nyraSetAssociationMode(true);
 $('nyraCancelAssociation').onclick=()=>nyraSetAssociationMode(false);
 $('nyraDetachNode').onclick=()=>{try{nyraDetachNode(nyraSelectedNodeId);}catch(error){nyraSetTransferStatus(error.message||String(error));}};
+$('nyraUndoAssociation').onclick=()=>{try{nyraUndoHierarchyChange();}catch(error){nyraSetTransferStatus(error.message||String(error));}};
+$('nyraMoveTool').onclick=()=>nyraSetTransformMode('translate');$('nyraRotateTool').onclick=()=>nyraSetTransformMode('rotate');$('nyraScaleTool').onclick=()=>nyraSetTransformMode('scale');
 for(const id of ['px','py','pz','rx','ry','rz','sx','sy','sz']){
  $(id).addEventListener('input',event=>nyraUpdateSelectedVector(id,event.target.value));
 }
