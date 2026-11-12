@@ -429,7 +429,8 @@ function nyraAssociateNodes(childId,parentId){
  if(!childId||!parentId||childId===parentId)throw new Error('Escolha duas peças diferentes.');
  const nodes=nyraTransferData.scene.nodes,child=nodes.find(node=>node.id===childId),parent=nodes.find(node=>node.id===parentId);
  if(!child||!parent)throw new Error('Peça de origem ou destino não encontrada.');
- if(!['bone','group','empty'].includes(parent.type))throw new Error('A peça escolhida como pai precisa ser um grupo ou osso.');
+ if(nyraTransferData.project?.source?.format==='blockbench'&&!['bone','group'].includes(parent.type))throw new Error('Em modelos Blockbench, a peça escolhida como pai precisa ser um grupo ou osso.');
+ if(nyraTransferData.project?.source?.format!=='blockbench'&&!['bone','group','empty'].includes(parent.type))throw new Error('A peça escolhida como pai precisa ser um grupo ou objeto vazio.');
  let cursor=parent;
  while(cursor){if(cursor.id===childId)throw new Error('Associação inválida: isso criaria um ciclo.');cursor=cursor.parentId?nodes.find(node=>node.id===cursor.parentId):null;}
  const childObject=nyraNodeObjects.get(childId),parentObject=nyraNodeObjects.get(parentId);
