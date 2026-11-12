@@ -230,3 +230,30 @@ O commit de código `6d60061c58c85198c2ff284149f543b40fade5fa` passou no workflo
 O APK foi produzido como artefato `nyra-android-debug-apk`; SHA-256 do arquivo ZIP do artefato publicado pelo GitHub: `0c5271835af17c82a365551d3fe5cb8f010b0cc7983d01d6a4a4062517c54aa6`. O artefato é do commit de código acima. O commit posterior que atualiza este documento altera somente documentação; não altera o código testado.
 
 Esse resultado fecha a regressão automatizada desta rodada, não a integração visual do conversor nem o teste no Blockbench/Minecraft.
+
+## 15. Integração do exportador Bedrock ao Criador de Personagens
+
+A partir dos commits be3a6c1758a74916c7ac25e9dde98549280ca42a, c049255ba03ed87101085cc2bff5749bf05addb7 e fb44149564ba958ef340cf5800d9681f632badba, o fluxo de exportação deixou de existir apenas como módulo Node de auditoria e ganhou controles no editor:
+
+- O botão **Exportar Geometry JSON (Bedrock)** aparece no Criador de Personagens e é habilitado após importar um arquivo .bbmodel.
+- Antes de exportar, o editor reconstrói o .bbmodel a partir da cena editada (grupos, transforms, cubos e UVs suportados); o conversor recebe esse estado atualizado, não apenas o snapshot bruto original.
+- O Geometry JSON gerado é baixado com identificador derivado do projeto e apresenta quantidade de bones, cubos, locators, resolução do atlas e versão Bedrock exigida.
+- O botão **Exportar textura PNG** é habilitado quando existe exatamente uma textura de imagem incorporada (PNG/JPEG/WebP em data URI); o download preserva a extensão MIME. Projetos com várias texturas ou referências externas mantêm o .bbmodel original como fonte e não recebem uma exportação parcial enganosa por esse botão.
+- A interface informa que o PNG não está embutido no Geometry JSON e precisa acompanhar o arquivo de geometria no fluxo Minecraft.
+- Malhas livres continuam recusadas pelo exportador cubo-based com diagnóstico explícito.
+
+### Limites da integração atual
+- A interface ainda não oferece importação direta de .geo.json para a cena do Criador; a função de importação Bedrock existe no módulo e é coberta por testes, mas não está conectada a um seletor visível.
+- A exportação direta da textura é intencionalmente limitada a uma única imagem incorporada. Múltiplas imagens/recursos externos precisam de tratamento de atlas/associação próprio.
+- O fluxo começa com um .bbmodel importado; formas genéricas geradas manualmente pelo editor não são convertidas automaticamente em cubos Bedrock.
+- Não há geração de client_entity, animation/controller JSON, Behavior Pack ou Resource Pack instalável completo.
+- A auditoria estática e o build não substituem a inspeção visual de UVs no Blockbench e o carregamento em Minecraft Bedrock.
+
+### Fluxo disponível nesta etapa
+1. Importar um .bbmodel no Criador de Personagens.
+2. Editar cubos/grupos suportados.
+3. Exportar o .geo.json Bedrock atualizado.
+4. Exportar a textura incorporada quando houver exatamente uma imagem.
+5. Usar ambos os arquivos no fluxo de Resource Pack/entidade do Minecraft, configurando os vínculos externos necessários.
+
+Esse é um primeiro fluxo utilizável para geometria cubo-based, não um empacotador de entidade completo.
