@@ -65,3 +65,22 @@ A execução do CI inicial falhou em um teste preexistente porque as duas cópia
 - Issue #22 — reformulação arquitetural do Criador de Personagens.
 - PR #23 — primeira entrega WIP do núcleo e hierarquia.
 - Issue #21 — interface e associação de peças.
+
+
+## Segunda entrega — histórico unificado (13/11/2026)
+
+A inspeção do fluxo revelou que o botão e o atalho de teclado eram registrados duas vezes. Um handler novo para hierarquia e redo era sobrescrito mais adiante pelo handler legado de undo. Isso fazia o comportamento real divergir da implementação pretendida.
+
+Correções aplicadas na branch:
+- Um único stack agora recebe os comandos de hierarquia e as ações legadas registradas por pushUndo.
+- O handler tardio que sobrescrevia o botão Desfazer e Ctrl+Z foi removido.
+- Transformações concluídas pelo gizmo registram snapshots anterior e posterior e podem ser desfeitas/refeitas.
+- Comandos antigos que só possuem undo continuam desfezíveis; não anunciam redo falso. Uma ação nova limpa a pilha de redo.
+- Histórico limitado a 100 entradas e sincronização dos botões após os comandos.
+- A restauração de hierarquia agora recoloca o nó explicitamente no pai/índice original.
+
+Testes adicionados/fortalecidos: sequência de undo/redo reversível, ação legada só com undo, limpeza de redo após nova ação e proteção contra sobrescrita dos handlers. A auditoria estrutural valida sintaxe e os marcadores desse contrato.
+
+Sincronização Android pendente nesta entrega: a fonte character.html está atualizada, mas a entrada Base64 character de index.html ainda corresponde a uma cópia anterior. A atualização foi deliberadamente bloqueada porque não foi possível calcular e conferir a conversão Base64 neste ambiente. O CI de APK não deve ser considerado prova da nova versão até a sincronização ser concluída.
+
+Limite funcional: o undo das ações legadas foi unificado, mas essas ações ainda não possuem redo individual. O redo real está implementado para os comandos que já fornecem callback de reaplicação (hierarquia e transformação por gizmo).
