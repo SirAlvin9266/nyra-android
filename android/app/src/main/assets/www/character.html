@@ -13,14 +13,14 @@
 <script type="module">
 try {
 const [THREE,{OrbitControls},{TransformControls}] = await Promise.all([import('three'),import('three/addons/controls/OrbitControls.js'),import('three/addons/controls/TransformControls.js')]);
-const root=document.querySelector('#view'),scene=new THREE.Scene();scene.background=new THREE.Color('#111722');const camera=new THREE.PerspectiveCamera(42,1,.1,100);camera.position.set(4.7,4.1,7);const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.shadowMap.enabled=true;root.appendChild(renderer.domElement);const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.target.set(0,1.8,0);const transform=new TransformControls(camera,renderer.domElement);scene.add(typeof transform.getHelper==='function' ? transform.getHelper() : transform);transform.addEventListener('dragging-changed',e=>{controls.enabled=!e.value;if(e.value&&selectedObject)transformBefore={object:selectedObject,position:selectedObject.position.toArray(),rotation:[selectedObject.rotation.x,selectedObject.rotation.y,selectedObject.rotation.z],scale:selectedObject.scale.toArray()};else if(!e.value&&transformBefore){const snap=transformBefore;transformBefore=null;const o=snap.object,changed=o&&(['position','scale'].some(k=>snap[k]&&o[k].toArray().some((v,i)=>Math.abs(v-snap[k][i])>.0001))||snap.rotation.some((v,i)=>Math.abs(v-[o.rotation.x,o.rotation.y,o.rotation.z][i])>.0001));if(changed)pushUndo('transformação',()=>{o.position.fromArray(snap.position);o.rotation.set(...snap.rotation);o.scale.fromArray(snap.scale);if(selectedObject===o)syncEditor()});}});transform.addEventListener('objectChange',()=>{if(selectedObject)syncEditor()});scene.add(new THREE.HemisphereLight(0xd8ebff,0x343041,2));const light=new THREE.DirectionalLight(0xffffff,2.3);light.position.set(4,7,5);light.castShadow=true;scene.add(light);const fill=new THREE.DirectionalLight(0x35e5ff,.8);fill.position.set(-4,3,-4);scene.add(fill);const grid=new THREE.GridHelper(10,10,0x53657b,0x29384a);scene.add(grid);
+const root=document.querySelector('#view'),scene=new THREE.Scene();scene.background=new THREE.Color('#111722');const camera=new THREE.PerspectiveCamera(42,1,.1,100);camera.position.set(4.7,4.1,7);const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.shadowMap.enabled=true;root.appendChild(renderer.domElement);const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.target.set(0,1.8,0);const transform=new TransformControls(camera,renderer.domElement);scene.add(typeof transform.getHelper==='function' ? transform.getHelper() : transform);transform.addEventListener('dragging-changed',e=>{controls.enabled=!e.value;if(e.value&&selectedObject)transformBefore={object:selectedObject,position:selectedObject.position.toArray(),rotation:[selectedObject.rotation.x,selectedObject.rotation.y,selectedObject.rotation.z],scale:selectedObject.scale.toArray()};else if(!e.value&&transformBefore){const snap=transformBefore;transformBefore=null;const o=snap.object,changed=o&&(['position','scale'].some(k=>snap[k]&&o[k].toArray().some((v,i)=>Math.abs(v-snap[k][i])>.0001))||snap.rotation.some((v,i)=>Math.abs(v-[o.rotation.x,o.rotation.y,o.rotation.z][i])>.0001));if(changed){const after={position:o.position.toArray(),rotation:[o.rotation.x,o.rotation.y,o.rotation.z],scale:o.scale.toArray()};pushUndo('transformação',()=>{o.position.fromArray(snap.position);o.rotation.set(...snap.rotation);o.scale.fromArray(snap.scale);o.updateMatrix();o.updateMatrixWorld(true);if(selectedObject===o)syncEditor()},()=>{o.position.fromArray(after.position);o.rotation.set(...after.rotation);o.scale.fromArray(after.scale);o.updateMatrix();o.updateMatrixWorld(true);if(selectedObject===o)syncEditor()});}}});transform.addEventListener('objectChange',()=>{if(selectedObject)syncEditor()});scene.add(new THREE.HemisphereLight(0xd8ebff,0x343041,2));const light=new THREE.DirectionalLight(0xffffff,2.3);light.position.set(4,7,5);light.castShadow=true;scene.add(light);const fill=new THREE.DirectionalLight(0x35e5ff,.8);fill.position.set(-4,3,-4);scene.add(fill);const grid=new THREE.GridHelper(10,10,0x53657b,0x29384a);scene.add(grid);
 const voxelGroup=new THREE.Group();voxelGroup.name='VoxelBlocks';scene.add(voxelGroup);let voxelMode='select';const voxelRecords=[];const voxelGeo=new THREE.BoxGeometry(1,1,1);const ground=new THREE.Mesh(new THREE.PlaneGeometry(20,20),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,colorWrite:false}));ground.rotation.x=-Math.PI/2;ground.position.y=-.5;scene.add(ground);
 const mats={};const groups={};const defaults={head:'#35e5ff',torso:'#263548',armL:'#d5e2ed',armR:'#d5e2ed',legL:'#56677d',legR:'#56677d'};function material(k){return mats[k] ||= new THREE.MeshStandardMaterial({color:defaults[k]||'#d5e2ed',roughness:.72})}function box(parent,name,pos,size,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(...size),mat);m.name=name;m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}const character=new THREE.Group();scene.add(character);
 groups.torso=new THREE.Group();groups.torso.name='torso';groups.torso.position.set(0,2.2,0);character.add(groups.torso);box(groups.torso,'Torso',[0,0,0],[1.05,1.2,.58],material('torso'));box(groups.torso,'ChestPanel',[0,.12,.31],[.62,.4,.045],new THREE.MeshStandardMaterial({color:'#2a9fa9',metalness:.2}));
 groups.head=new THREE.Group();groups.head.name='head';groups.head.position.set(0,.88,0);groups.torso.add(groups.head);const headMesh=box(groups.head,'Head',[0,.28,0],[.92,.78,.72],material('head'));box(groups.head,'EyeL',[-.2,.3,.37],[.12,.13,.035],new THREE.MeshStandardMaterial({color:'#ffffff',emissive:'#66ddff',emissiveIntensity:.8}));box(groups.head,'EyeR',[.2,.3,.37],[.12,.13,.035],new THREE.MeshStandardMaterial({color:'#ffffff',emissive:'#66ddff',emissiveIntensity:.8}));
 for(const [key,x] of [['armL',-.72],['armR',.72]]){groups[key]=new THREE.Group();groups[key].name=key;groups[key].position.set(x,.4,0);groups.torso.add(groups[key]);box(groups[key],key+'Upper',[0,-.32,0],[.3,.68,.34],material(key));box(groups[key],key+'Hand',[0,-.72,.02],[.36,.23,.36],material(key))}for(const [key,x] of [['legL',-.28],['legR',.28]]){groups[key]=new THREE.Group();groups[key].name=key;groups[key].position.set(x,1.55,0);character.add(groups[key]);box(groups[key],key+'Upper',[0,-.35,0],[.38,.75,.42],material(key));box(groups[key],key+'Foot',[0,-.78,.1],[.44,.22,.58],material(key))}
 let selected=null,selectedObject=null,selectedMesh=null,selectedKind='none';const customObjects=[];const partBase={head:[.92,.78,.72],torso:[1,1,1],armL:[1,1,1],armR:[1,1,1],legL:[1,1,1],legR:[1,1,1]};
-const actionHistory=[];const HISTORY_LIMIT=50;let transformBefore=null;let restoringHistory=false;function pushUndo(label,undo){if(restoringHistory)return;actionHistory.push({label,undo});if(actionHistory.length>HISTORY_LIMIT)actionHistory.shift();document.querySelector('#restorePart').textContent='Desfazer (Ctrl+Z) · '+actionHistory.length;}function undoLast(){const action=actionHistory.pop();if(!action){document.querySelector('#status').textContent='Não há ações para desfazer.';return;}restoringHistory=true;try{action.undo();}catch(err){console.error('Falha ao desfazer',err);document.querySelector('#status').textContent='Não foi possível desfazer esta ação: '+err.message;}finally{restoringHistory=false;document.querySelector('#restorePart').textContent='Desfazer (Ctrl+Z) · '+actionHistory.length;document.querySelector('#status').textContent='Ação desfeita: '+action.label+'.';}}
+const actionHistory=[];const HISTORY_LIMIT=100;let transformBefore=null;let restoringHistory=false;
 
 /*
  * Character Creator scene core.
@@ -95,10 +95,12 @@ const NyraCharacterScene = (() => {
 
 const undoStack=[],redoStack=[];
 const hierarchySelection={node:null};
-function recordCommand(label,undo,redo){if(restoringHistory)return;undoStack.push({label,undo,redo});if(undoStack.length>100)undoStack.shift();redoStack.length=0;syncHistoryButtons();}
-function syncHistoryButtons(){const u=document.querySelector('#restorePart'),r=document.querySelector('#redoPart');if(!u||!r)return;u.textContent='Desfazer · '+undoStack.length;r.textContent='Refazer · '+redoStack.length;u.disabled=!undoStack.length&&!actionHistory.length;r.disabled=!redoStack.length;}
-function undoCommand(){const c=undoStack.pop();if(!c)return false;restoringHistory=true;try{c.undo();redoStack.push(c);return true;}finally{restoringHistory=false;syncHistoryButtons();}}
-function redoCommand(){const c=redoStack.pop();if(!c)return false;restoringHistory=true;try{c.redo();undoStack.push(c);return true;}finally{restoringHistory=false;syncHistoryButtons();}}
+function syncHistoryButtons(){const u=document.querySelector('#restorePart'),r=document.querySelector('#redoPart');if(!u||!r)return;u.textContent='Desfazer · '+undoStack.length;r.textContent='Refazer · '+redoStack.length;u.disabled=!undoStack.length;r.disabled=!redoStack.length;}
+function recordCommand(label,undo,redo){if(restoringHistory)return;undoStack.push({label,undo,redo});if(undoStack.length>HISTORY_LIMIT)undoStack.shift();redoStack.length=0;syncHistoryButtons();}
+function pushUndo(label,undo){recordCommand(label,undo,()=>{});}
+function undoCommand(){const c=undoStack.pop();if(!c)return false;restoringHistory=true;try{c.undo();redoStack.push(c);return true;}catch(error){undoStack.push(c);throw error;}finally{restoringHistory=false;syncHistoryButtons();}}
+function redoCommand(){const c=redoStack.pop();if(!c)return false;restoringHistory=true;try{c.redo();undoStack.push(c);return true;}catch(error){redoStack.push(c);throw error;}finally{restoringHistory=false;syncHistoryButtons();}}
+function undoLast(){return undoCommand();}
 function refreshHierarchy(){
  const tree=document.querySelector('#hierarchyTree'),select=document.querySelector('#parentTarget');if(!tree||!select)return;
  const previous=select.value,rows=NyraCharacterScene.hierarchy(scene).filter(row=>row.node!==scene&&row.node!==grid&&row.node!==ground&&row.node!==transform);
@@ -129,10 +131,14 @@ function hierarchyCommand(child,parent,label){
  scene.updateMatrixWorld(true);
  const beforeWorld=child.matrixWorld.clone();
  const before=worldPositionLocal(previous,beforeWorld);
- const afterParentWorld=parent.matrixWorld.clone();
- const nextLocal=worldPositionLocal(parent,beforeWorld);
  const apply=(target,index,state)=>{
-  target.add(child);const at=target.children.indexOf(child);child.parent.children.splice(at,1);target.children.splice(Math.max(0,Math.min(index,target.children.length)),0,child);
+  const currentParent=child.parent;
+  if(currentParent){
+   const currentIndex=currentParent.children.indexOf(child);
+   if(currentIndex>=0)currentParent.children.splice(currentIndex,1);
+  }
+  child.parent=target;
+  target.children.splice(Math.max(0,Math.min(index,target.children.length)),0,child);
   applyLocalTransform(child,state);refreshHierarchy();
  };
  NyraCharacterScene.reparent(child,parent,{preserveWorld:true});
@@ -178,12 +184,12 @@ function worldPositionLocal(parent,world){
  if(!Number.isFinite(error)||error>1e-4)throw new Error('A transformação não pode ser representada sem perda (possível cisalhamento).');
  return {position:p.toArray(),quaternion:q.toArray(),scale:sc.toArray()};
 }
-document.querySelector('#restorePart').onclick=()=>{if(!undoCommand())undoLast();refreshHierarchy();syncHistoryButtons();};
-document.querySelector('#redoPart').onclick=()=>{redoCommand();refreshHierarchy();};
+document.querySelector('#restorePart').onclick=()=>{try{if(!undoCommand())document.querySelector('#status').textContent='Não há ações para desfazer.';}catch(error){document.querySelector('#status').textContent='Falha ao desfazer: '+error.message;}refreshHierarchy();};
+document.querySelector('#redoPart').onclick=()=>{try{if(!redoCommand())document.querySelector('#status').textContent='Não há ações para refazer.';}catch(error){document.querySelector('#status').textContent='Falha ao refazer: '+error.message;}refreshHierarchy();};
 window.addEventListener('keydown',e=>{
  if(!(e.ctrlKey||e.metaKey))return;
- if(e.key.toLowerCase()==='z'){e.preventDefault();if(!undoCommand())undoLast();refreshHierarchy();}
- if(e.key.toLowerCase()==='y'){e.preventDefault();redoCommand();refreshHierarchy();}
+ if(e.key.toLowerCase()==='z'){e.preventDefault();try{if(!undoCommand())document.querySelector('#status').textContent='Não há ações para desfazer.';}catch(error){document.querySelector('#status').textContent='Falha ao desfazer: '+error.message;}refreshHierarchy();}
+ if(e.key.toLowerCase()==='y'){e.preventDefault();try{if(!redoCommand())document.querySelector('#status').textContent='Não há ações para refazer.';}catch(error){document.querySelector('#status').textContent='Falha ao refazer: '+error.message;}refreshHierarchy();}
 });
 function labelFor(k){return ({head:'Cabeça',torso:'Tronco',armL:'Braço esquerdo',armR:'Braço direito',legL:'Perna esquerda',legR:'Perna direita'})[k]||k}
 function activateSelection(object,kind,mesh=null){
@@ -557,7 +563,7 @@ document.querySelector('#deleteSelected').onclick=()=>{
   pushUndo('apagar '+(o.name||'objeto'),()=>{if(kind==='bbmodel'&&pivot&&pivotParent){pivotParent.add(pivot);const st=window.__nyraBBModelState;if(st?.meshByUuid)st.meshByUuid.set(o.userData.bbUuid,o);if(st?.records&&record&&!st.records.includes(record))st.records.push(record);}else if(parent)parent.add(o);if(record&&!customObjects.includes(record))customObjects.splice(Math.min(recIndex,customObjects.length),0,record);if(kind==='voxel'&&!voxelRecords.some(v=>Math.abs(v.x-o.position.x)<.001&&Math.abs(v.y-o.position.y)<.001&&Math.abs(v.z-o.position.z)<.001))voxelRecords.push({x:o.position.x,y:o.position.y,z:o.position.z,color:'#'+o.material.color.getHexString()});selectCustom(o);});
   document.querySelector('#status').textContent='Objeto apagado. Use Desfazer para recuperá-lo.';
 };
-document.querySelector('#restorePart').onclick=undoLast;window.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undoLast()}});
+// O histórico unificado já registrou os handlers de undo/redo.
 
 let pointerStart=null;
 renderer.domElement.addEventListener('pointerdown',e=>{
