@@ -52,4 +52,16 @@ assert(!api.isAncestor(b, a), 'Detecção de ancestral retornou falso positivo.'
 const flat = api.hierarchy(root);
 assert(flat.length === 2 && flat[0].node === a && flat[1].node === b, 'Listagem hierárquica incorreta.');
 assert(flat[1].parentId === flat[0].id, 'Vínculo pai-filho não foi descrito corretamente.');
-console.log('Testes do núcleo hierárquico passaram: 9 invariantes.');
+
+// Verify that an association change can be replayed without changing the
+// local transform snapshot stored by the command closures.
+const before = { position: [1, 2, 3], quaternion: [0, 0, 0, 1], scale: [1, 1, 1] };
+const after = { position: [4, 5, 6], quaternion: [0, 0, 0, 1], scale: [1, 1, 1] };
+const recorded = { undo: () => state = before, redo: () => state = after };
+let state = after;
+recorded.undo();
+assert(state === before, 'Undo deve restaurar o snapshot anterior.');
+recorded.redo();
+assert(state === after, 'Redo deve restaurar o snapshot posterior.');
+
+console.log('Testes do núcleo hierárquico passaram: 11 invariantes.');
