@@ -186,9 +186,34 @@ window.addEventListener('keydown',e=>{
  if(e.key.toLowerCase()==='y'){e.preventDefault();redoCommand();refreshHierarchy();}
 });
 function labelFor(k){return ({head:'Cabeça',torso:'Tronco',armL:'Braço esquerdo',armR:'Braço direito',legL:'Perna esquerda',legR:'Perna direita'})[k]||k}
-function selectPart(k,mesh=null){const part=groups[k];let node=part,connected=false;while(node){if(node===character){connected=true;break;}node=node.parent;}if(!character.userData.activeModel||!connected){document.querySelector('#status').textContent='Essa parte não existe no projeto atual. Importe um modelo ou adicione objetos.';return;}setVoxelMode('select',false);selected=k;selectedObject=part;selectedMesh=mesh&&mesh.isMesh?mesh:null;selectedKind='part';node=part;while(node&&node!==character){node.visible=true;node=node.parent;}transform.attach(selectedObject);syncEditor();refreshHierarchy();}
-function selectCustom(o){setVoxelMode('select',false);selectedMesh=o?.isMesh?o:null;selectedObject=o;selectedKind=o.userData?.isBBModel?'bbmodel':(o.userData?.isVoxel?'voxel':'shape');selected=o.name;transform.attach(o);syncEditor();refreshHierarchy()}
-function selectVoxel(o){selectCustom(o);document.querySelector('#status').textContent='Voxel selecionado. Você pode mover, girar, redimensionar ou alterar a cor.'}
+function activateSelection(object,kind,mesh=null){
+ if(!NyraCharacterScene.isEditable(object))return false;
+ selectedObject=object;selectedKind=kind;selectedMesh=mesh||geometryNodeForSelection(object);selected=object.name||kind;
+ hierarchySelection.node=object;
+ setVoxelMode('select',false);transform.attach(object);syncEditor();refreshHierarchy();return true;
+}
+function geometryNodeForSelection(object){
+ const kind=NyraCharacterScene.objectKind(object);
+ if(kind==='pivot')return NyraCharacterScene.geometryNode(object);
+ if(kind==='group')return object;
+ return object?.isMesh?object:null;
+}
+function selectPart(k,mesh=null){
+ const part=groups[k];let node=part,connected=false;
+ while(node){if(node===character){connected=true;break;}node=node.parent;}
+ if(!character.userData.activeModel||!connected){document.querySelector('#status').textContent='Essa parte não existe no projeto atual. Importe um modelo ou adicione objetos.';return;}
+ selected=k;activateSelection(part,'part',mesh&&mesh.isMesh?mesh:null);
+ node=part;while(node&&node!==character){node.visible=true;node=node.parent;}
+}
+function selectCustom(object){
+ const kind=NyraCharacterScene.objectKind(object);
+ if(kind==='root'||!NyraCharacterScene.isEditable(object))return;
+ activateSelection(object,kind==='bbmodel'?'bbmodel':kind==='voxel'?'voxel':kind==='shape'?'shape':kind);
+}
+function selectVoxel(object){
+ selectCustom(object);
+ document.querySelector('#status').textContent='Voxel selecionado. Você pode mover, girar, redimensionar ou alterar a cor.';
+}
 function syncEditor(){if(!selectedObject)return;let color;if(selectedKind==='part')color='#'+material(selected).color.getHexString();else {const mat=Array.isArray(selectedObject.material)?selectedObject.material.find(m=>m?.color):selectedObject.material;color='#'+(mat?.color||new THREE.Color('#d5e2ed')).getHexString();}document.querySelector('#partColor').value=color;document.querySelector('#selectedLabel').textContent=selectedKind==='part'?labelFor(selected):selectedObject.name;const sc=selectedObject.scale,po=selectedObject.position;for(const [id,val] of [['dimX',sc.x],['dimY',sc.y],['dimZ',sc.z],['posX',po.x],['posY',po.y],['posZ',po.z]])document.querySelector('#'+id).value=Number(val.toFixed(3));const c=new THREE.Color(color);const hsl={};c.getHSL(hsl);document.querySelector('#hue').value=Math.round(hsl.h*360);document.querySelector('#sat').value=Math.round(hsl.s*100);document.querySelector('#lum').value=Math.round(hsl.l*100)}
 function forEachEditableMaterial(object,callback){const list=Array.isArray(object?.material)?object.material:(object?.material?[object.material]:[]);list.forEach(callback);}
 function paintMaterials(root,color,deep=true){
