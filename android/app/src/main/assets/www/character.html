@@ -214,7 +214,24 @@ function selectVoxel(object){
  selectCustom(object);
  document.querySelector('#status').textContent='Voxel selecionado. Você pode mover, girar, redimensionar ou alterar a cor.';
 }
-function syncEditor(){if(!selectedObject)return;let color;if(selectedKind==='part')color='#'+material(selected).color.getHexString();else {const mat=Array.isArray(selectedObject.material)?selectedObject.material.find(m=>m?.color):selectedObject.material;color='#'+(mat?.color||new THREE.Color('#d5e2ed')).getHexString();}document.querySelector('#partColor').value=color;document.querySelector('#selectedLabel').textContent=selectedKind==='part'?labelFor(selected):selectedObject.name;const sc=selectedObject.scale,po=selectedObject.position;for(const [id,val] of [['dimX',sc.x],['dimY',sc.y],['dimZ',sc.z],['posX',po.x],['posY',po.y],['posZ',po.z]])document.querySelector('#'+id).value=Number(val.toFixed(3));const c=new THREE.Color(color);const hsl={};c.getHSL(hsl);document.querySelector('#hue').value=Math.round(hsl.h*360);document.querySelector('#sat').value=Math.round(hsl.s*100);document.querySelector('#lum').value=Math.round(hsl.l*100)}
+function syncEditor(){
+ if(!selectedObject)return;
+ const geometry=selectedMesh||NyraCharacterScene.geometryNode(selectedObject);
+ let color;
+ if(selectedKind==='part')color='#'+material(selected).color.getHexString();
+ else{
+  const mat=Array.isArray(geometry?.material)?geometry.material.find(m=>m?.color):geometry?.material;
+  color='#'+(mat?.color||new THREE.Color('#d5e2ed')).getHexString();
+ }
+ document.querySelector('#partColor').value=color;
+ document.querySelector('#selectedLabel').textContent=selectedKind==='part'?labelFor(selected):(selectedObject.name||'Objeto');
+ const sc=selectedObject.scale,po=selectedObject.position;
+ for(const [id,val] of [['dimX',sc.x],['dimY',sc.y],['dimZ',sc.z],['posX',po.x],['posY',po.y],['posZ',po.z]])document.querySelector('#'+id).value=Number(val.toFixed(3));
+ const c=new THREE.Color(color),hsl={};c.getHSL(hsl);
+ document.querySelector('#hue').value=Math.round(hsl.h*360);
+ document.querySelector('#sat').value=Math.round(hsl.s*100);
+ document.querySelector('#lum').value=Math.round(hsl.l*100);
+}
 function forEachEditableMaterial(object,callback){const list=Array.isArray(object?.material)?object.material:(object?.material?[object.material]:[]);list.forEach(callback);}
 function paintMaterials(root,color,deep=true){
  if(!root)return;
@@ -236,39 +253,28 @@ function paintWholeProject(color){
 }
 function setSelectedColor(color){
  const scope=document.querySelector('#paintScope')?.value||'piece';
- if(selectedKind==='part'){
-  const part=groups[selected];if(!part)return;
-  if(scope==='model')paintWholeProject(color);
-  else if(scope==='group')paintMaterials(part,color,true);
-  else {
-   // Built-in body parts are groups containing several independent meshes.
-   // "Piece" means the precise mesh selected by raycast, when available.
-   const target=selectedMesh&&part.getObjectById(selectedMesh.id)===selectedMesh?selectedMesh:part;
-   paintMaterials(target,color,false);
-  }
- }else if((selectedKind==='shape'||selectedKind==='voxel'||selectedKind==='bbmodel')&&selectedObject){
-  let root=selectedObject;
-  if(scope==='model')paintWholeProject(color);
-  else if(scope==='group'){
+ if(scope==='model'){paintWholeProject(color);}
+ else{
+  const target=selectedMesh||NyraCharacterScene.geometryNode(selectedObject);
+  if(!target?.isMesh){document.querySelector('#status').textContent='Selecione uma peça com geometria para pintar.';return;}
+  if(scope==='group'){
+   let root=selectedObject;
    if(selectedKind==='bbmodel'){
-    let parent=selectedObject;
+    let parent=selectedMesh||selectedObject;
     while(parent&&parent!==bbmodelState?.rootGroup&&!parent.userData?.bbGroupUuid)parent=parent.parent;
     root=parent&&parent!==bbmodelState?.rootGroup?parent:selectedObject;
-   }else{
-    // Do not promote a single mesh to its parent blindly: that parent can be
-    // a scene/root container shared by unrelated objects.
-    root=selectedObject.parent&&selectedObject.parent!==voxelGroup?selectedObject.parent:selectedObject;
-   }
-  }
-  if(scope!=='model')paintMaterials(root,color,scope==='group');
-  const rec=customObjects.find(x=>x.mesh===selectedObject);if(rec)rec.color=color;
- }else return;
+   }else if(selectedKind==='part')root=groups[selected]||selectedObject;
+   paintMaterials(root,color,true);
+  }else paintMaterials(target,color,false);
+  const rec=customObjects.find(x=>x.mesh===selectedObject||x.mesh===target);if(rec)rec.color=color;
+ }
  document.querySelector('#partColor').value=color;
  const c=new THREE.Color(color),hsl={};c.getHSL(hsl);
  document.querySelector('#hue').value=Math.round(hsl.h*360);
  document.querySelector('#sat').value=Math.round(hsl.s*100);
  document.querySelector('#lum').value=Math.round(hsl.l*100);
 }
+
 document.querySelector('#partColor').addEventListener('input',e=>setSelectedColor(e.target.value));function hslUpdate(){const c=new THREE.Color().setHSL(+document.querySelector('#hue').value/360,+document.querySelector('#sat').value/100,+document.querySelector('#lum').value/100);setSelectedColor('#'+c.getHexString())}['hue','sat','lum'].forEach(id=>document.querySelector('#'+id).addEventListener('input',hslUpdate));
 document.querySelector('#moveTool').onclick=()=>{transform.setMode('translate');setToolActive('moveTool')};document.querySelector('#rotateTool').onclick=()=>{transform.setMode('rotate');setToolActive('rotateTool')};document.querySelector('#scaleTool').onclick=()=>{transform.setMode('scale');setToolActive('scaleTool')};function setToolActive(id){for(const k of ['moveTool','rotateTool','scaleTool'])document.querySelector('#'+k).classList.toggle('primary',k===id)}
 for(const id of ['dimX','dimY','dimZ','posX','posY','posZ'])document.querySelector('#'+id).addEventListener('change',()=>{if(!selectedObject)return;const o=selectedObject,before={position:o.position.toArray(),rotation:[o.rotation.x,o.rotation.y,o.rotation.z],scale:o.scale.toArray()};const v=Math.max(id.startsWith('dim') ? 0.05 : -100, Math.min(id.startsWith('dim') ? 10 : 100, Number(document.querySelector('#'+id).value)||0));document.querySelector('#'+id).value=v;const axis=id.slice(-1).toLowerCase();if(id.startsWith('dim'))o.scale[axis]=v;else o.position[axis]=v;pushUndo('ajuste de '+id,()=>{o.position.fromArray(before.position);o.rotation.set(...before.rotation);o.scale.fromArray(before.scale);if(selectedObject===o)syncEditor()});});
