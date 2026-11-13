@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Nyra 3D Studio — RoboTV</title>
+<style>
+:root{color-scheme:dark;--bg:#10131b;--panel:#191e2a;--panel2:#222a39;--line:#343e51;--text:#edf2fb;--muted:#aab5c8;--accent:#76e0c1}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,sans-serif}
+header{padding:12px 14px;background:#151a25;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:8px}
+h1{font-size:16px;margin:0}header small{color:var(--muted)}
+main{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,1fr);gap:10px;padding:10px;max-width:1200px;margin:auto}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
+.panel-title{padding:10px 12px;border-bottom:1px solid var(--line);font-weight:700}
+#viewport{height:min(62vh,600px);min-height:320px;position:relative;background:radial-gradient(ellipse at 50% 38%,#27364a,#111722 75%);touch-action:none}
+#viewport canvas{display:block;width:100%;height:100%}
+.hint{position:absolute;left:10px;bottom:8px;color:#c5d0df;background:#111722bb;padding:6px 8px;border-radius:7px;font-size:11px;pointer-events:none}
+.controls{padding:12px;display:grid;gap:12px}
+label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+select,button,input[type=number]{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px;min-height:38px}
+button{cursor:pointer;font-weight:600}button:active{transform:scale(.98)}button.primary{background:#245e57;border-color:#347f73}button.danger{background:#572f3b}
+.row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.row>*{flex:1}
+.equipamentos-container{background:#151922;border:1px solid #242b35;border-radius:8px;padding:12px;display:grid;gap:9px}
+.equipamentos-container button{background:#1e2530;border-color:#3b4656}
+.equipamentos-container button:hover{background:#2c3747}
+.equipamentos-container button.selected{border-color:var(--accent);background:#21423f}
+.equipamentos-container .special{background:#0f684c;border-color:#179c72}
+.slider-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.transform-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.transform-grid input{width:100%;min-width:0}.divider{height:1px;background:var(--line);margin:8px 0}#nyraAssociationStatus{min-height:34px}
+.joint-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.joint-list button{font-size:12px;padding:8px 5px}
+.joint-list button.selected{border-color:var(--accent);background:#21423f}
+.timeline{padding:12px;border-top:1px solid var(--line)}
+#frames{display:flex;gap:7px;overflow-x:auto;padding:8px 0 4px;min-height:54px}
+.frame{min-width:54px;max-width:80px;padding:7px 8px;font-size:12px}
+.frame.active{outline:2px solid var(--accent);background:#21423f}
+.status{font-size:12px;color:var(--muted);min-height:16px}
+footer{color:var(--muted);font-size:11px;padding:0 14px 14px;max-width:1200px;margin:auto}
+@media(max-width:760px){main{grid-template-columns:1fr;padding:8px}#viewport{height:48vh;min-height:290px}.panel-title{padding:9px 11px}.controls{gap:10px}header{padding:10px 12px}}
+</style>
+<script type="importmap">
+{"imports":{"three":"/assets/www/vendor/three/build/three.module.js","three/addons/":"/assets/www/vendor/three/examples/jsm/"}}
+</script>
+</head>
+<body>
+<header><div><h1>Nyra 3D Studio</h1><small>Editor de animação · projeto vazio por padrão</small></div><div class="row"><button id="resetView">Centralizar câmera</button></div></header>
+<main>
+<section class="panel">
+ <div class="panel-title">Visor 3D</div>
+ <div id="viewport"><div class="hint">Arraste para girar · pinça/roda para zoom</div></div>
+ <div class="timeline">
+  <label>Timeline — quadros-chave</label>
+  <div class="row">
+   <button class="primary" id="addFrame">＋ Guardar pose</button>
+   <button id="duplicateFrame">Duplicar</button>
+   <button class="danger" id="deleteFrame">Excluir pose</button>
+  </div>
+  <div id="frames"></div>
+  <div class="row">
+   <button class="primary" id="play">▶ Reproduzir</button>
+   <button id="stop">■ Parar</button>
+   <label style="flex:1;min-width:110px">Velocidade
+    <select id="speed"><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="1.5">1,5×</option><option value="2">2×</option></select>
+   </label>
+  </div>
+ </div>
+</section>
+<section class="panel">
+ <div class="panel-title">Modelo, peças e hierarquia</div>
+ <div class="controls">
+  <label>Importar e exportar modelo</label>
+  <div class="row">
+   <button class="primary" id="nyraImportBBModel">Importar modelo (.bbmodel / JSON do Criador)</button>
+   <button id="nyraExportGLB" disabled>Exportar modelo GLB</button>
+   <button id="nyraExportBBModel" disabled>Exportar .bbmodel editado</button>
+   <button id="nyraExportCharacterJSON" disabled>Exportar personagem JSON</button>
+   <button id="nyraExportTransfer" disabled>Exportar projeto Nyra JSON</button>
+  </div>
+  <input type="file" id="nyraTransferFile" accept=".bbmodel,.json,application/json" hidden>
+  <div id="nyraTransferStatus" class="status">Importe um modelo Blockbench ou envie uma cena pelo Criador de Personagens. Selecione uma peça na árvore ou diretamente no viewport.</div>
+  <label>Hierarquia de peças</label>
+  <div id="nyraTransferTree" role="tree" style="max-height:220px;overflow:auto;margin-top:4px;font-size:12px;color:var(--muted)"></div>
+  <div class="divider"></div>
+  <label>Manipulação no viewport</label>
+  <div class="row"><button id="nyraMoveTool" disabled>Mover</button><button id="nyraRotateTool" disabled>Rotacionar</button><button id="nyraScaleTool" disabled>Escalar</button></div>
+  <label>Transformação numérica</label>
+  <div class="transform-grid">
+   <div><label for="px">Posição X: <span id="pxVal">0.00</span></label><input id="px" type="range" min="-8" max="8" step="0.01" value="0"></div>
+   <div><label for="py">Posição Y: <span id="pyVal">0.00</span></label><input id="py" type="range" min="-8" max="8" step="0.01" value="0"></div>
+   <div><label for="pz">Posição Z: <span id="pzVal">0.00</span></label><input id="pz" type="range" min="-8" max="8" step="0.01" value="0"></div>
+   <div><label for="rx">Rotação X: <span id="rxVal">0°</span></label><input id="rx" type="range" min="-180" max="180" value="0"></div>
+   <div><label for="ry">Rotação Y: <span id="ryVal">0°</span></label><input id="ry" type="range" min="-180" max="180" value="0"></div>
+   <div><label for="rz">Rotação Z: <span id="rzVal">0°</span></label><input id="rz" type="range" min="-180" max="180" value="0"></div>
+   <div><label for="sx">Escala X: <span id="sxVal">1.00</span></label><input id="sx" type="range" min="0.05" max="4" step="0.01" value="1"></div>
+   <div><label for="sy">Escala Y: <span id="syVal">1.00</span></label><input id="sy" type="range" min="0.05" max="4" step="0.01" value="1"></div>
+   <div><label for="sz">Escala Z: <span id="szVal">1.00</span></label><input id="sz" type="range" min="0.05" max="4" step="0.01" value="1"></div>
+  </div>
+  <div class="row"><button id="zeroJoint" disabled>Resetar rotação</button></div>
+  <div class="divider"></div>
+  <label>Associação entre peças</label>
+  <div class="row"><button id="nyraAssociateMode" disabled>Associar peça selecionada…</button><button id="nyraCancelAssociation" disabled>Cancelar</button><button id="nyraDetachNode" disabled>Remover associação</button><button id="nyraUndoAssociation" disabled>Desfazer</button></div>
+  <div id="nyraAssociationStatus" class="status">Selecione uma peça, inicie a associação e escolha a peça que será seu novo objeto pai.</div>
+  <div class="divider"></div>
+  <label>Projeto e animação</label>
+  <div class="row"><button class="primary" id="saveProject">Salvar no celular</button><button id="exportProject">Exportar JSON</button></div>
+  <div class="row"><button id="loadProject">Abrir projeto JSON</button><button id="exportAnim">Exportar animação</button></div>
+  <input type="file" id="fileInput" accept=".json,application/json" hidden>
+  <div id="nyraClipControls" style="display:none;margin-top:8px">
+   <label for="nyraClipSelect">Animação do modelo importado</label>
+   <div class="row"><select id="nyraClipSelect" style="flex:1"></select><button id="nyraClipPlay">Reproduzir</button><button id="nyraClipStop">Parar</button></div>
+  </div>
+  <div class="status" id="status">Pronto. Importe um modelo e selecione uma peça para editar.</div>
+ </div>
+</section>
+</main>
+<footer>Esta versão preserva as animações e quadros-chave do RoboTV. Espada, picareta e machado são itens 3D blocados presos ao braço direito; a mochila de fios com antena é um acessório visual preso ao tronco. Equipamentos não alteram os quadros-chave. É necessário internet para carregar o Three.js.</footer>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const $ = id => document.getElementById(id);
+const viewport = $('viewport');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x151d2a);
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+camera.position.set(5.4, 4.4, 8.2);
+const renderer = new THREE.WebGLRenderer({antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+viewport.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.target.set(0,1.8,0); controls.minDistance=3; controls.maxDistance=16;
+const transformControls = new TransformControls(camera,renderer.domElement);
+scene.add(typeof transformControls.getHelper==='function'?transformControls.getHelper():transformControls);
+transformControls.addEventListener('dragging-changed',event=>{controls.enabled=!event.value;});
+transformControls.addEventListener('objectChange',()=>{
+ const object=transformControls.object;
+ const node=nyraSelectedNodeId?nyraTransferData?.scene?.nodes?.find(item=>item.id===nyraSelectedNodeId):null;
+ if(object&&node)nyraStoreObjectTransform(node,object);
+ if(object)nyraSyncTransformControls();
+});
+scene.add(new THREE.HemisphereLight(0xc9e4ff,0x3a3444,2.1));
+const keyLight = new THREE.DirectionalLight(0xffffff,2.5); keyLight.position.set(4,8,5); keyLight.castShadow=true; scene.add(keyLight);
+const fillLight = new THREE.DirectionalLight(0x72e6d0,1.0); fillLight.position.set(-5,3,-4); scene.add(fillLight);
+const grid = new THREE.GridHelper(12,12,0x52647a,0x2d394b); grid.position.y=-0.02; scene.add(grid);
+const mat = (color, roughness=.7, metalness=.1) => new THREE.MeshStandardMaterial({color,roughness,metalness});
+const materials = {dark:mat(0x252c3c),white:mat(0xcbd5e1),black:mat(0x11151e),teal:mat(0x64e3ce,.35,.25),screen:mat(0x173849,.22,.25),glow: new THREE.MeshStandardMaterial({color:0x6fffe0,emissive:0x1b9985,emissiveIntensity:1.8})};
+const boxGeo = new THREE.BoxGeometry(1,1,1);
+function cube(parent, name, pos, size, material){
+ const mesh = new THREE.Mesh(boxGeo,material); mesh.name=name; mesh.position.set(...pos); mesh.scale.set(...size); mesh.castShadow=true; mesh.receiveShadow=true; parent.add(mesh); return mesh;
+}
+function pivot(parent,name,pos){const g=new THREE.Group();g.name=name;g.position.set(...pos);parent.add(g);return g;}
+const robot = new THREE.Group(); robot.name='RoboTV'; scene.add(robot); robot.visible=false;
+const parts={};
+parts.torso=pivot(robot,'torso',[0,2.25,0]);
+cube(parts.torso,'Torso_Block',[0,0,0],[1.15,1.25,.62],materials.dark);
+cube(parts.torso,'Chest_Panel',[0,.12,.325],[.65,.43,.05],materials.teal);
+cube(parts.torso,'Chest_Light',[-.22,.12,.36],[.07,.07,.025],materials.glow);
+parts.head=pivot(parts.torso,'head',[0,.88,0]);
+cube(parts.head,'TV_Head',[0,.28,0],[1.12,.78,.72],materials.black);
+cube(parts.head,'TV_Bezel',[0,.29,.371],[.92,.57,.035],materials.dark);
+cube(parts.head,'TV_Screen',[0,.3,.395],[.78,.43,.025],materials.screen);
+cube(parts.head,'Screen_Eye_L',[-.19,.34,.416],[.09,.1,.025],materials.glow);
+cube(parts.head,'Screen_Eye_R',[.19,.34,.416],[.09,.1,.025],materials.glow);
+cube(parts.head,'TV_Antenna_L',[-.28,.72,0],[.07,.25,.07],materials.white).rotation.z=-.3;
+cube(parts.head,'TV_Antenna_R',[.28,.72,0],[.07,.25,.07],materials.white).rotation.z=.3;
+parts.armL=pivot(parts.torso,'armL',[-.76,.43,0]);
+cube(parts.armL,'UpperArm_L',[0,-.32,0],[.32,.72,.34],materials.white);
+cube(parts.armL,'Hand_L',[0,-.78,.02],[.38,.25,.38],materials.teal);
+parts.armR=pivot(parts.torso,'armR',[.76,.43,0]);
+cube(parts.armR,'UpperArm_R',[0,-.32,0],[.32,.72,.34],materials.white);
+cube(parts.armR,'Hand_R',[0,-.78,.02],[.38,.25,.38],materials.teal);
+
+// Equipamentos voxel-style presos ao braço direito: seguem a animação do braço.
+const equipment = new THREE.Group();
+equipment.name='Equipment_Attachment';
+equipment.position.set(0,-.91,.20);
+parts.armR.add(equipment);
+function makeToolHandle(parent,name){
+ const g=new THREE.Group(); g.name=name; parent.add(g);
+ cube(g,name+'_Handle',[0,-.18,0],[.12,.66,.12],mat(0x8b5a35,.85,.05));
+ cube(g,name+'_Grip',[0,-.32,.005],[.15,.22,.15],mat(0x5d3926,.9,.02));
+ return g;
+}
+const sword = new THREE.Group(); sword.name='DiamondSword'; equipment.add(sword);
+cube(sword,'Sword_Blade',[0,.31,.015],[.16,.66,.09],mat(0x54e4e8,.3,.5));
+cube(sword,'Sword_Tip',[0,.68,.015],[.11,.12,.08],mat(0x8afaff,.25,.45));
+cube(sword,'Sword_Guard',[0,-.03,.015],[.40,.10,.13],mat(0x9b7446,.65,.2));
+cube(sword,'Sword_Handle',[0,-.20,.015],[.12,.28,.12],mat(0x71452b,.8,.05));
+cube(sword,'Sword_Pommel',[0,-.36,.015],[.17,.11,.14],mat(0xd2aa59,.45,.4));
+const pickaxe = new THREE.Group(); pickaxe.name='DiamondPickaxe'; equipment.add(pickaxe);
+cube(pickaxe,'Pickaxe_Handle',[0,-.12,0],[.12,.72,.12],mat(0x8b5a35,.85,.05));
+cube(pickaxe,'Pickaxe_Head_Center',[0,.30,0],[.20,.14,.15],mat(0x4bdce6,.3,.45));
+cube(pickaxe,'Pickaxe_Head_Left',[-.20,.24,0],[.30,.12,.15],mat(0x4bdce6,.3,.45));
+cube(pickaxe,'Pickaxe_Head_Right',[.20,.24,0],[.30,.12,.15],mat(0x4bdce6,.3,.45));
+cube(pickaxe,'Pickaxe_Tip_Left',[-.34,.16,0],[.12,.12,.15],mat(0x9bffff,.25,.4));
+cube(pickaxe,'Pickaxe_Tip_Right',[.34,.16,0],[.12,.12,.15],mat(0x9bffff,.25,.4));
+const axe = new THREE.Group(); axe.name='BlockAxe'; equipment.add(axe);
+cube(axe,'Axe_Handle',[0,-.13,0],[.12,.72,.12],mat(0x8b5a35,.85,.05));
+cube(axe,'Axe_Blade',[.15,.25,0],[.30,.38,.15],mat(0x50dce6,.3,.45));
+cube(axe,'Axe_Edge',[.28,.25,0],[.10,.28,.16],mat(0xa0ffff,.25,.4));
+let equippedItem='none';
+function setEquipment(type){
+ equippedItem=type;
+ sword.visible=type==='sword'; pickaxe.visible=type==='pickaxe'; axe.visible=type==='axe';
+ document.querySelectorAll('[data-item]').forEach(b=>b.classList.toggle('selected',b.dataset.item===type));
+ status(type==='none'?'Equipamento removido.':'Equipamento equipado: '+({sword:'espada',pickaxe:'picareta',axe:'machado'}[type])+'.');
+}
+function equiparItem(tipoItem){setEquipment(tipoItem)}
+function desequiparItem(tipoItem){if(tipoItem===equippedItem)setEquipment('none');else status('Essa ferramenta não está equipada.')}
+// A inicialização visual é feita depois da declaração de status, para evitar erro de ordem.
+
+// Mochila em blocos presa atrás do tronco; não participa nem altera os keyframes.
+const backpack = new THREE.Group(); backpack.name='Backpack_Attachment';
+backpack.position.set(0,.02,-.39); parts.torso.add(backpack);
+cube(backpack,'Backpack_Main',[0,-.02,-.06],[.66,.72,.30],mat(0x315c50,.85,.05));
+cube(backpack,'Backpack_Flap',[0,.30,.105],[.54,.18,.06],mat(0x477b68,.8,.05));
+cube(backpack,'Backpack_Pocket',[0,-.20,.115],[.42,.25,.06],mat(0x24483f,.9,.02));
+cube(backpack,'Backpack_Buckle',[0,-.18,.15],[.12,.10,.04],mat(0xd2aa59,.5,.35));
+// Antena e fios em cubos, como acessório voxel personalizável.
+cube(backpack,'Backpack_Antenna_Base',[.18,.43,-.01],[.12,.10,.12],mat(0x68788a,.7,.2));
+cube(backpack,'Backpack_Antenna_Stem',[.18,.59,-.01],[.045,.25,.045],mat(0x9aa6b7,.45,.35));
+cube(backpack,'Backpack_Antenna_Tip',[.18,.74,-.01],[.10,.10,.10],mat(0xff5b75,.35,.2));
+cube(backpack,'Backpack_Wire_L',[-.18,-.48,.01],[.055,.28,.055],mat(0x00e6bd,.35,.25)).rotation.z=-.22;
+cube(backpack,'Backpack_Wire_R',[.18,-.48,.01],[.055,.28,.055],mat(0x00bde8,.35,.25)).rotation.z=.22;
+backpack.visible=false;
+parts.legL=pivot(robot,'legL',[-.31,1.62,0]);
+cube(parts.legL,'Leg_L',[0,-.38,0],[.4,.82,.43],materials.white);
+cube(parts.legL,'Foot_L',[0,-.83,.12],[.48,.22,.65],materials.dark);
+parts.legR=pivot(robot,'legR',[.31,1.62,0]);
+cube(parts.legR,'Leg_R',[0,-.38,0],[.4,.82,.43],materials.white);
+cube(parts.legR,'Foot_R',[0,-.83,.12],[.48,.22,.65],materials.dark);
+
+const partNames={head:'Cabeça / TV',torso:'Tronco',armL:'Braço esquerdo',armR:'Braço direito',legL:'Perna esquerda',legR:'Perna direita'};
+let selected='head', frames=[], selectedFrame=-1, playing=false, playStart=0, playDuration=0, playSpeed=1, animationId=null;
+const radians=d=>d*Math.PI/180, degrees=r=>Math.round(r*180/Math.PI);
+const status = msg => {$('status').textContent=msg};
+setEquipment('none');
+function getPose(){const pose={}; for(const [k,p] of Object.entries(parts))pose[k]=[p.rotation.x,p.rotation.y,p.rotation.z];return pose}
+function setPose(pose){for(const [k,rot] of Object.entries(pose||{})){if(parts[k]&&Array.isArray(rot)){parts[k].rotation.set(+rot[0]||0,+rot[1]||0,+rot[2]||0)}};syncSliders()}
+function syncSliders(){const imported=typeof nyraGetSelectedTransferObject==='function'?nyraGetSelectedTransferObject():null;if(imported){nyraSyncTransformControls();return;}const p=parts[selected];[['rx','x'],['ry','y'],['rz','z']].forEach(([id,axis])=>{$(id).value=degrees(p.rotation[axis]);$(id+'Val').textContent=degrees(p.rotation[axis])+'°'})}
+function selectPart(name){selected=name;$('joint').value=name;renderJointButtons();syncSliders()}
+function renderJointButtons(){const root=$('jointButtons');root.innerHTML='';for(const [k,n] of Object.entries(partNames)){const b=document.createElement('button');b.textContent=n;b.className=k===selected?'selected':'';b.onclick=()=>selectPart(k);root.appendChild(b)}}
+
+
+$('zeroJoint').onclick=()=>{const object=nyraGetSelectedTransferObject();if(object){object.rotation.set(0,0,0);nyraSyncTransformControls();nyraSetTransferStatus('Rotação da peça zerada.');return;}parts[selected].rotation.set(0,0,0);syncSliders();if(selectedFrame>=0&&frames[selectedFrame]){frames[selectedFrame].pose=getPose();renderFrames()}status('Articulação zerada.')};
+function renderFrames(){const root=$('frames');root.innerHTML='';frames.forEach((f,i)=>{const b=document.createElement('button');b.className='frame'+(i===selectedFrame?' active':'');b.textContent='Quadro '+(i+1);b.title='Tempo: '+f.time+' s';b.onclick=()=>{stopPlayback();selectedFrame=i;setPose(f.pose);renderFrames();status('Quadro '+(i+1)+' selecionado.')};root.appendChild(b)})}
+function addFrame(pose=getPose(),time=null){const last=frames[frames.length-1];frames.push({time:time===null?(last?last.time+0.5:0):time,pose:structuredClone(pose)});selectedFrame=frames.length-1;renderFrames();status('Pose guardada no quadro '+(selectedFrame+1)+'.')}
+$('addFrame').onclick=()=>addFrame();
+$('duplicateFrame').onclick=()=>{if(selectedFrame<0){addFrame();return}const f=frames[selectedFrame];addFrame(f.pose,f.time+0.5)};
+$('deleteFrame').onclick=()=>{if(selectedFrame<0)return status('Selecione um quadro para excluir.');frames.splice(selectedFrame,1);selectedFrame=frames.length?Math.min(selectedFrame,frames.length-1):-1;if(selectedFrame>=0)setPose(frames[selectedFrame].pose);renderFrames();status('Quadro excluído.')};
+function makePreset(name){
+ const p={head:[0,0,0],torso:[0,0,0],armL:[0,0,0],armR:[0,0,0],legL:[0,0,0],legR:[0,0,0]};
+ if(name==='walk'){p.armL=[-.55,0,0];p.armR=[.55,0,0];p.legL=[.55,0,0];p.legR=[-.55,0,0];p.head=[.03,0,0]}
+ if(name==='attack'){p.torso=[-.08,0,0];p.armR=[-1.65,0,-.12];p.armL=[.35,0,.3];p.head=[-.12,0,0];p.legL=[-.1,0,0];p.legR=[.15,0,0]}
+ return Object.fromEntries(Object.entries(p).map(([k,v])=>[k,v.map(r=>radians(r* (name==='idle'?0:1)))]));
+}
+document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{stopPlayback();setPose(makePreset(b.dataset.preset));selectedFrame=-1;renderFrames();status('Pose '+b.textContent+' aplicada. Ajuste e guarde como quadro.')});
+function stopPlayback(){playing=false;if(animationId!==null){cancelAnimationFrame(animationId);animationId=null}$('play').textContent='▶ Reproduzir'}
+function interpolate(a,b,t){const out={};for(const k of Object.keys(parts)){out[k]=[0,1,2].map(i=>a[k][i]+(b[k][i]-a[k][i])*t)}return out}
+function playLoop(now){if(!playing)return;if(!playStart)playStart=now;const elapsed=(now-playStart)/1000*playSpeed;const duration=frames[frames.length-1].time-frames[0].time;
+ if(frames.length===1||duration<=0){setPose(frames[0].pose);animationId=requestAnimationFrame(playLoop);return}
+ let t=(elapsed%duration)+frames[0].time;let idx=0;while(idx<frames.length-2&&frames[idx+1].time<t)idx++;
+ const a=frames[idx],b=frames[idx+1],mix=b.time===a.time?0:Math.max(0,Math.min(1,(t-a.time)/(b.time-a.time)));
+ setPose(interpolate(a.pose,b.pose,mix));animationId=requestAnimationFrame(playLoop)}
+$('play').onclick=()=>{if(frames.length<2){status('Guarde pelo menos duas poses para reproduzir.');return}stopPlayback();playing=true;playStart=0;playSpeed=+$('speed').value;$('play').textContent='⏸ Reproduzindo';animationId=requestAnimationFrame(playLoop)};
+$('stop').onclick=()=>{stopPlayback();if(selectedFrame>=0)setPose(frames[selectedFrame].pose);status('Reprodução parada.')};
+function projectData(){return {format:'Nyra3DStudio',version:1,model:'RoboTV-blocky',savedAt:new Date().toISOString(),pose:getPose(),frames:frames}}
+function download(name,data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('exportProject').onclick=()=>download('RoboTV_Nyra3DStudio.json',projectData());
+$('exportAnim').onclick=()=>download('RoboTV_Animacao.json',{format:'Nyra3DAnimation',version:1,model:'RoboTV-blocky',frames});
+$('saveProject').onclick=()=>{try{localStorage.setItem('nyra3d-robotv-project',JSON.stringify(projectData()));status('Projeto salvo neste navegador. Use Exportar JSON para ter uma cópia.')}catch(e){status('O navegador bloqueou o salvamento local. Use Exportar JSON.')}};
+$('loadProject').onclick=()=>$('fileInput').click();
+$('fileInput').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{const d=JSON.parse(await file.text());if(!d||!Array.isArray(d.frames))throw new Error('Arquivo não contém quadros válidos');frames=d.frames.filter(f=>f&&f.pose&&typeof f.time==='number');selectedFrame=frames.length?0:-1;if(selectedFrame>=0)setPose(frames[0].pose);else if(d.pose)setPose(d.pose);renderFrames();status('Projeto carregado: '+frames.length+' quadro(s).')}catch(err){status('Não foi possível abrir esse JSON: '+err.message)}e.target.value=''};
+document.querySelectorAll('[data-item]').forEach(b=>b.addEventListener('click',()=>equiparItem(b.dataset.item)));
+document.querySelectorAll('[data-unequip]').forEach(b=>b.addEventListener('click',()=>desequiparItem(b.dataset.unequip)));
+
+$('resetView').onclick=()=>{camera.position.set(5.4,4.4,8.2);controls.target.set(0,1.8,0);controls.update()};
+// O RoboTV de demonstração fica guardado internamente e não pode ser carregado pela interface de trabalho nesta etapa. robot.visible=false;
+let nyraTransferData=null,nyraTransferRoot=null,nyraNodeObjects=new Map(),nyraClipFrame=0,nyraClipState=null,nyraBaseRotations=new Map(),nyraBaseTransforms=new Map(),nyraSelectedNodeId=null,nyraViewportSelectionBound=false;
+let nyraGltfAnimations=[],nyraGltfMixer=null,nyraGltfAction=null,nyraGltfFrame=0,nyraGltfLastTime=0;
+const nyraTransferStatus=$('nyraTransferStatus'),nyraTransferTree=$('nyraTransferTree'),nyraClipSelect=$('nyraClipSelect'),nyraClipControls=$('nyraClipControls'),nyraExportTransfer=$('nyraExportTransfer'),nyraExportGLB=$('nyraExportGLB'),nyraExportBBModel=$('nyraExportBBModel');
+const nyraExportCharacterJSON=$('nyraExportCharacterJSON');
+function nyraSetTransferStatus(text){if(nyraTransferStatus)nyraTransferStatus.textContent=text;status(text);}
+function nyraValidateTransfer(doc){
+ if(!doc||doc.schema!=='nyra.scene-transfer'||doc.schemaVersion!==1||!doc.scene||!Array.isArray(doc.scene.nodes)||!doc.animations||!Array.isArray(doc.animations.clips))throw new Error('Documento de transferência Nyra v1 inválido.');
+ const ids=new Set(),map=new Map();
+ for(const node of doc.scene.nodes){
+  if(!node||typeof node.id!=='string'||!node.id||ids.has(node.id))throw new Error('ID de nó ausente ou duplicado.');
+  ids.add(node.id);map.set(node.id,node);
+ }
+ for(const node of doc.scene.nodes)if(node.parentId&&!map.has(node.parentId))throw new Error('Pai inexistente para '+(node.name||node.id)+'.');
+ const visit=new Set(),visited=new Set();
+ const walk=id=>{if(visit.has(id))throw new Error('Ciclo detectado na hierarquia.');if(visited.has(id))return;visit.add(id);const node=map.get(id);if(node?.parentId)walk(node.parentId);visit.delete(id);visited.add(id);};
+ for(const id of ids)walk(id);
+ for(const clip of doc.animations.clips)for(const channel of clip.channels||[])if(!map.has(channel.targetNodeId))throw new Error('Canal aponta para nó inexistente.');
+ return doc;
+}
+function nyraRemovePreviousTransfer(){
+ nyraStopClip(true);
+ if(nyraTransferRoot){scene.remove(nyraTransferRoot);nyraTransferRoot.traverse(object=>{
+  if(object.geometry)object.geometry.dispose();
+  if(object.material){const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>{
+   if(material?.map)material.map.dispose();material?.dispose();
+  });}
+ });}
+ transformControls.detach();transformControls.enabled=false;nyraHierarchyHistory=[];nyraTransferRoot=null;nyraTransferData=null;nyraSelectedNodeId=null;
+ nyraNodeObjects.clear();nyraBaseRotations.clear();nyraBaseTransforms.clear();
+ if(nyraTransferTree)nyraTransferTree.replaceChildren();
+ if(nyraClipControls)nyraClipControls.style.display='none';
+ if(nyraClipSelect){nyraClipSelect.replaceChildren();nyraClipSelect.disabled=true;}
+ if($('nyraClipPlay'))$('nyraClipPlay').disabled=true;
+ if($('nyraClipStop'))$('nyraClipStop').disabled=true;
+ if(nyraExportTransfer)nyraExportTransfer.disabled=true;
+ if(nyraExportGLB)nyraExportGLB.disabled=true;if(nyraExportBBModel)nyraExportBBModel.disabled=true;if(nyraExportCharacterJSON)nyraExportCharacterJSON.disabled=true;
+ if($('zeroJoint'))$('zeroJoint').disabled=true;
+ if($('nyraAssociateMode'))$('nyraAssociateMode').disabled=true;
+ if($('nyraDetachNode'))$('nyraDetachNode').disabled=true;
+ if($('nyraCancelAssociation'))$('nyraCancelAssociation').disabled=true;if($('nyraUndoAssociation'))$('nyraUndoAssociation').disabled=true;
+ for(const id of ['nyraMoveTool','nyraRotateTool','nyraScaleTool'])if($(id))$(id).disabled=true;
+}
+function nyraBuildTransferScene(doc,nodeMap=new Map(),baseMap=new Map()){
+ const root=new THREE.Group();root.name=doc.project?.name||'Projeto Nyra';
+ const children=new Map();for(const n of doc.scene.nodes){if(n.parentId){if(!children.has(n.parentId))children.set(n.parentId,[]);children.get(n.parentId).push(n);}}
+ const textureById=new Map((doc.scene.textures||[]).map(t=>[String(t.id),t]));
+ const textureMaterials=new Map();
+ function materialFor(textureId){
+  const key=String(textureId??'none');if(textureMaterials.has(key))return textureMaterials.get(key);
+  const asset=textureById.get(key),source=asset?.source||asset?.data||null;
+  const material=new THREE.MeshStandardMaterial({color:source?0xffffff:0xcbd5e1,roughness:.8,side:THREE.DoubleSide});
+  if(source&&/^data:image\//i.test(source)){const loader=new THREE.TextureLoader();const texture=loader.load(source);texture.colorSpace=THREE.SRGBColorSpace;texture.magFilter=THREE.NearestFilter;material.map=texture;material.needsUpdate=true;}
+  textureMaterials.set(key,material);return material;
+ }
+ function attach(n,parent){
+  let object;
+  if(n.type==='cube'&&n.geometry?.kind==='blockbench_cube'){
+   const from=(n.geometry.from||[0,0,0]).map(v=>Number(v||0)/16),to=(n.geometry.to||[0,0,0]).map(v=>Number(v||0)/16),size=from.map((v,i)=>Math.abs(to[i]-v));
+   if(size.some(v=>!Number.isFinite(v)||v<=0))throw new Error('Dimensão inválida no cubo '+n.name+'.');
+   const holder=new THREE.Group();holder.name=n.name;
+   const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),materialFor(Object.values(n.geometry.faces||{})[0]?.texture));
+   mesh.name=n.name+' · geometria';mesh.position.set(...from.map((v,i)=>(v+to[i])/2-Number(n.pivot?.[i]||0)));holder.add(mesh);object=holder;
+  }else if(n.type==='mesh'&&n.geometry?.kind==='blockbench_mesh'){
+   const geo=new THREE.BufferGeometry(),positions=[],uvs=[];
+   for(const face of Object.values(n.geometry.faces||{})){const ids=face.vertices||[],uv=face.uv||{};for(let i=1;i<ids.length-1;i++)for(const index of [0,i,i+1]){const key=ids[index],vertex=n.geometry.vertices?.[key];if(Array.isArray(vertex)){positions.push(...vertex.map((v,i)=>Number(v||0)/16-Number(n.pivot?.[i]||0)));const pair=uv[key]||[0,0];uvs.push(Number(pair[0]||0),Number(pair[1]||0));}}}
+   if(!positions.length)throw new Error('Malha sem faces válidas: '+n.name+'.');
+   geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));if(uvs.length===positions.length/3*2)geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geo.computeVertexNormals();
+   object=new THREE.Mesh(geo,materialFor(Object.values(n.geometry.faces||{})[0]?.texture));object.name=n.name;
+  }else{object=new THREE.Group();object.name=n.name||n.id;}
+  const t=n.transform||{},p=t.position||[0,0,0],r=t.rotation||[0,0,0],s=t.scale||[1,1,1];
+  object.position.set(...p);object.rotation.order=t.rotationOrder||'XYZ';object.rotation.set(...r.map(v=>t.rotationUnit==='degrees'?THREE.MathUtils.degToRad(v):v));object.scale.set(...s);object.visible=n.visibility!==false;
+  object.userData.nyraTransferNodeId=n.id;parent.add(object);nodeMap.set(n.id,object);
+  baseMap.set(n.id,{position:object.position.clone(),rotation:object.rotation.clone(),scale:object.scale.clone()});
+  for(const child of children.get(n.id)||[])attach(child,object);
+ }
+ for(const n of doc.scene.nodes)if(!n.parentId)attach(n,root);
+ root.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(root);
+ if(!bounds.isEmpty()){const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3()),scale=4.8/Math.max(size.x,size.y,size.z,1);root.position.sub(center);root.scale.setScalar(scale);controls.target.set(0,0,0);camera.position.set(8,5,8);controls.update();}
+ return root;
+}
+const nyraTreeStyle=document.createElement('style');
+nyraTreeStyle.textContent='.nyra-tree-row{display:block;width:100%;text-align:left;border:0;border-radius:5px;background:transparent;color:var(--muted);padding-top:5px;padding-bottom:5px;cursor:pointer;font:inherit}.nyra-tree-row:hover,.nyra-tree-row.selected{background:rgba(100,227,206,.14);color:var(--text)}';
+document.head.appendChild(nyraTreeStyle);
+function nyraBindViewportSelection(){
+ if(nyraViewportSelectionBound)return;
+ nyraViewportSelectionBound=true;
+ const raycaster=new THREE.Raycaster();
+ const pointer=new THREE.Vector2();
+ let downX=0,downY=0;
+ renderer.domElement.addEventListener('pointerdown',event=>{downX=event.clientX;downY=event.clientY;});
+ renderer.domElement.addEventListener('pointerup',event=>{
+  if(!nyraTransferRoot||Math.hypot(event.clientX-downX,event.clientY-downY)>5)return;
+  const rect=renderer.domElement.getBoundingClientRect();
+  if(!rect.width||!rect.height)return;
+  pointer.x=((event.clientX-rect.left)/rect.width)*2-1;
+  pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(pointer,camera);
+  const candidates=[];
+  nyraTransferRoot.traverse(object=>{if(object.isMesh)candidates.push(object);});
+  const hit=raycaster.intersectObjects(candidates,false)[0];
+  if(!hit)return;
+  let node=hit.object;
+  while(node&&!node.userData?.nyraTransferNodeId)node=node.parent;
+  if(node?.userData?.nyraTransferNodeId)nyraSelectTransferNode(node.userData.nyraTransferNodeId);
+ });
+}
+function nyraGetSelectedTransferObject(){
+ return nyraSelectedNodeId?nyraNodeObjects.get(nyraSelectedNodeId)||null:null;
+}
+let nyraCurrentTransformMode='translate';
+let nyraHierarchyHistory=[];
+function nyraSetTransformMode(mode){
+ if(!['translate','rotate','scale'].includes(mode))return;
+ nyraCurrentTransformMode=mode;transformControls.setMode(mode);
+ for(const [id,value] of [['nyraMoveTool','translate'],['nyraRotateTool','rotate'],['nyraScaleTool','scale']]){$(id).classList.toggle('selected',value===mode);}
+ nyraSyncTransformControls();
+}
+function nyraPushHierarchyHistory(node,object){
+ nyraStoreObjectTransform(node,object);
+ nyraHierarchyHistory.push({id:node.id,parentId:node.parentId||null,transform:JSON.parse(JSON.stringify(node.transform))});
+ if(nyraHierarchyHistory.length>50)nyraHierarchyHistory.shift();
+ if($('nyraUndoAssociation'))$('nyraUndoAssociation').disabled=false;
+}
+function nyraUndoHierarchyChange(){
+ const previous=nyraHierarchyHistory.pop();if(!previous)return;
+ const node=nyraTransferData?.scene?.nodes?.find(item=>item.id===previous.id),object=nyraNodeObjects.get(previous.id);
+ if(!node||!object)throw new Error('A peça da ação anterior não está disponível.');
+ const parent=previous.parentId?nyraNodeObjects.get(previous.parentId):nyraTransferRoot;
+ if(!parent)throw new Error('O grupo pai anterior não está disponível.');
+ parent.add(object);const t=previous.transform||{};
+ object.position.fromArray(t.position||[0,0,0]);object.rotation.order=t.rotationOrder||'XYZ';object.rotation.set(...(t.rotation||[0,0,0]));object.scale.fromArray(t.scale||[1,1,1]);
+ node.parentId=previous.parentId;node.transform=JSON.parse(JSON.stringify(t));object.updateMatrix();object.updateMatrixWorld(true);
+ nyraRebuildTransferChildren();nyraValidateTransfer(nyraTransferData);nyraRenderTransferTree(nyraTransferData);nyraSelectTransferNode(previous.id);
+ if($('nyraUndoAssociation'))$('nyraUndoAssociation').disabled=nyraHierarchyHistory.length===0;
+ nyraSetTransferStatus('Última alteração de hierarquia desfeita.');
+}
+function nyraSyncTransformControls(){
+ const object=nyraGetSelectedTransferObject();
+ transformControls.enabled=!!object&&!nyraAssociationMode;
+ if(object){if(transformControls.object!==object)transformControls.attach(object);transformControls.setMode(nyraCurrentTransformMode);}
+ else transformControls.detach();
+ const fields=[['px','x',object?.position],['py','y',object?.position],['pz','z',object?.position],
+ ['rx','x',object?.rotation],['ry','y',object?.rotation],['rz','z',object?.rotation],
+ ['sx','x',object?.scale],['sy','y',object?.scale],['sz','z',object?.scale]];
+ for(const [id,axis,vector] of fields){
+  const input=$(id),label=$(id+'Val');if(!input||!vector)continue;
+  const isRotation=id[0]==='r',value=vector[axis]*(isRotation?180/Math.PI:1);
+  input.value=String(value);if(label)label.textContent=isRotation?Math.round(value)+'°':value.toFixed(2);
+ }
+ const currentNode=nyraTransferData?.scene?.nodes?.find(node=>node.id===nyraSelectedNodeId);
+ if($('zeroJoint'))$('zeroJoint').disabled=!object;
+ if($('nyraAssociateMode'))$('nyraAssociateMode').disabled=!object||nyraAssociationMode;
+ if($('nyraDetachNode'))$('nyraDetachNode').disabled=!object||!currentNode?.parentId;
+ if($('nyraCancelAssociation'))$('nyraCancelAssociation').disabled=!nyraAssociationMode;
+ for(const id of ['nyraMoveTool','nyraRotateTool','nyraScaleTool'])if($(id))$(id).disabled=!object||nyraAssociationMode;
+ if($('nyraUndoAssociation'))$('nyraUndoAssociation').disabled=nyraHierarchyHistory.length===0;
+}
+function nyraUpdateSelectedVector(axis,value){
+ const object=nyraGetSelectedTransferObject();if(!object)return;
+ const vector=axis[0]==='p'?object.position:axis[0]==='r'?object.rotation:object.scale;
+ const dimension=axis[1],factor=axis[0]==='r'?Math.PI/180:1;
+ const number=Number(value);if(!Number.isFinite(number))return;
+ if(axis[0]==='s'&&number<=0)return;
+ vector[dimension]=number*factor;object.updateMatrix();object.updateMatrixWorld(true);
+ const node=nyraTransferData?.scene?.nodes?.find(item=>item.id===nyraSelectedNodeId);
+ if(node)nyraStoreObjectTransform(node,object);
+ const label=$(axis+'Val');if(label)label.textContent=axis[0]==='r'?number.toFixed(0)+'°':number.toFixed(2);
+}
+let nyraAssociationMode=false;
+function nyraSetAssociationMode(active){
+ nyraAssociationMode=active===true;
+ if($('nyraAssociationStatus'))$('nyraAssociationStatus').textContent=nyraAssociationMode
+  ?'Agora selecione na árvore ou clique no viewport na peça que será o novo objeto pai.'
+  :'Modo de associação desativado.';
+ nyraSyncTransformControls();
+}
+function nyraRebuildTransferChildren(){
+ const nodes=nyraTransferData.scene.nodes;
+ const children=new Map();
+ for(const node of nodes){
+  delete node.children;
+  if(node.parentId){if(!children.has(node.parentId))children.set(node.parentId,[]);children.get(node.parentId).push(node.id);}
+ }
+ for(const node of nodes)node.children=children.get(node.id)||[];
+}
+function nyraStoreObjectTransform(node,object){
+ node.transform={...(node.transform||{}),position:object.position.toArray(),rotation:[object.rotation.x,object.rotation.y,object.rotation.z],rotationOrder:object.rotation.order,rotationUnit:'radians',scale:object.scale.toArray()};
+}
+function nyraAssociateNodes(childId,parentId){
+ if(!nyraTransferData)throw new Error('Nenhum modelo está carregado.');
+ if(!childId||!parentId||childId===parentId)throw new Error('Escolha duas peças diferentes.');
+ const nodes=nyraTransferData.scene.nodes,child=nodes.find(node=>node.id===childId),parent=nodes.find(node=>node.id===parentId);
+ if(!child||!parent)throw new Error('Peça de origem ou destino não encontrada.');
+ if(nyraTransferData.project?.source?.format==='blockbench'&&!['bone','group'].includes(parent.type))throw new Error('Em modelos Blockbench, a peça escolhida como pai precisa ser um grupo ou osso.');
+ if(nyraTransferData.project?.source?.format!=='blockbench'&&!['bone','group','empty'].includes(parent.type))throw new Error('A peça escolhida como pai precisa ser um grupo ou objeto vazio.');
+ let cursor=parent;
+ while(cursor){if(cursor.id===childId)throw new Error('Associação inválida: isso criaria um ciclo.');cursor=cursor.parentId?nodes.find(node=>node.id===cursor.parentId):null;}
+ const childObject=nyraNodeObjects.get(childId),parentObject=nyraNodeObjects.get(parentId);
+ nyraStoreObjectTransform(child,childObject);nyraPushHierarchyHistory(child,childObject);
+ if(!childObject||!parentObject)throw new Error('Os objetos 3D da associação não estão disponíveis.');
+ childObject.updateWorldMatrix(true,false);parentObject.updateWorldMatrix(true,false);
+ const worldPosition=new THREE.Vector3(),worldQuaternion=new THREE.Quaternion(),worldScale=new THREE.Vector3();
+ childObject.matrixWorld.decompose(worldPosition,worldQuaternion,worldScale);
+ const oldParent=childObject.parent;
+ try{
+  parentObject.add(childObject);
+  const inverse=parentObject.matrixWorld.clone().invert();
+  const local=inverse.multiply(new THREE.Matrix4().compose(worldPosition,worldQuaternion,worldScale));
+  local.decompose(childObject.position,childObject.quaternion,childObject.scale);
+  childObject.updateMatrix();childObject.updateMatrixWorld(true);
+  child.parentId=parentId;nyraStoreObjectTransform(child,childObject);
+  nyraRebuildTransferChildren();nyraValidateTransfer(nyraTransferData);
+ }catch(error){
+  if(oldParent)oldParent.add(childObject);
+  child.parentId=oldParent?.userData?.nyraTransferNodeId||null;
+  throw error;
+ }
+ nyraSetAssociationMode(false);
+ nyraRenderTransferTree(nyraTransferData);nyraSelectTransferNode(childId);
+ nyraSetTransferStatus('Associação criada: '+(child.name||child.id)+' agora pertence a '+(parent.name||parent.id)+'.');
+}
+function nyraDetachNode(id){
+ const node=nyraTransferData?.scene?.nodes?.find(item=>item.id===id);if(!node?.parentId)return;
+ const object=nyraNodeObjects.get(id);if(!object)throw new Error('Objeto selecionado não encontrado.');
+ nyraPushHierarchyHistory(node,object);
+ object.updateWorldMatrix(true,false);
+ nyraTransferRoot.updateWorldMatrix(true,false);
+ const position=new THREE.Vector3(),quaternion=new THREE.Quaternion(),scale=new THREE.Vector3();
+ const inverseRoot=nyraTransferRoot.matrixWorld.clone().invert();
+ const localMatrix=inverseRoot.multiply(object.matrixWorld.clone());
+ localMatrix.decompose(position,quaternion,scale);
+ nyraTransferRoot.add(object);object.position.copy(position);object.quaternion.copy(quaternion);object.scale.copy(scale);
+ object.updateMatrix();object.updateMatrixWorld(true);
+ node.parentId=null;nyraStoreObjectTransform(node,object);
+ nyraRebuildTransferChildren();nyraValidateTransfer(nyraTransferData);
+ nyraRenderTransferTree(nyraTransferData);nyraSelectTransferNode(id);
+ nyraSetTransferStatus('Associação removida. A peça foi preservada na posição visual atual.');
+}
+$('nyraAssociateMode').onclick=()=>nyraSetAssociationMode(true);
+$('nyraCancelAssociation').onclick=()=>nyraSetAssociationMode(false);
+$('nyraDetachNode').onclick=()=>{try{nyraDetachNode(nyraSelectedNodeId);}catch(error){nyraSetTransferStatus(error.message||String(error));}};
+$('nyraUndoAssociation').onclick=()=>{try{nyraUndoHierarchyChange();}catch(error){nyraSetTransferStatus(error.message||String(error));}};
+$('nyraMoveTool').onclick=()=>nyraSetTransformMode('translate');$('nyraRotateTool').onclick=()=>nyraSetTransformMode('rotate');$('nyraScaleTool').onclick=()=>nyraSetTransformMode('scale');
+for(const id of ['px','py','pz','rx','ry','rz','sx','sy','sz']){
+ $(id).addEventListener('input',event=>nyraUpdateSelectedVector(id,event.target.value));
+}
+function nyraSelectTransferNode(id){
+ const object=nyraNodeObjects.get(id);if(!object)return;
+ if(nyraAssociationMode&&nyraSelectedNodeId){
+  const childId=nyraSelectedNodeId;
+  try{nyraAssociateNodes(childId,id);}catch(error){nyraSetTransferStatus(error.message||String(error));}
+  nyraSetAssociationMode(false);return;
+ }
+ nyraSelectedNodeId=id;
+ nyraTransferTree?.querySelectorAll('[data-node-id]').forEach(row=>{
+  const active=row.dataset.nodeId===id;row.classList.toggle('selected',active);row.setAttribute('aria-selected',active?'true':'false');
+ });
+ nyraSyncTransformControls();
+ const node=nyraTransferData?.scene?.nodes?.find(item=>item.id===id);
+ nyraSetTransferStatus('Peça selecionada: '+(node?.name||object.name||id)+'. Ajuste posição, rotação e escala.');
+}
+function nyraRenderTransferTree(doc){
+ if(!nyraTransferTree)return;
+ nyraTransferTree.replaceChildren();
+ const byParent=new Map();
+ for(const node of doc.scene.nodes){
+  const parent=node.parentId||'';
+  if(!byParent.has(parent))byParent.set(parent,[]);
+  byParent.get(parent).push(node);
+ }
+ const walk=(parent,depth)=>{
+  for(const node of byParent.get(parent)||[]){
+   const row=document.createElement('button');
+   row.type='button';row.className='nyra-tree-row';row.dataset.nodeId=node.id;
+   row.style.paddingLeft=(8+depth*14)+'px';
+   row.textContent=(node.name||node.id)+' · '+node.type;
+   row.setAttribute('role','treeitem');row.setAttribute('aria-selected','false');
+   row.addEventListener('click',()=>nyraSelectTransferNode(node.id));
+   nyraTransferTree.appendChild(row);
+   walk(node.id,depth+1);
+  }
+ };
+ nyraTransferTree.setAttribute('role','tree');
+ walk('',0);
+}
+function nyraMapGLTFTransferObjects(candidate,doc,nodeMap=new Map()){
+ const expected=new Set((doc.scene?.nodes||[]).map(node=>node.id));
+ const byName=new Map(),prefix='__nyra_transfer_node__:';
+ candidate.traverse(object=>{
+  if(object.name&&!byName.has(object.name))byName.set(object.name,object);
+  const tagged=object.userData?.nyraTransferNodeId||(typeof object.name==='string'&&object.name.startsWith(prefix)?object.name.slice(prefix.length):null);
+  if(expected.has(tagged)){object.userData=object.userData||{};object.userData.nyraTransferNodeId=tagged;nodeMap.set(tagged,object);}
+ });
+ for(const node of doc.scene.nodes||[]){
+  let object=nodeMap.get(node.id);
+  if(!object){
+   const named=byName.get(node.name)||byName.get(node.id);
+   if(named){
+    object=named;
+    if(node.type==='cube'||node.type==='mesh'){let pivot=named;while(pivot&&!pivot.userData?.bbPivot)pivot=pivot.parent;if(pivot?.userData?.bbPivot)object=pivot;}
+    object.userData=object.userData||{};object.userData.nyraTransferNodeId=node.id;nodeMap.set(node.id,object);
+   }
+  }
+  if(object&&typeof node.name==='string'&&typeof object.name==='string'&&object.name.startsWith(prefix))object.name=node.name;
+ }
+ return nodeMap;
+}
+async function nyraLoadTransfer(doc,glb){
+ const normalized=nyraValidateTransfer(doc);
+ let candidate=null,clips=[],nodeObjects=new Map(),baseTransforms=new Map();
+ if(glb instanceof ArrayBuffer&&glb.byteLength>0){
+  const loader=new GLTFLoader();
+  const parsed=await new Promise((resolve,reject)=>loader.parse(glb,'',resolve,reject));
+  candidate=parsed.scene;clips=parsed.animations||[];
+  nyraMapGLTFTransferObjects(candidate,normalized,nodeObjects);
+ }else{
+  candidate=nyraBuildTransferScene(normalized,nodeObjects,baseTransforms);
+ }
+ if(!candidate)throw new Error('Não foi possível construir a cena recebida.');
+ candidate.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(candidate);
+ if(!bounds.isEmpty()){
+  const center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3()),max=Math.max(size.x,size.y,size.z,1);
+  candidate.position.sub(center);candidate.scale.multiplyScalar(4.8/max);
+  controls.target.set(0,0,0);camera.position.set(8,5,8);controls.update();
+ }
+ candidate.traverse(object=>{
+  const id=object.userData?.nyraTransferNodeId;
+  if(id){nodeObjects.set(id,object);baseTransforms.set(id,{position:object.position.clone(),rotation:object.rotation.clone(),scale:object.scale.clone()});}
+ });
+ nyraRemovePreviousTransfer();
+ nyraTransferRoot=candidate;nyraTransferData=normalized;nyraGltfAnimations=clips;scene.add(candidate);
+ nyraNodeObjects=nodeObjects;nyraBaseTransforms=baseTransforms;
+ robot.visible=false;
+ nyraRenderTransferTree(normalized);nyraBindViewportSelection();
+ nyraClipSelect.replaceChildren();
+ const visibleClips=clips.length?clips:normalized.animations.clips;
+ for(const [index,clip] of visibleClips.entries())nyraClipSelect.add(new Option(clip.name||('Animação '+(index+1)),String(index)));
+ nyraClipSelect.disabled=visibleClips.length===0;
+ $('nyraClipPlay').disabled=visibleClips.length===0;$('nyraClipStop').disabled=visibleClips.length===0;
+ nyraClipControls.style.display=visibleClips.length?'block':'none';
+ nyraExportTransfer.disabled=false;nyraExportGLB.disabled=false;nyraExportBBModel.disabled=normalized.project?.source?.format==='blockbench'&&!!normalized.extensions?.blockbenchRaw;nyraExportCharacterJSON.disabled=nyraExportBBModel.disabled;
+ $('zeroJoint').disabled=true;$('nyraAssociateMode').disabled=true;$('nyraDetachNode').disabled=true;$('nyraCancelAssociation').disabled=true;
+ nyraSetTransferStatus('Projeto recebido: '+normalized.scene.nodes.length+' nós e '+normalized.animations.clips.length+' animação(ões). '+(clips.length?'Visor GLB com materiais, UVs e clips compatíveis carregado.':'Pré-visualização simplificada; documento e dados originais preservados.'));
+ const first=normalized.scene.nodes.find(node=>!node.parentId&&nodeObjects.has(node.id))||normalized.scene.nodes.find(node=>nodeObjects.has(node.id));
+ if(first)nyraSelectTransferNode(first.id);
+}
+function nyraInterpolateChannel(frames,time,base){
+ if(!frames.length)return base;
+ if(time<=frames[0].time)return frames[0].value;
+ if(time>=frames[frames.length-1].time)return frames[frames.length-1].value;
+ let index=0;while(index<frames.length-2&&frames[index+1].time<time)index++;
+ const a=frames[index],b=frames[index+1],span=b.time-a.time,t=span===0?0:Math.max(0,Math.min(1,(time-a.time)/span));
+ if(a.interpolation==='step')return a.value;
+ if(Array.isArray(a.value)&&Array.isArray(b.value))return a.value.map((v,i)=>v+(b.value[i]-v)*t);
+ if(typeof a.value==='number'&&typeof b.value==='number')return a.value+(b.value-a.value)*t;
+ return a.value;
+}
+function nyraClipEvaluate(clip,time){
+ for(const [id,base] of nyraBaseTransforms){const object=nyraNodeObjects.get(id);if(object){object.position.copy(base.position);object.rotation.copy(base.rotation);object.scale.copy(base.scale);}}
+ for(const channel of clip.channels||[]){
+  if(!['position','rotation','scale'].includes(channel.property))continue;
+  const object=nyraNodeObjects.get(channel.targetNodeId);if(!object)continue;
+  const frames=(channel.keyframes||[]).slice().sort((a,b)=>a.time-b.time);if(!frames.length)continue;
+  const base=channel.property==='position'?object.position.toArray():channel.property==='rotation'?object.rotation.toArray():object.scale.toArray();
+  const value=nyraInterpolateChannel(frames,time,base);
+  if(Array.isArray(value)&&value.length===3)object[channel.property].set(...value);
+ }
+}
+function nyraStopClip(restore=true){
+ if(nyraClipFrame)cancelAnimationFrame(nyraClipFrame);nyraClipFrame=0;nyraClipState=null;
+ if(nyraGltfFrame)cancelAnimationFrame(nyraGltfFrame);nyraGltfFrame=0;nyraGltfLastTime=0;
+ if(nyraGltfMixer){
+  if(restore){nyraGltfMixer.stopAllAction();if(nyraTransferRoot)nyraGltfMixer.uncacheRoot(nyraTransferRoot);nyraGltfMixer=null;nyraGltfAction=null;}
+  else if(nyraGltfAction)nyraGltfAction.paused=true;
+ }
+ if(restore)for(const [id,base] of nyraBaseTransforms){const node=nyraNodeObjects.get(id);if(node){node.position.copy(base.position);node.rotation.copy(base.rotation);node.scale.copy(base.scale);}}
+}
+function nyraPlayClip(){
+ if(!nyraTransferData)return;
+ const index=Number(nyraClipSelect.value);
+ if(nyraGltfAnimations.length&&nyraGltfAnimations[index]){
+  const clip=nyraGltfAnimations[index],source=nyraTransferData.animations.clips.find(item=>item.name===clip.name)||nyraTransferData.animations.clips[index];
+  nyraStopClip(true);nyraGltfMixer=new THREE.AnimationMixer(nyraTransferRoot);nyraGltfAction=nyraGltfMixer.clipAction(clip);nyraGltfAction.reset();
+  const looping=source?.loop===true;nyraGltfAction.setLoop(looping?THREE.LoopRepeat:THREE.LoopOnce,looping?Infinity:1);nyraGltfAction.clampWhenFinished=true;nyraGltfAction.play();
+  nyraGltfLastTime=0;
+  let elapsed=0;const tick=now=>{if(!nyraGltfMixer||!nyraGltfAction)return;const delta=nyraGltfLastTime?Math.min((now-nyraGltfLastTime)/1000,.05):0;nyraGltfLastTime=now;elapsed+=delta;nyraGltfMixer.update(delta);if(!looping&&elapsed>=clip.duration){nyraStopClip(false);nyraSetTransferStatus('Animação finalizada.');return;}nyraGltfFrame=requestAnimationFrame(tick);};
+  nyraGltfFrame=requestAnimationFrame(tick);nyraSetTransferStatus('Reproduzindo '+(source?.name||clip.name)+' com animação GLB.');return;
+ }
+ const clip=nyraTransferData.animations.clips[index];if(!clip)return;
+ nyraStopClip(true);if(!clip.channels?.length){nyraSetTransferStatus('Este clip não contém canais reproduzíveis; os dados foram preservados.');return;}
+ const duration=Math.max(0,Number(clip.duration)||0);if(duration===0){nyraClipEvaluate(clip,0);return;}
+ nyraClipState={clip,start:0};
+ const tick=now=>{if(!nyraClipState)return;if(!nyraClipState.start)nyraClipState.start=now;const elapsed=(now-nyraClipState.start)/1000,t=clip.loop?elapsed%duration:Math.min(duration,elapsed);nyraClipEvaluate(clip,t);if(!clip.loop&&elapsed>=duration){nyraStopClip(false);nyraSetTransferStatus('Animação finalizada.');return;}nyraClipFrame=requestAnimationFrame(tick);};
+ nyraClipFrame=requestAnimationFrame(tick);nyraSetTransferStatus('Reproduzindo '+clip.name+'.');
+}
+$('nyraImportBBModel').onclick=()=>$('nyraTransferFile').click();
+$('nyraTransferFile').onchange=event=>{
+ const file=event.target.files?.[0];if(!file)return;
+ if(!/\.(?:bbmodel|json)$/i.test(file.name)){nyraSetTransferStatus('Selecione um arquivo .bbmodel ou um projeto JSON do Criador de Personagens.');event.target.value='';return;}
+ const requestId='robotv-model-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+ const onResult=messageEvent=>{
+  if(messageEvent.source!==window.parent||messageEvent.data?.type!=='NYRA_SCENE_TRANSFER_RESULT'||messageEvent.data.requestId!==requestId)return;
+  window.removeEventListener('message',onResult);
+  if(messageEvent.data.success)nyraSetTransferStatus('Modelo importado e carregado no RoboTV com sucesso.');
+  else nyraSetTransferStatus('Falha na importação: '+(messageEvent.data.error||'erro não especificado'));
+ };
+ window.addEventListener('message',onResult);
+ window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT_BBMODEL',requestId,file,name:file.name},'*');
+ nyraSetTransferStatus('Enviando '+file.name+' ao importador do Criador de Personagens…');
+ event.target.value='';
+};
+$('nyraClipPlay').onclick=nyraPlayClip;$('nyraClipStop').onclick=()=>{nyraStopClip(true);nyraSetTransferStatus('Animação parada; pose base restaurada.');};
+$('nyraExportBBModel').onclick=()=>{
+ if(!nyraTransferData)return;
+ for(const node of nyraTransferData.scene.nodes){const object=nyraNodeObjects.get(node.id);if(object)nyraStoreObjectTransform(node,object);}
+ const requestId='robotv-bbmodel-export-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+ window.parent.postMessage({type:'NYRA_ROBOTV_EXPORT_BBMODEL',requestId,transfer:nyraTransferData},'*');
+ nyraSetTransferStatus('Enviando o modelo editado ao exportador .bbmodel do Criador de Personagens…');
+};
+$('nyraExportCharacterJSON').onclick=()=>{
+ if(!nyraTransferData)return;
+ for(const node of nyraTransferData.scene.nodes){const object=nyraNodeObjects.get(node.id);if(object)nyraStoreObjectTransform(node,object);}
+ const requestId='robotv-json-export-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+ window.parent.postMessage({type:'NYRA_ROBOTV_EXPORT_PROJECT_JSON',requestId,transfer:nyraTransferData},'*');
+ nyraSetTransferStatus('Enviando o modelo atual ao exportador JSON do Criador de Personagens…');
+};
+nyraExportTransfer.onclick=()=>{if(!nyraTransferData)return;for(const node of nyraTransferData.scene.nodes){const object=nyraNodeObjects.get(node.id);if(object)nyraStoreObjectTransform(node,object);}const url=URL.createObjectURL(new Blob([JSON.stringify(nyraTransferData,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='nyra-scene-transfer.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);};
+nyraExportGLB.onclick=async()=>{
+ if(!nyraTransferRoot)return;
+ try{
+  const {GLTFExporter}=await import('three/addons/exporters/GLTFExporter.js');
+  const exporter=new GLTFExporter();
+  const generated=await new Promise((resolve,reject)=>exporter.parse(nyraTransferRoot,resolve,reject,{binary:true,animations:nyraGltfAnimations}));
+  const binary=generated instanceof ArrayBuffer?generated:(ArrayBuffer.isView(generated)?generated.buffer.slice(generated.byteOffset,generated.byteOffset+generated.byteLength):null);
+  if(!binary)throw new Error('O exportador não retornou um GLB binário.');
+  const url=URL.createObjectURL(new Blob([binary],{type:'model/gltf-binary'})),a=document.createElement('a');
+  a.href=url;a.download='nyra-robotv-modelo.glb';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);
+  nyraSetTransferStatus('Modelo GLB exportado. As animações disponíveis no visor foram incluídas.');
+ }catch(error){nyraSetTransferStatus('Falha ao exportar GLB: '+(error?.message||String(error)));}
+};
+window.addEventListener('message',event=>{
+ if(event.source!==window.parent||!event.data)return;
+ if(event.data.type==='NYRA_SCENE_TRANSFER_IMPORT'){(async()=>{try{await nyraLoadTransfer(event.data.transfer,event.data.glb);window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_ACK',requestId:event.data.requestId,success:true,projectName:nyraTransferData.project?.name||'Projeto',warnings:nyraTransferData.diagnostics||[]},'*');}catch(error){window.parent.postMessage({type:'NYRA_SCENE_TRANSFER_ACK',requestId:event.data.requestId,success:false,error:error?.message||String(error)},'*');}})();}
+ if(event.data.type==='NYRA_ROBOTV_EXPORT_RESULT')nyraSetTransferStatus(event.data.success?(event.data.format==='json'?'Projeto JSON enviado para download pelo Criador de Personagens.':'Arquivo .bbmodel enviado para download pelo Criador de Personagens.'):'Falha ao exportar: '+(event.data.error||'erro desconhecido'));
+});
+function resize(){const w=viewport.clientWidth,h=viewport.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+new ResizeObserver(resize).observe(viewport);resize();
+function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
+syncSliders();
+try{const saved=localStorage.getItem('nyra3d-robotv-project');if(saved){const d=JSON.parse(saved);if(Array.isArray(d.frames)){frames=d.frames;selectedFrame=frames.length?0:-1;if(selectedFrame>=0)setPose(frames[0].pose);renderFrames();status('Projeto salvo anteriormente encontrado.')}}}catch(e){}
+</script>
+</body>
+</html>

@@ -12,7 +12,7 @@ const match = html.match(/const pages = \{items: "([^"]+)", character: "([^"]+)"
 assert.ok(match, 'host must contain the three embedded editor pages');
 const characterHtml = Buffer.from(match[2], 'base64').toString('utf8');
 const start = characterHtml.indexOf('function nyraBuildSceneTransferFromBBModel(');
-const end = characterHtml.indexOf('\nasync function nyraSendBBModelToRoboTV()', start);
+const end = characterHtml.indexOf('\nasync function nyraSendBBModelToRoboTV', start);
 assert.ok(start >= 0 && end > start, 'Character Creator must expose the BBModel transfer builder');
 const importSuccess = characterHtml.indexOf("Importado com fidelidade estrutural:");
 const enableTransfer = characterHtml.indexOf("sendRoboTvButton.disabled=false", importSuccess);

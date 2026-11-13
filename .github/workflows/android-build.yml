@@ -14,7 +14,7 @@ on:
       - 'build.gradle*'
       - '.github/workflows/android-build.yml'
   push:
-    branches: [main, work/nyra-integrated-offline-loaders, work/nyra-frente-d-integration, fix/nyra-startup-recovery-2026-11-10]
+    branches: [main, work/nyra-integrated-offline-loaders, work/nyra-frente-d-integration, work/nyra-robotv-dynamic-hierarchy, fix/nyra-startup-recovery-2026-11-10]
     paths:
       - 'android/**'
       - 'app/**'
@@ -68,6 +68,21 @@ jobs:
 
       - name: Test Blockbench to RoboTV transfer mapping
         run: node android/scripts/audit_bbmodel_transfer.cjs
+
+      - name: Test Character Creator paint scope
+        run: node android/scripts/audit_character_paint_scope.cjs
+
+      - name: Test Pixel Lab touch painting
+        run: node android/scripts/audit_pixel_lab_paint.cjs
+
+      - name: Test Character Creator export bridge
+        run: node android/scripts/audit_character_export_bridge.cjs
+
+      - name: Test RoboTV model import bridge
+        run: node android/scripts/audit_robotv_import_bridge.cjs
+
+      - name: Test RoboTV dynamic hierarchy and selection
+        run: node android/scripts/audit_robotv_dynamic_hierarchy.cjs
 
       - name: Test GLB structural preflight
         run: node android/scripts/audit_glb_preflight.cjs
