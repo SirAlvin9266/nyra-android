@@ -63,21 +63,19 @@ Three.js e JSZip são preparadas no Gradle, com versões/hash pinados e incluíd
 | Persistência | rascunhos locais separados por editor | não comprovado cold-start/force-stop/recuperação completa; BBModel no Criador pede reimport para recuperar textura/metadados completos | projeto versionado com assets, recuperação e avisos de recuperação parcial |
 | Bedrock | conversor/exportação em branch/PR #17 | recursos/formatos têm limitações explicitadas | manter trabalho na Frente D isolado até autorização; não misturar com este plano |
 
-## 4. Achados específicos de importação
+## 4. Importação e exportação — manter as oficinas independentes
 
-O Criador independente aceita `.bbmodel` e `.json`. O painel `NyraModelIO` injetado pelo shell oferece `.glb`, `.gltf`, `.obj`, `.fbx`, `.stl`, `.bbmodel`, arquivos auxiliares e formatos de exportação GLB/OBJ/STL. Essa diferença explica por que duas telas/capturas podem mostrar opções distintas: são camadas de interface diferentes.
+O objetivo não é compartilhar projetos, cenas ou uma infraestrutura de modelos entre as três oficinas. Cada oficina continua com seu próprio propósito, seus próprios dados e seus próprios fluxos de trabalho.
 
-O RoboTV atual declara no seletor de arquivo `.bbmodel` e `.json`, e delega a interpretação ao Criador por `postMessage`. Não declara importação direta de GLB/glTF/OBJ/FBX/STL pelo seletor do RoboTV. O fato de a tela ter GLTFLoader não significa que todos os formatos estejam conectados ao botão de importação.
+O que deve ser consistente é a disponibilidade e o funcionamento dos comandos de importar/exportar dentro de cada oficina, respeitando o que aquela oficina sabe fazer.
 
-O importador Blockbench testado por script cobre cubos, grupos, mesh livre, UV/textura e clips de animação em fixtures sintéticas e no modelo Spartan shield. Esse teste é valioso, mas o cenário de importação integrado no Android ainda precisa testar:
-1. arquivo aberto diretamente no Criador;
-2. o mesmo arquivo encaminhado pelo RoboTV;
-3. modelo carregado no viewport;
-4. hierarquia, pivôs e materiais;
-5. animações listadas e reproduzíveis quando o arquivo contém clips;
-6. exportação/reabertura, com perdas e incompatibilidades reportadas.
+- **Oficina de Itens:** importa/exporta os recursos próprios de criação de ícones/texturas para Minecraft Bedrock. A grade é apenas uma superfície de edição; a imagem exportada deve conter somente os pixels desenhados, sem grade, guias ou elementos da interface.
+- **Criador de Personagens:** importa e exporta os formatos que consegue editar como personagem, preservando as peças, formas, hierarquia, materiais e demais propriedades que o formato comporta. A associação de peças deve acontecer dentro desta oficina.
+- **RoboTV:** deve ter seu próprio botão e fluxo de importação para carregar modelos diretamente na oficina de animação. Os formatos oferecidos precisam ser realmente suportados pelo carregador e pela edição do RoboTV. A importação deve preservar a geometria e, quando presentes e suportadas, as animações, sem encaminhar o usuário a outra oficina para concluir a operação.
 
-A recomendação é não duplicar parsers. Um serviço compartilhado de importação deve ser chamado pelo Criador e pelo RoboTV, com capacidades por formato e diagnósticos explícitos.
+O RoboTV atual declara `.bbmodel` e `.json` no seletor e encaminha a importação ao Criador por `postMessage`. A presença de GLTFLoader no código não prova que GLB/glTF estejam conectados ao botão. A evolução deve acrescentar e testar os fluxos necessários diretamente no RoboTV, sem transformar as oficinas em um único editor nem exigir um formato universal.
+
+A regra de aceitação para cada formato deve ser explícita: o arquivo abre, a geometria aparece, a estrutura necessária permanece e as animações são mantidas quando o formato e o importador as suportam. Se alguma propriedade não puder ser preservada, a oficina deve informar isso em vez de declarar sucesso completo.
 
 ## 5. Interface e experiência — direção recomendada
 
@@ -85,59 +83,56 @@ Não impor uma barra rígida com categorias como “Transformação”. Para o C
 - comandos essenciais (selecionar, criar, mover, girar, escalar, associar) podem permanecer visíveis quando houver espaço;
 - em telas estreitas, os comandos menos frequentes podem ser representados por ícones com rótulos acessíveis/tooltip, sem esconder a ferramenta ativa;
 - os controles específicos da ferramenta selecionada aparecem em um painel contextual;
-- a peça selecionada, o pai, o escopo de pintura e o estado da ferramenta precisam ficar visíveis;
-- materiais/cores usam o mesmo sistema de estado e seletor nos editores, preservando o domínio de cada editor.
+- a peça selecionada, o pai, o escopo de pintura e o estado da ferramenta precisam ficar visíveis.
 
-A hierarquia visual deve distinguir ação primária, secundária, destrutiva e contextual. Não basta trocar cores dos botões; o objetivo é reduzir ambiguidade, botões simultâneos e deslocamento vertical, sobretudo no celular.
+A Oficina de Itens deve permanecer simples e focada em desenhar ícones/texturas. A grade ajuda a posicionar pixels, mas não é parte do resultado exportado. A interface de animação deve priorizar viewport, seleção de modelo, hierarquia necessária e controles de animação, sem herdar a organização do Criador quando ela não fizer sentido.
 
-## 6. Problemas estruturais prioritários
+A hierarquia visual deve distinguir ação primária, secundária, destrutiva e contextual. O objetivo é reduzir ambiguidade e deslocamento vertical, sobretudo no celular, sem padronizar à força ferramentas que têm finalidades diferentes.
 
-1. **Base64 e geração dinâmica do editor:** mover gradualmente os documentos fonte para arquivos reais sob `assets/www/editors/`, primeiro sem alterações comportamentais; mudar o shell para carregar arquivos locais e testar módulos sob WebViewAssetLoader.
-2. **Adaptador monolítico:** retirar, em etapas, o template `NyraModelIO` e persistência injetada de strings; criar módulos explícitos para I/O, DSL, persistência e ponte de editor.
-3. **Contrato entre editores:** definir versão e mensagens públicas para `ready`, `importModel`, `sceneTransfer`, `exportModel`, `save/restore`, seleção e erros. O shell deve conhecer apenas capacidades públicas, não DOM/funções privadas.
-4. **Persistência:** consolidar num serviço versionado de projeto, distinguindo rascunho recuperável de projeto completo com assets binários/referências externas. Manter migração dos dados atuais.
-5. **Android nativo:** manter Activity como composição/ciclo de vida; considerar classes separadas para host WebView, document picker, transfer manager e logger quando forem mudanças isoladas e testáveis.
-6. **Testes:** separar sintaxe/estrutura, testes de domínio, testes com DOM/canvas simulado, teste integrado WebView e validação física. CI estático não pode exibir “pintura passou” como se o toque físico fosse validado.
+## 6. Simplificação técnica — manutenção, não objetivo de produto
+
+A proposta de simplificar a arquitetura não significa unificar as oficinas, compartilhar projetos ou criar uma camada de modelo universal. Significa apenas tornar o código mais fácil de corrigir e manter.
+
+Exemplo concreto: o shell atual guarda três páginas em Base64 dentro de `index.html` e injeta parte dos recursos do Criador por substituições de texto. Isso aumenta o risco de uma correção ser aplicada em uma versão e não na outra. Uma melhoria possível, em momento adequado, é manter os arquivos dos editores separados e fazer o shell carregá-los diretamente.
+
+Isso é uma tarefa técnica de manutenção, não uma etapa obrigatória antes de corrigir os problemas que o usuário relatou. Não deve atrasar a pintura, a edição de personagens nem a importação/animação no RoboTV.
+
+Também não é necessário criar um formato universal de projeto. Cada oficina pode manter seus próprios formatos, dados e recursos. Reutilizar uma rotina interna de seleção de arquivo ou validação, quando fizer sentido, não altera essa independência.
 
 ## 7. Roadmap sugerido — ordem de dependência
 
-### P0 — Confiabilidade básica
-- Pixel Lab: reproduzir e corrigir pintura real em 16/32/64/128, matriz, preview, PNG, JSON e reset.
-- RoboTV: validar handshake recente com múltiplos arquivos .bbmodel reais e JSON de projeto do Criador; apresentar erro de formato/capacidade sem falso sucesso.
-- Criador: verificar erros funcionais relatados no aparelho e consertar operações básicas de seleção, criação, transformação e pintura.
+### P0 — Fazer as ferramentas funcionarem
+- Oficina de Itens: corrigir a pintura real em 16/32/64/128, matriz, preview, PNG/JSON e reset; confirmar que a exportação da imagem não inclui a grade.
+- RoboTV: fazer o botão importar abrir os formatos efetivamente suportados pela oficina e validar modelos reais, geometria e animações.
+- Criador: verificar operações básicas de seleção, criação, transformação, cores e edição relatadas no aparelho.
 - Manter issue #11 aberta até reteste físico no mesmo dispositivo.
 
-### P1 — Criador como ambiente real de construção
-- Implementar associação entre peças diretamente no Criador, preservando world transform, guardando histórico, impedindo ciclos e exibindo hierarquia.
-- Reorganizar controles com ferramenta genérica/contextual, sem grupos rígidos impostos.
-- Reduzir divergência entre HTML independente e interface injetada pelo shell.
+### P1 — Melhorar o Criador de Personagens
+- Implementar associação entre peças diretamente no Criador, preservando posição no mundo, histórico e prevenção de ciclos.
+- Reorganizar os controles com ferramenta genérica/contextual, sem categorias rígidas impostas.
+- Melhorar a organização da árvore e a distinção entre selecionar uma peça, um grupo ou o personagem.
 
-### P2 — Interoperabilidade entre os três editores
-- Unificar inventário de formatos e importação compartilhada.
-- Permitir carregar modelos do Criador no RoboTV e preservar clips suportados.
-- Diferenciar “arquivo reconhecido”, “geometria importada”, “textura preservada” e “animação reproduzível”.
-- Testar round-trip com fixtures reais do projeto.
+### P2 — Completar importação e exportação em cada oficina
+- Garantir que cada oficina tenha seus próprios botões e fluxos de importar/exportar, adequados à sua finalidade.
+- No RoboTV, oferecer os formatos que o próprio editor consegue carregar e animar, com preservação de geometria e animações suportadas.
+- No Criador, manter importação/exportação de personagem e associação de peças.
+- Na Oficina de Itens, manter a exportação limpa do ícone/textura, sem grade ou elementos de edição.
+- Testar cada fluxo separadamente. Não criar projeto universal nem transferência obrigatória entre oficinas.
 
-### P3 — Simplificação técnica
-- Extrair HTML Base64 sem alterar comportamento.
-- Migrar adapters e contratos por etapas.
-- Consolidar persistência, notificações e diagnósticos.
-- Revisar lifecycle/dispose de WebGL, listeners, iframes e objetos.
+### P3 — Manutenção técnica gradual
+- Se isso ajudar a manutenção, extrair os documentos HTML Base64 para arquivos separados sem mudar o comportamento.
+- Reduzir dependência de substituições textuais e tornar os pontos de integração explícitos.
+- Fazer essas mudanças em pequenas etapas, sem bloquear P0–P2 e sem alterar a finalidade independente das oficinas.
 
-### P4 — Evolução da modelagem (Frente B)
-- Só avançar após estabilizar os fluxos anteriores e a base do editor.
-- Reusar DSL v1, scene-transfer v1 e conversor Bedrock existentes; não duplicar contratos.
-- Preservar a Frente D congelada/isolada até decisão explícita.
+A Frente B permanece fora deste roadmap de implementação: ela exige planejamento próprio e deve continuar sendo tratada no contexto específico da Frente B. Não é uma etapa automática desta evolução.
 
 ## 8. Como medir sucesso
 
-- Pixel: taxa de pintura bem-sucedida nas quatro resoluções; pixels refletidos na matriz/canvas/PNG e recuperados após reabrir.
-- Criador: tempo/toques para criar, associar, transformar e recolorir uma peça sem afetar outras.
-- Importação: sucesso por formato e preservação por propriedade (geometria, hierarquia, pivô, textura, clip).
-- UX: quantidade de controles simultâneos, clareza do estado da ferramenta, rolagem necessária em retrato e paisagem.
-- Integração: número de dependências privadas entre shell e editor; contratos versionados e testáveis.
-- Performance: cold start, troca de editor, memória em modelos grandes, tempo de import/export.
-- Distribuição: APK ligado ao SHA exato, hashes e lista de testes executados.
+- **Oficina de Itens:** pintar em todas as resoluções; pixels refletidos na matriz/canvas/PNG; exportação sem grade, guias ou interface.
+- **Criador:** criar, selecionar, associar, transformar e recolorir peças sem afetar outras peças indevidamente.
+- **RoboTV:** importar modelos de cada formato anunciado, preservar geometria e hierarquia relevante, listar/reproduzir animações compatíveis e informar perdas quando existirem.
+- **Experiência móvel:** clareza do estado da ferramenta, controles visíveis e quantidade de rolagem necessária em retrato e paisagem.
+- **Confiabilidade:** APK ligado ao SHA exato, testes executados e validação física separada de CI.
 
 ## 9. Limitações e decisões
 
