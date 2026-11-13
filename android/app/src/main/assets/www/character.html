@@ -265,6 +265,7 @@ function setSelectedColor(color){
     while(parent&&parent!==bbmodelState?.rootGroup&&!parent.userData?.bbGroupUuid)parent=parent.parent;
     root=parent&&parent!==bbmodelState?.rootGroup?parent:selectedObject;
    }else if(selectedKind==='part')root=groups[selected]||selectedObject;
+   else root=selectedObject;
    paintMaterials(root,color,scope==='group');
   }else paintMaterials(target,color,false);
   const rec=customObjects.find(x=>x.mesh===selectedObject||x.mesh===target);if(rec)rec.color=color;
