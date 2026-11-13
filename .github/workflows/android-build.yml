@@ -54,6 +54,9 @@ jobs:
       - name: Audit generated editor adapters
         run: node android/scripts/audit_generated_adapters.cjs
 
+      - name: Audit application control coverage
+        run: node android/scripts/audit_application_controls.cjs
+
       - name: Test mathematical model DSL
         run: node android/scripts/audit_model_dsl.cjs
 
