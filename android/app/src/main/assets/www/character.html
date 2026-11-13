@@ -21,6 +21,50 @@ groups.head=new THREE.Group();groups.head.name='head';groups.head.position.set(0
 for(const [key,x] of [['armL',-.72],['armR',.72]]){groups[key]=new THREE.Group();groups[key].name=key;groups[key].position.set(x,.4,0);groups.torso.add(groups[key]);box(groups[key],key+'Upper',[0,-.32,0],[.3,.68,.34],material(key));box(groups[key],key+'Hand',[0,-.72,.02],[.36,.23,.36],material(key))}for(const [key,x] of [['legL',-.28],['legR',.28]]){groups[key]=new THREE.Group();groups[key].name=key;groups[key].position.set(x,1.55,0);character.add(groups[key]);box(groups[key],key+'Upper',[0,-.35,0],[.38,.75,.42],material(key));box(groups[key],key+'Foot',[0,-.78,.1],[.44,.22,.58],material(key))}
 let selected=null,selectedObject=null,selectedMesh=null,selectedKind='none';const customObjects=[];const partBase={head:[.92,.78,.72],torso:[1,1,1],armL:[1,1,1],armR:[1,1,1],legL:[1,1,1],legR:[1,1,1]};
 const actionHistory=[];const HISTORY_LIMIT=50;let transformBefore=null;let restoringHistory=false;function pushUndo(label,undo){if(restoringHistory)return;actionHistory.push({label,undo});if(actionHistory.length>HISTORY_LIMIT)actionHistory.shift();document.querySelector('#restorePart').textContent='Desfazer (Ctrl+Z) · '+actionHistory.length;}function undoLast(){const action=actionHistory.pop();if(!action){document.querySelector('#status').textContent='Não há ações para desfazer.';return;}restoringHistory=true;try{action.undo();}catch(err){console.error('Falha ao desfazer',err);document.querySelector('#status').textContent='Não foi possível desfazer esta ação: '+err.message;}finally{restoringHistory=false;document.querySelector('#restorePart').textContent='Desfazer (Ctrl+Z) · '+actionHistory.length;document.querySelector('#status').textContent='Ação desfeita: '+action.label+'.';}}
+
+/*
+ * Character Creator scene core.
+ * This module is intentionally local to this editor; it does not define a
+ * cross-workshop project format. Scene nodes remain Three.js Object3D values.
+ */
+const NyraCharacterScene = (() => {
+ const ids=new WeakMap();let nextId=1;
+ const idOf=o=>{if(!o||typeof o!=='object')return null;if(!ids.has(o))ids.set(o,'cc-node-'+nextId++);return ids.get(o)};
+ const isAncestor=(ancestor,node)=>{for(let p=node;p;p=p.parent)if(p===ancestor)return true;return false};
+ function canReparent(child,parent){
+  if(!child||!parent||child===parent)return {ok:false,reason:'Escolha duas peças diferentes.'};
+  if(isAncestor(child,parent))return {ok:false,reason:'Essa associação criaria um ciclo na hierarquia.'};
+  if(child===scene||child===character||child===voxelGroup||child===bbmodelState?.rootGroup)return {ok:false,reason:'Esse elemento é uma raiz protegida.'};
+  if(parent.isMesh)return {ok:false,reason:'A peça de destino precisa ser um grupo ou objeto que possa receber filhos.'};
+  if(child.parent===parent)return {ok:false,reason:'A peça já pertence a esse grupo.'};
+  return {ok:true};
+ }
+ function reparent(child,parent,{preserveWorld=true}={}){
+  const validation=canReparent(child,parent);if(!validation.ok)throw new Error(validation.reason);
+  scene.updateMatrixWorld(true);
+  const world=child.matrixWorld.clone();
+  parent.add(child);
+  if(preserveWorld){
+   parent.updateWorldMatrix(true,false);
+   const local=parent.matrixWorld.clone().invert().multiply(world);
+   local.decompose(child.position,child.quaternion,child.scale);
+   child.rotation.setFromQuaternion(child.quaternion,child.rotation.order);
+  }
+  child.updateMatrix();child.updateMatrixWorld(true);
+  return validation;
+ }
+ function hierarchy(root=scene){
+  const result=[];
+  const visit=(node,depth,parentId=null)=>{
+   if(node===scene)return node.children.forEach(child=>visit(child,0,null));
+   const id=idOf(node);
+   result.push({id,name:node.name||node.type||'Objeto',type:node.isMesh?'mesh':'group',depth,parentId,node});
+   for(const child of node.children||[])visit(child,depth+1,id);
+  };
+  visit(root,0,null);return result;
+ }
+ return {idOf,isAncestor,canReparent,reparent,hierarchy};
+})();
 function labelFor(k){return ({head:'Cabeça',torso:'Tronco',armL:'Braço esquerdo',armR:'Braço direito',legL:'Perna esquerda',legR:'Perna direita'})[k]||k}
 function selectPart(k,mesh=null){const part=groups[k];let node=part,connected=false;while(node){if(node===character){connected=true;break;}node=node.parent;}if(!character.userData.activeModel||!connected){document.querySelector('#status').textContent='Essa parte não existe no projeto atual. Importe um modelo ou adicione objetos.';return;}setVoxelMode('select',false);selected=k;selectedObject=part;selectedMesh=mesh&&mesh.isMesh?mesh:null;selectedKind='part';node=part;while(node&&node!==character){node.visible=true;node=node.parent;}transform.attach(selectedObject);syncEditor();}
 function selectCustom(o){setVoxelMode('select',false);selectedMesh=o?.isMesh?o:null;selectedObject=o;selectedKind=o.userData?.isBBModel?'bbmodel':(o.userData?.isVoxel?'voxel':'shape');selected=o.name;transform.attach(o);syncEditor()}
