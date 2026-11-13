@@ -118,17 +118,51 @@ document.querySelector('#associateSelected').onclick=()=>{
  refreshHierarchy();
 };
 document.querySelector('#detachSelected').onclick=()=>{
- const child=selectedObject;if(!child?.parent){document.querySelector('#status').textContent='Selecione uma peça que possua um grupo pai.';return;}
- const oldParent=child.parent;if(oldParent===scene){document.querySelector('#status').textContent='A peça já está na raiz da cena.';return;}
- const oldIndex=oldParent.children.indexOf(child),world=child.matrixWorld.clone();scene.updateMatrixWorld(true);scene.add(child);child.matrixWorld.decompose(child.position,child.quaternion,child.scale);child.rotation.setFromQuaternion(child.quaternion,child.rotation.order);child.updateMatrix();
- const after={position:child.position.toArray(),quaternion:child.quaternion.toArray(),scale:child.scale.toArray()};
- recordCommand('remover associação de '+(child.name||'peça'),()=>{oldParent.add(child);oldParent.children.splice(oldParent.children.indexOf(child),1);oldParent.children.splice(Math.max(0,Math.min(oldIndex,oldParent.children.length)),0,child);child.position.set(...worldPositionLocal(oldParent,world).position);child.quaternion.fromArray(worldPositionLocal(oldParent,world).quaternion);child.scale.fromArray(worldPositionLocal(oldParent,world).scale);child.updateMatrix();},()=>{scene.add(child);child.position.fromArray(after.position);child.quaternion.fromArray(after.quaternion);child.scale.fromArray(after.scale);child.updateMatrix();});
- document.querySelector('#status').textContent='Associação removida sem deslocar a peça.';refreshHierarchy();
+ const child=selectedObject;
+ if(!child?.parent){document.querySelector('#status').textContent='Selecione uma peça que possua um grupo pai.';return;}
+ const oldParent=child.parent;
+ if(oldParent===scene){document.querySelector('#status').textContent='A peça já está na raiz da cena.';return;}
+ scene.updateMatrixWorld(true);
+ const oldIndex=oldParent.children.indexOf(child),world=child.matrixWorld.clone();
+ const worldTransform=worldPositionLocal(scene,world);
+ scene.add(child);
+ applyLocalTransform(child,worldTransform);
+ const detached={position:child.position.toArray(),quaternion:child.quaternion.toArray(),scale:child.scale.toArray()};
+ const attached=worldPositionLocal(oldParent,world);
+ const move=(parent,index,transformState)=>{
+  parent.add(child);
+  const at=parent.children.indexOf(child);
+  parent.children.splice(at,1);
+  parent.children.splice(Math.max(0,Math.min(index,parent.children.length)),0,child);
+  applyLocalTransform(child,transformState);
+ };
+ recordCommand('remover associação de '+(child.name||'peça'),
+  ()=>move(oldParent,oldIndex,attached),
+  ()=>move(scene,scene.children.length,detached)
+ );
+ document.querySelector('#status').textContent='Associação removida sem deslocar a peça.';
+ refreshHierarchy();
 };
-function worldPositionLocal(parent,world){scene.updateMatrixWorld(true);parent.updateWorldMatrix(true,false);const m=parent.matrixWorld.clone().invert().multiply(world);const p=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();m.decompose(p,q,sc);return {position:p.toArray(),quaternion:q.toArray(),scale:sc.toArray()};}
-document.querySelector('#restorePart').onclick=()=>{if(undoStack.length)undoCommand();else undoLast();refreshHierarchy();};
-document.querySelector('#redoPart').onclick=()=>{redoCommand();refreshHierarchy();};
-window.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();redoCommand();refreshHierarchy();}});
+function applyLocalTransform(object,state){
+ object.position.fromArray(state.position);
+ object.quaternion.fromArray(state.quaternion);
+ object.scale.fromArray(state.scale);
+ object.rotation.setFromQuaternion(object.quaternion,object.rotation.order);
+ object.updateMatrix();
+ object.updateMatrixWorld(true);
+}
+function worldPositionLocal(parent,world){
+ scene.updateMatrixWorld(true);
+ parent.updateWorldMatrix(true,false);
+ const m=parent.matrixWorld.clone().invert().multiply(world);
+ const p=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();
+ m.decompose(p,q,sc);
+ const reconstructed=new THREE.Matrix4().compose(p,q,sc);
+ const a=m.elements,b=reconstructed.elements;
+ const error=Math.max(...a.map((v,i)=>Math.abs(v-b[i])));
+ if(!Number.isFinite(error)||error>1e-4)throw new Error('A transformação não pode ser representada sem perda ao remover a associação.');
+ return {position:p.toArray(),quaternion:q.toArray(),scale:sc.toArray()};
+}
 function labelFor(k){return ({head:'Cabeça',torso:'Tronco',armL:'Braço esquerdo',armR:'Braço direito',legL:'Perna esquerda',legR:'Perna direita'})[k]||k}
 function selectPart(k,mesh=null){const part=groups[k];let node=part,connected=false;while(node){if(node===character){connected=true;break;}node=node.parent;}if(!character.userData.activeModel||!connected){document.querySelector('#status').textContent='Essa parte não existe no projeto atual. Importe um modelo ou adicione objetos.';return;}setVoxelMode('select',false);selected=k;selectedObject=part;selectedMesh=mesh&&mesh.isMesh?mesh:null;selectedKind='part';node=part;while(node&&node!==character){node.visible=true;node=node.parent;}transform.attach(selectedObject);syncEditor();refreshHierarchy();}
 function selectCustom(o){setVoxelMode('select',false);selectedMesh=o?.isMesh?o:null;selectedObject=o;selectedKind=o.userData?.isBBModel?'bbmodel':(o.userData?.isVoxel?'voxel':'shape');selected=o.name;transform.attach(o);syncEditor();refreshHierarchy()}
