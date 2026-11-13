@@ -79,10 +79,11 @@ const NyraCharacterScene = (() => {
 })();
 
 const undoStack=[],redoStack=[];
+const hierarchySelection={node:null};
 function recordCommand(label,undo,redo){if(restoringHistory)return;undoStack.push({label,undo,redo});if(undoStack.length>100)undoStack.shift();redoStack.length=0;syncHistoryButtons();}
-function syncHistoryButtons(){document.querySelector('#restorePart').textContent='Desfazer · '+undoStack.length;document.querySelector('#redoPart').textContent='Refazer · '+redoStack.length;document.querySelector('#restorePart').disabled=!undoStack.length;document.querySelector('#redoPart').disabled=!redoStack.length;}
-function undoCommand(){const c=undoStack.pop();if(!c)return;restoringHistory=true;try{c.undo();redoStack.push(c);}finally{restoringHistory=false;syncHistoryButtons();}}
-function redoCommand(){const c=redoStack.pop();if(!c)return;restoringHistory=true;try{c.redo();undoStack.push(c);}finally{restoringHistory=false;syncHistoryButtons();}}
+function syncHistoryButtons(){const u=document.querySelector('#restorePart'),r=document.querySelector('#redoPart');if(!u||!r)return;u.textContent='Desfazer · '+undoStack.length;r.textContent='Refazer · '+redoStack.length;u.disabled=!undoStack.length&&!actionHistory.length;r.disabled=!redoStack.length;}
+function undoCommand(){const c=undoStack.pop();if(!c)return false;restoringHistory=true;try{c.undo();redoStack.push(c);return true;}finally{restoringHistory=false;syncHistoryButtons();}}
+function redoCommand(){const c=redoStack.pop();if(!c)return false;restoringHistory=true;try{c.redo();undoStack.push(c);return true;}finally{restoringHistory=false;syncHistoryButtons();}}
 function refreshHierarchy(){
  const tree=document.querySelector('#hierarchyTree'),select=document.querySelector('#parentTarget');if(!tree||!select)return;
  const previous=select.value,rows=NyraCharacterScene.hierarchy(scene).filter(row=>row.node!==scene&&row.node!==grid&&row.node!==ground&&row.node!==transform);
@@ -95,11 +96,36 @@ function refreshHierarchy(){
 }
 function selectSceneNode(node){
  if(!node)return;
- if(node.userData?.bbUuid){const rec=bbmodelState?.records?.find(r=>r.mesh===node);selectCustom(node);if(rec&&rec.pivot)transform.attach(rec.pivot);}
- else if(node.isMesh&&node.userData?.isVoxel)selectVoxel(node);
+ hierarchySelection.node=node;
+ if(node.userData?.bbUuid){
+  const rec=bbmodelState?.records?.find(r=>r.mesh===node);
+  selectedMesh=node;selectedObject=rec?.pivot||node;selectedKind='bbmodel';selected=node.name;
+  setVoxelMode('select',false);transform.attach(selectedObject);syncEditor();
+ }else if(node.isMesh&&node.userData?.isVoxel)selectVoxel(node);
  else if(node.isMesh||node.userData?.customShape)selectCustom(node);
- else {selectedObject=node;selectedMesh=null;selectedKind='group';selected=node.name;transform.attach(node);syncEditor();}
+ else{
+  setVoxelMode('select',false);selectedObject=node;selectedMesh=null;selectedKind='group';selected=node.name;
+  transform.attach(node);syncEditor();
+ }
  refreshHierarchy();
+}
+function hierarchyCommand(child,parent,label){
+ const previous=child.parent,previousIndex=previous.children.indexOf(child);
+ scene.updateMatrixWorld(true);
+ const beforeWorld=child.matrixWorld.clone();
+ const before=worldPositionLocal(previous,beforeWorld);
+ const afterParentWorld=parent.matrixWorld.clone();
+ const nextLocal=worldPositionLocal(parent,beforeWorld);
+ const apply=(target,index,state)=>{
+  target.add(child);const at=target.children.indexOf(child);child.parent.children.splice(at,1);target.children.splice(Math.max(0,Math.min(index,target.children.length)),0,child);
+  applyLocalTransform(child,state);refreshHierarchy();
+ };
+ NyraCharacterScene.reparent(child,parent,{preserveWorld:true});
+ const after={position:child.position.toArray(),quaternion:child.quaternion.toArray(),scale:child.scale.toArray()};
+ recordCommand(label,
+  ()=>apply(previous,previousIndex,before),
+  ()=>apply(parent,parent.children.length,after)
+ );
 }
 document.querySelector('#associateSelected').onclick=()=>{
  const child=selectedObject;if(!child){document.querySelector('#status').textContent='Selecione primeiro a peça que será associada.';return;}
@@ -107,12 +133,8 @@ document.querySelector('#associateSelected').onclick=()=>{
  const row=NyraCharacterScene.hierarchy(scene).find(x=>x.id===targetId),parent=row?.node;
  if(!parent){document.querySelector('#status').textContent='Selecione um grupo de destino.';return;}
  const check=NyraCharacterScene.canReparent(child,parent);if(!check.ok){document.querySelector('#status').textContent=check.reason;return;}
- const previous=child.parent,index=previous.children.indexOf(child),before={position:child.position.toArray(),quaternion:child.quaternion.toArray(),scale:child.scale.toArray()};
  try{
-  NyraCharacterScene.reparent(child,parent,{preserveWorld:true});
-  const after={position:child.position.toArray(),quaternion:child.quaternion.toArray(),scale:child.scale.toArray()};
-  const restore=(p,i,t)=>{p.add(child);p.children.splice(p.children.indexOf(child),1);p.children.splice(Math.max(0,Math.min(i,p.children.length)),0,child);child.position.fromArray(t.position);child.quaternion.fromArray(t.quaternion);child.scale.fromArray(t.scale);child.updateMatrix();child.updateMatrixWorld(true);};
-  recordCommand('associar '+(child.name||'peça'),()=>restore(previous,index,before),()=>restore(parent,parent.children.length,after));
+  hierarchyCommand(child,parent,'associar '+(child.name||'peça'));
   document.querySelector('#status').textContent=(child.name||'Peça')+' associada a '+parent.name+' sem alterar sua posição visual.';
  }catch(error){document.querySelector('#status').textContent='Não foi possível associar: '+error.message;}
  refreshHierarchy();
@@ -122,47 +144,32 @@ document.querySelector('#detachSelected').onclick=()=>{
  if(!child?.parent){document.querySelector('#status').textContent='Selecione uma peça que possua um grupo pai.';return;}
  const oldParent=child.parent;
  if(oldParent===scene){document.querySelector('#status').textContent='A peça já está na raiz da cena.';return;}
- scene.updateMatrixWorld(true);
- const oldIndex=oldParent.children.indexOf(child),world=child.matrixWorld.clone();
- const worldTransform=worldPositionLocal(scene,world);
- scene.add(child);
- applyLocalTransform(child,worldTransform);
- const detached={position:child.position.toArray(),quaternion:child.quaternion.toArray(),scale:child.scale.toArray()};
- const attached=worldPositionLocal(oldParent,world);
- const move=(parent,index,transformState)=>{
-  parent.add(child);
-  const at=parent.children.indexOf(child);
-  parent.children.splice(at,1);
-  parent.children.splice(Math.max(0,Math.min(index,parent.children.length)),0,child);
-  applyLocalTransform(child,transformState);
- };
- recordCommand('remover associação de '+(child.name||'peça'),
-  ()=>move(oldParent,oldIndex,attached),
-  ()=>move(scene,scene.children.length,detached)
- );
- document.querySelector('#status').textContent='Associação removida sem deslocar a peça.';
+ try{
+  hierarchyCommand(child,scene,'remover associação de '+(child.name||'peça'));
+  document.querySelector('#status').textContent='Associação removida sem deslocar a peça.';
+ }catch(error){document.querySelector('#status').textContent='Não foi possível remover a associação: '+error.message;}
  refreshHierarchy();
 };
 function applyLocalTransform(object,state){
- object.position.fromArray(state.position);
- object.quaternion.fromArray(state.quaternion);
- object.scale.fromArray(state.scale);
- object.rotation.setFromQuaternion(object.quaternion,object.rotation.order);
- object.updateMatrix();
- object.updateMatrixWorld(true);
+ object.position.fromArray(state.position);object.quaternion.fromArray(state.quaternion);object.scale.fromArray(state.scale);
+ object.rotation.setFromQuaternion(object.quaternion,object.rotation.order);object.updateMatrix();object.updateMatrixWorld(true);
 }
 function worldPositionLocal(parent,world){
- scene.updateMatrixWorld(true);
- parent.updateWorldMatrix(true,false);
+ scene.updateMatrixWorld(true);parent.updateWorldMatrix(true,false);
  const m=parent.matrixWorld.clone().invert().multiply(world);
- const p=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();
- m.decompose(p,q,sc);
- const reconstructed=new THREE.Matrix4().compose(p,q,sc);
- const a=m.elements,b=reconstructed.elements;
+ const p=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();m.decompose(p,q,sc);
+ const reconstructed=new THREE.Matrix4().compose(p,q,sc),a=m.elements,b=reconstructed.elements;
  const error=Math.max(...a.map((v,i)=>Math.abs(v-b[i])));
- if(!Number.isFinite(error)||error>1e-4)throw new Error('A transformação não pode ser representada sem perda ao remover a associação.');
+ if(!Number.isFinite(error)||error>1e-4)throw new Error('A transformação não pode ser representada sem perda (possível cisalhamento).');
  return {position:p.toArray(),quaternion:q.toArray(),scale:sc.toArray()};
 }
+document.querySelector('#restorePart').onclick=()=>{if(!undoCommand())undoLast();refreshHierarchy();syncHistoryButtons();};
+document.querySelector('#redoPart').onclick=()=>{redoCommand();refreshHierarchy();};
+window.addEventListener('keydown',e=>{
+ if(!(e.ctrlKey||e.metaKey))return;
+ if(e.key.toLowerCase()==='z'){e.preventDefault();if(!undoCommand())undoLast();refreshHierarchy();}
+ if(e.key.toLowerCase()==='y'){e.preventDefault();redoCommand();refreshHierarchy();}
+});
 function labelFor(k){return ({head:'Cabeça',torso:'Tronco',armL:'Braço esquerdo',armR:'Braço direito',legL:'Perna esquerda',legR:'Perna direita'})[k]||k}
 function selectPart(k,mesh=null){const part=groups[k];let node=part,connected=false;while(node){if(node===character){connected=true;break;}node=node.parent;}if(!character.userData.activeModel||!connected){document.querySelector('#status').textContent='Essa parte não existe no projeto atual. Importe um modelo ou adicione objetos.';return;}setVoxelMode('select',false);selected=k;selectedObject=part;selectedMesh=mesh&&mesh.isMesh?mesh:null;selectedKind='part';node=part;while(node&&node!==character){node.visible=true;node=node.parent;}transform.attach(selectedObject);syncEditor();refreshHierarchy();}
 function selectCustom(o){setVoxelMode('select',false);selectedMesh=o?.isMesh?o:null;selectedObject=o;selectedKind=o.userData?.isBBModel?'bbmodel':(o.userData?.isVoxel?'voxel':'shape');selected=o.name;transform.attach(o);syncEditor();refreshHierarchy()}
