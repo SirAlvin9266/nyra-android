@@ -20,7 +20,11 @@ const required = [
   ['refazer associação', 'function redoCommand()'],
   ['importador Blockbench preservado', 'async function importBBModelFile'],
   ['exportador Blockbench preservado', 'function buildBBModelExportData'],
-  ['ponte já existente para RoboTV preservada', 'NYRA_SCENE_TRANSFER_SUBMIT']
+  ['ponte já existente para RoboTV preservada', 'NYRA_SCENE_TRANSFER_SUBMIT'],
+  ['seleção centralizada', 'function activateSelection(object,kind,mesh=null)'],
+  ['inspeção da geometria pelo núcleo', 'NyraCharacterScene.geometryNode(selectedObject)'],
+  ['pintura por escopo e nó selecionado', "function setSelectedColor(color)"],
+  ['histórico de hierarquia separado do legado', 'const undoStack=[],redoStack=[]']
 ];
 const missing = required.filter(([, marker]) => !html.includes(marker));
 if (missing.length) {
