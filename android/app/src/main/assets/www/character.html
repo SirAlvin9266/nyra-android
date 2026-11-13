@@ -97,9 +97,9 @@ const undoStack=[],redoStack=[];
 const hierarchySelection={node:null};
 function syncHistoryButtons(){const u=document.querySelector('#restorePart'),r=document.querySelector('#redoPart');if(!u||!r)return;u.textContent='Desfazer · '+undoStack.length;r.textContent='Refazer · '+redoStack.length;u.disabled=!undoStack.length;r.disabled=!redoStack.length;}
 function recordCommand(label,undo,redo){if(restoringHistory)return;undoStack.push({label,undo,redo});if(undoStack.length>HISTORY_LIMIT)undoStack.shift();redoStack.length=0;syncHistoryButtons();}
-function pushUndo(label,undo){recordCommand(label,undo,()=>{});}
-function undoCommand(){const c=undoStack.pop();if(!c)return false;restoringHistory=true;try{c.undo();redoStack.push(c);return true;}catch(error){undoStack.push(c);throw error;}finally{restoringHistory=false;syncHistoryButtons();}}
-function redoCommand(){const c=redoStack.pop();if(!c)return false;restoringHistory=true;try{c.redo();undoStack.push(c);return true;}catch(error){redoStack.push(c);throw error;}finally{restoringHistory=false;syncHistoryButtons();}}
+function pushUndo(label,undo){recordCommand(label,undo,null);}
+function undoCommand(){const c=undoStack.pop();if(!c)return false;restoringHistory=true;try{c.undo();if(typeof c.redo==='function')redoStack.push(c);return true;}catch(error){undoStack.push(c);throw error;}finally{restoringHistory=false;syncHistoryButtons();}}
+function redoCommand(){const c=redoStack.pop();if(!c||typeof c.redo!=='function')return false;restoringHistory=true;try{c.redo();undoStack.push(c);return true;}catch(error){redoStack.push(c);throw error;}finally{restoringHistory=false;syncHistoryButtons();}}
 function undoLast(){return undoCommand();}
 function refreshHierarchy(){
  const tree=document.querySelector('#hierarchyTree'),select=document.querySelector('#parentTarget');if(!tree||!select)return;
