@@ -43,7 +43,7 @@ const checks = [
   ['grupo altera apenas descendentes, sem alcançar ramos irmãos', source.includes('root.traverse(paint)') && source.includes('paintMaterials(root,color,scope===\'group\')')],
   ['escopo peça para grupo aplica material somente no nó selecionado', source.includes('forEachEditableMaterial(root,mat=>{if(mat.color)mat.color.set(color)})')],
   ['peça selecionada por raycast é mantida separada do nó de transformação', source.includes('selectedMesh') && source.includes('selectPart(k,mesh=null)') && source.includes('selectPart(o.name,bodyHits[0].object)')],
-  ['escopo grupo de forma não sobe ao contêiner global indiscriminadamente', source.includes('selectedObject.parent&&selectedObject.parent!==voxelGroup')],
+  ['escopo grupo de forma não sobe ao contêiner global indiscriminadamente', source.includes('else root=selectedObject;') && !source.includes('selectedObject.parent&&selectedObject.parent!==voxelGroup')],
   ['escopo grupo Blockbench parte de grupo UUID selecionado', source.includes('parent.userData?.bbGroupUuid')],
   ['escopo grupo percorre apenas a subárvore selecionada', source.includes('paintMaterials(root,color,scope===\'group\')')],
   ['escopo modelo aplica a cor ao projeto inteiro', source.includes('function paintWholeProject(color)')],
