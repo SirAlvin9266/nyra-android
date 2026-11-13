@@ -8,35 +8,252 @@
 <body><header><h1>Nyra 3D Studio — Criador de Personagens</h1><small>Importe um modelo, edite suas partes ou comece com uma cena vazia. Exporte o projeto JSON quando quiser.</small></header><main><section class="panel"><div class="pt">Cena 3D · câmera livre</div><div id="view"></div><div class="controls"><div class="row"><button id="resetCam">Centralizar câmera</button><button id="randomize">Cor aleatória do objeto</button></div><div class="muted">Arraste para girar · roda/pinça para aproximar · clique em um objeto para selecioná-lo.</div></div></section><section class="panel"><div class="pt">Personalização</div><div class="controls"><div><label for="partColor">Cor da parte selecionada</label><input id="partColor" type="color" value="#35e5ff"></div>
 <div><label for="paintScope">Escopo da pintura</label><select id="paintScope" style="width:100%"><option value="piece">Peça selecionada</option><option value="group">Grupo e descendentes</option><option value="model">Modelo inteiro</option></select></div><div><div class="subhead">Cor avançada · HSL</div><div class="color-grid"><div><label for="hue">Matiz</label><input id="hue" type="range" min="0" max="360" value="190"></div><div><label for="sat">Saturação</label><input id="sat" type="range" min="0" max="100" value="80"></div><div><label for="lum">Luminosidade</label><input id="lum" type="range" min="0" max="100" value="60"></div></div><div class="hint">Ajuste matiz, saturação e luminosidade ou use o seletor de cor acima.</div></div>
 <div><div class="subhead">Adicionar forma 3D</div><div class="row"><select id="shapeType" aria-label="Tipo de forma"><option value="box">Cubo</option><option value="sphere">Esfera</option><option value="cylinder">Cilindro</option><option value="cone">Cone</option></select><button id="addShape" class="primary">＋ Adicionar forma</button></div></div>
-<div><div class="subhead">Objeto selecionado: <span id="selectedLabel">Cabeça</span></div><div class="field-grid"><div><label for="dimX">Largura / X</label><input id="dimX" type="number" min="0.05" max="10" step="0.05" value="1"></div><div><label for="dimY">Altura / Y</label><input id="dimY" type="number" min="0.05" max="10" step="0.05" value="1"></div><div><label for="dimZ">Profund. / Z</label><input id="dimZ" type="number" min="0.05" max="10" step="0.05" value="1"></div></div><div class="field-grid"><div><label for="posX">Posição X</label><input id="posX" type="number" step="0.1" value="0"></div><div><label for="posY">Posição Y</label><input id="posY" type="number" step="0.1" value="0"></div><div><label for="posZ">Posição Z</label><input id="posZ" type="number" step="0.1" value="0"></div></div><div class="row"><button id="moveTool" class="primary">Mover</button><button id="rotateTool">Girar</button><button id="scaleTool">Escalar</button></div><div class="row"><button id="deleteSelected" class="danger">Apagar selecionado</button><button id="restorePart">Desfazer (Ctrl+Z)</button></div><div class="hint">As ferramentas atuam somente sobre objetos que existam no projeto atual. O modelo de demonstração permanece interno, mas não pode ser inserido por botões nesta etapa.</div></div><div><label for="name">Nome do personagem</label><input id="name" value="Meu Personagem" maxlength="60" style="width:100%"></div><div><label>Modo de edição voxel</label><div class="row"><button id="modeSelect" class="primary">↖ Selecionar / editar</button><button id="modeAdd">＋ Adicionar blocos</button><button id="modeDelete">⌫ Apagar blocos</button></div><div class="muted">Selecionar/editar: clique no corpo ou numa forma. Adicionar blocos: clique na grade ou na face de um bloco/forma. Apagar blocos: clique num voxel. Arrastar a cena move apenas a câmera; arrastar as alças transforma o objeto selecionado. O histórico permite desfazer as últimas 50 ações.</div></div>
+<div><div class="subhead">Objeto selecionado: <span id="selectedLabel">Cabeça</span></div><div class="field-grid"><div><label for="dimX">Largura / X</label><input id="dimX" type="number" min="0.05" max="10" step="0.05" value="1"></div><div><label for="dimY">Altura / Y</label><input id="dimY" type="number" min="0.05" max="10" step="0.05" value="1"></div><div><label for="dimZ">Profund. / Z</label><input id="dimZ" type="number" min="0.05" max="10" step="0.05" value="1"></div></div><div class="field-grid"><div><label for="posX">Posição X</label><input id="posX" type="number" step="0.1" value="0"></div><div><label for="posY">Posição Y</label><input id="posY" type="number" step="0.1" value="0"></div><div><label for="posZ">Posição Z</label><input id="posZ" type="number" step="0.1" value="0"></div></div><div class="row"><button id="moveTool" class="primary">Mover</button><button id="rotateTool">Girar</button><button id="scaleTool">Escalar</button></div><div><div class="subhead">Hierarquia da cena</div><div class="row"><select id="parentTarget" aria-label="Associar peça selecionada a" style="min-width:0"><option value="">Selecione o grupo de destino</option></select><button id="associateSelected" type="button">Associar a</button></div><div id="hierarchyTree" class="hint" style="max-height:150px;overflow:auto;padding:7px;background:#111722;border:1px solid var(--line);border-radius:8px">Nenhuma hierarquia disponível.</div><div class="row"><button id="detachSelected" type="button">Remover associação</button></div></div><div class="row"><button id="deleteSelected" class="danger">Apagar selecionado</button><button id="restorePart">Desfazer (Ctrl+Z)</button><button id="redoPart">Refazer</button></div><div class="hint">As ferramentas atuam somente sobre objetos que existam no projeto atual. O modelo de demonstração permanece interno, mas não pode ser inserido por botões nesta etapa.</div></div><div><label for="name">Nome do personagem</label><input id="name" value="Meu Personagem" maxlength="60" style="width:100%"></div><div><label>Modo de edição voxel</label><div class="row"><button id="modeSelect" class="primary">↖ Selecionar / editar</button><button id="modeAdd">＋ Adicionar blocos</button><button id="modeDelete">⌫ Apagar blocos</button></div><div class="muted">Selecionar/editar: clique no corpo ou numa forma. Adicionar blocos: clique na grade ou na face de um bloco/forma. Apagar blocos: clique num voxel. Arrastar a cena move apenas a câmera; arrastar as alças transforma o objeto selecionado. O histórico mantém até 100 ações; operações compatíveis também podem ser refeitas.</div></div>
 <div class="row"><button class="primary" id="save">Exportar personagem JSON</button><button id="load">Importar modelo / projeto (.bbmodel, .json)</button><input id="file" type="file" accept=".bbmodel,.json,application/json" hidden></div><div class="row"><button id="saveBBModel" disabled>Exportar .bbmodel editado</button><button id="sendRoboTv" disabled>Enviar para RoboTV</button></div><div class="status" id="status">Pronto para criar.</div><div class="muted">Crie e edite o personagem, importe modelos .bbmodel e envie a hierarquia e as animações ao RoboTV. A exportação final para Minecraft Bedrock continua em desenvolvimento.</div></div></section></main>
 <script type="module">
 try {
 const [THREE,{OrbitControls},{TransformControls}] = await Promise.all([import('three'),import('three/addons/controls/OrbitControls.js'),import('three/addons/controls/TransformControls.js')]);
-const root=document.querySelector('#view'),scene=new THREE.Scene();scene.background=new THREE.Color('#111722');const camera=new THREE.PerspectiveCamera(42,1,.1,100);camera.position.set(4.7,4.1,7);const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.shadowMap.enabled=true;root.appendChild(renderer.domElement);const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.target.set(0,1.8,0);const transform=new TransformControls(camera,renderer.domElement);scene.add(typeof transform.getHelper==='function' ? transform.getHelper() : transform);transform.addEventListener('dragging-changed',e=>{controls.enabled=!e.value;if(e.value&&selectedObject)transformBefore={object:selectedObject,position:selectedObject.position.toArray(),rotation:[selectedObject.rotation.x,selectedObject.rotation.y,selectedObject.rotation.z],scale:selectedObject.scale.toArray()};else if(!e.value&&transformBefore){const snap=transformBefore;transformBefore=null;const o=snap.object,changed=o&&(['position','scale'].some(k=>snap[k]&&o[k].toArray().some((v,i)=>Math.abs(v-snap[k][i])>.0001))||snap.rotation.some((v,i)=>Math.abs(v-[o.rotation.x,o.rotation.y,o.rotation.z][i])>.0001));if(changed)pushUndo('transformação',()=>{o.position.fromArray(snap.position);o.rotation.set(...snap.rotation);o.scale.fromArray(snap.scale);if(selectedObject===o)syncEditor()});}});transform.addEventListener('objectChange',()=>{if(selectedObject)syncEditor()});scene.add(new THREE.HemisphereLight(0xd8ebff,0x343041,2));const light=new THREE.DirectionalLight(0xffffff,2.3);light.position.set(4,7,5);light.castShadow=true;scene.add(light);const fill=new THREE.DirectionalLight(0x35e5ff,.8);fill.position.set(-4,3,-4);scene.add(fill);const grid=new THREE.GridHelper(10,10,0x53657b,0x29384a);scene.add(grid);
+const root=document.querySelector('#view'),scene=new THREE.Scene();scene.background=new THREE.Color('#111722');const camera=new THREE.PerspectiveCamera(42,1,.1,100);camera.position.set(4.7,4.1,7);const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.shadowMap.enabled=true;root.appendChild(renderer.domElement);const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.target.set(0,1.8,0);const transform=new TransformControls(camera,renderer.domElement);scene.add(typeof transform.getHelper==='function' ? transform.getHelper() : transform);transform.addEventListener('dragging-changed',e=>{controls.enabled=!e.value;if(e.value&&selectedObject)transformBefore={object:selectedObject,position:selectedObject.position.toArray(),rotation:[selectedObject.rotation.x,selectedObject.rotation.y,selectedObject.rotation.z],scale:selectedObject.scale.toArray()};else if(!e.value&&transformBefore){const snap=transformBefore;transformBefore=null;const o=snap.object,changed=o&&(['position','scale'].some(k=>snap[k]&&o[k].toArray().some((v,i)=>Math.abs(v-snap[k][i])>.0001))||snap.rotation.some((v,i)=>Math.abs(v-[o.rotation.x,o.rotation.y,o.rotation.z][i])>.0001));if(changed){const after={position:o.position.toArray(),rotation:[o.rotation.x,o.rotation.y,o.rotation.z],scale:o.scale.toArray()};pushUndo('transformação',()=>{o.position.fromArray(snap.position);o.rotation.set(...snap.rotation);o.scale.fromArray(snap.scale);o.updateMatrix();o.updateMatrixWorld(true);if(selectedObject===o)syncEditor()},()=>{o.position.fromArray(after.position);o.rotation.set(...after.rotation);o.scale.fromArray(after.scale);o.updateMatrix();o.updateMatrixWorld(true);if(selectedObject===o)syncEditor()});}}});transform.addEventListener('objectChange',()=>{if(selectedObject)syncEditor()});scene.add(new THREE.HemisphereLight(0xd8ebff,0x343041,2));const light=new THREE.DirectionalLight(0xffffff,2.3);light.position.set(4,7,5);light.castShadow=true;scene.add(light);const fill=new THREE.DirectionalLight(0x35e5ff,.8);fill.position.set(-4,3,-4);scene.add(fill);const grid=new THREE.GridHelper(10,10,0x53657b,0x29384a);scene.add(grid);
 const voxelGroup=new THREE.Group();voxelGroup.name='VoxelBlocks';scene.add(voxelGroup);let voxelMode='select';const voxelRecords=[];const voxelGeo=new THREE.BoxGeometry(1,1,1);const ground=new THREE.Mesh(new THREE.PlaneGeometry(20,20),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,colorWrite:false}));ground.rotation.x=-Math.PI/2;ground.position.y=-.5;scene.add(ground);
 const mats={};const groups={};const defaults={head:'#35e5ff',torso:'#263548',armL:'#d5e2ed',armR:'#d5e2ed',legL:'#56677d',legR:'#56677d'};function material(k){return mats[k] ||= new THREE.MeshStandardMaterial({color:defaults[k]||'#d5e2ed',roughness:.72})}function box(parent,name,pos,size,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(...size),mat);m.name=name;m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}const character=new THREE.Group();scene.add(character);
 groups.torso=new THREE.Group();groups.torso.name='torso';groups.torso.position.set(0,2.2,0);character.add(groups.torso);box(groups.torso,'Torso',[0,0,0],[1.05,1.2,.58],material('torso'));box(groups.torso,'ChestPanel',[0,.12,.31],[.62,.4,.045],new THREE.MeshStandardMaterial({color:'#2a9fa9',metalness:.2}));
 groups.head=new THREE.Group();groups.head.name='head';groups.head.position.set(0,.88,0);groups.torso.add(groups.head);const headMesh=box(groups.head,'Head',[0,.28,0],[.92,.78,.72],material('head'));box(groups.head,'EyeL',[-.2,.3,.37],[.12,.13,.035],new THREE.MeshStandardMaterial({color:'#ffffff',emissive:'#66ddff',emissiveIntensity:.8}));box(groups.head,'EyeR',[.2,.3,.37],[.12,.13,.035],new THREE.MeshStandardMaterial({color:'#ffffff',emissive:'#66ddff',emissiveIntensity:.8}));
 for(const [key,x] of [['armL',-.72],['armR',.72]]){groups[key]=new THREE.Group();groups[key].name=key;groups[key].position.set(x,.4,0);groups.torso.add(groups[key]);box(groups[key],key+'Upper',[0,-.32,0],[.3,.68,.34],material(key));box(groups[key],key+'Hand',[0,-.72,.02],[.36,.23,.36],material(key))}for(const [key,x] of [['legL',-.28],['legR',.28]]){groups[key]=new THREE.Group();groups[key].name=key;groups[key].position.set(x,1.55,0);character.add(groups[key]);box(groups[key],key+'Upper',[0,-.35,0],[.38,.75,.42],material(key));box(groups[key],key+'Foot',[0,-.78,.1],[.44,.22,.58],material(key))}
 let selected=null,selectedObject=null,selectedMesh=null,selectedKind='none';const customObjects=[];const partBase={head:[.92,.78,.72],torso:[1,1,1],armL:[1,1,1],armR:[1,1,1],legL:[1,1,1],legR:[1,1,1]};
-const actionHistory=[];const HISTORY_LIMIT=50;let transformBefore=null;let restoringHistory=false;function pushUndo(label,undo){if(restoringHistory)return;actionHistory.push({label,undo});if(actionHistory.length>HISTORY_LIMIT)actionHistory.shift();document.querySelector('#restorePart').textContent='Desfazer (Ctrl+Z) · '+actionHistory.length;}function undoLast(){const action=actionHistory.pop();if(!action){document.querySelector('#status').textContent='Não há ações para desfazer.';return;}restoringHistory=true;try{action.undo();}catch(err){console.error('Falha ao desfazer',err);document.querySelector('#status').textContent='Não foi possível desfazer esta ação: '+err.message;}finally{restoringHistory=false;document.querySelector('#restorePart').textContent='Desfazer (Ctrl+Z) · '+actionHistory.length;document.querySelector('#status').textContent='Ação desfeita: '+action.label+'.';}}
+const actionHistory=[];const HISTORY_LIMIT=100;let transformBefore=null;let restoringHistory=false;
+
+/*
+ * Character Creator scene core.
+ * This module is intentionally local to this editor; it does not define a
+ * cross-workshop project format. Scene nodes remain Three.js Object3D values.
+ */
+const NyraCharacterScene = (() => {
+ const ids=new WeakMap();let nextId=1;
+ const idOf=o=>{if(!o||typeof o!=='object')return null;if(!ids.has(o))ids.set(o,'cc-node-'+nextId++);return ids.get(o)};
+ const isAncestor=(ancestor,node)=>{for(let p=node;p;p=p.parent)if(p===ancestor)return true;return false};
+ const roots=()=>[character,voxelGroup,bbmodelState?.rootGroup].filter(Boolean);
+ const objectKind=node=>{
+  if(!node)return 'none';
+  if(roots().includes(node))return 'root';
+  if(node.userData?.bbGroupUuid)return 'group';
+  if(node.userData?.bbPivot)return 'pivot';
+  if(node.userData?.isVoxel)return 'voxel';
+  if(node.userData?.customShape)return 'shape';
+  if(node.userData?.isBBModel||node.userData?.bbUuid)return 'bbmodel';
+  return node.isMesh?'mesh':'group';
+ };
+ const isEditable=(node)=>!!node&&!roots().includes(node)&&node!==scene&&!node.isLight&&!node.isCamera&&!node.isGridHelper;
+ const geometryNode=node=>node?.isMesh?node:(node?.userData?.bbPivot?node.children.find(c=>c.isMesh):null);
+ const canPaint=(node)=>!!geometryNode(node);
+
+ function canReparent(child,parent){
+  if(!child||!parent||child===parent)return {ok:false,reason:'Escolha duas peças diferentes.'};
+  if(isAncestor(child,parent))return {ok:false,reason:'Essa associação criaria um ciclo na hierarquia.'};
+  if(child===scene||child===character||child===voxelGroup||child===bbmodelState?.rootGroup)return {ok:false,reason:'Esse elemento é uma raiz protegida.'};
+  if(parent.isMesh)return {ok:false,reason:'A peça de destino precisa ser um grupo ou objeto que possa receber filhos.'};
+  if(child.parent===parent)return {ok:false,reason:'A peça já pertence a esse grupo.'};
+  return {ok:true};
+ }
+ function reparent(child,parent,{preserveWorld=true}={}){
+  const validation=canReparent(child,parent);if(!validation.ok)throw new Error(validation.reason);
+  scene.updateMatrixWorld(true);
+  const world=child.matrixWorld.clone(),oldParent=child.parent,oldIndex=oldParent?.children.indexOf(child)??-1;
+  const oldLocal={position:child.position.clone(),quaternion:child.quaternion.clone(),rotation:child.rotation.clone(),scale:child.scale.clone()};
+  try{
+   parent.add(child);
+   if(preserveWorld){
+    parent.updateWorldMatrix(true,false);
+    const local=parent.matrixWorld.clone().invert().multiply(world);
+    const p=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();
+    local.decompose(p,q,sc);
+    child.position.copy(p);child.quaternion.copy(q);child.scale.copy(sc);
+    child.rotation.setFromQuaternion(q,child.rotation.order);
+    child.updateMatrix();
+    child.updateMatrixWorld(true);
+    const check=child.matrixWorld.clone();
+    const e1=world.elements,e2=check.elements;
+    const error=Math.max(...e1.map((v,i)=>Math.abs(v-e2[i])));
+    if(!Number.isFinite(error)||error>1e-4)throw new Error('A transformação não pode ser preservada exatamente neste tipo de hierarquia (possível cisalhamento).');
+   }
+   return validation;
+  }catch(error){
+   if(oldParent){oldParent.add(child);const at=oldParent.children.indexOf(child);oldParent.children.splice(at,1);oldParent.children.splice(Math.max(0,Math.min(oldIndex,oldParent.children.length)),0,child);}
+   else parent.remove(child);
+   child.position.copy(oldLocal.position);child.quaternion.copy(oldLocal.quaternion);child.rotation.copy(oldLocal.rotation);child.scale.copy(oldLocal.scale);
+   child.updateMatrix();child.updateMatrixWorld(true);
+   throw error;
+  }
+ }
+ function hierarchy(root=scene){
+  const result=[];
+  const visit=(node,depth,parentId=null)=>{
+   if(node===scene)return node.children.forEach(child=>visit(child,0,null));
+   const id=idOf(node);
+   result.push({id,name:node.name||node.type||'Objeto',type:node.isMesh?'mesh':'group',depth,parentId,node});
+   for(const child of node.children||[])visit(child,depth+1,id);
+  };
+  visit(root,0,null);return result;
+ }
+ return {idOf,isAncestor,canReparent,reparent,hierarchy,objectKind,isEditable,geometryNode,canPaint};
+})();
+
+const undoStack=[],redoStack=[];
+const hierarchySelection={node:null};
+function syncHistoryButtons(){const u=document.querySelector('#restorePart'),r=document.querySelector('#redoPart');if(!u||!r)return;u.textContent='Desfazer · '+undoStack.length;r.textContent='Refazer · '+redoStack.length;u.disabled=!undoStack.length;r.disabled=!redoStack.length;}
+function recordCommand(label,undo,redo){if(restoringHistory)return;undoStack.push({label,undo,redo});if(undoStack.length>HISTORY_LIMIT)undoStack.shift();redoStack.length=0;syncHistoryButtons();}
+function pushUndo(label,undo){recordCommand(label,undo,null);}
+function undoCommand(){const c=undoStack.pop();if(!c)return false;restoringHistory=true;try{c.undo();if(typeof c.redo==='function')redoStack.push(c);return true;}catch(error){undoStack.push(c);throw error;}finally{restoringHistory=false;syncHistoryButtons();}}
+function redoCommand(){const c=redoStack.pop();if(!c||typeof c.redo!=='function')return false;restoringHistory=true;try{c.redo();undoStack.push(c);return true;}catch(error){redoStack.push(c);throw error;}finally{restoringHistory=false;syncHistoryButtons();}}
+function undoLast(){return undoCommand();}
+function refreshHierarchy(){
+ const tree=document.querySelector('#hierarchyTree'),select=document.querySelector('#parentTarget');if(!tree||!select)return;
+ const previous=select.value,rows=NyraCharacterScene.hierarchy(scene).filter(row=>row.node!==scene&&row.node!==grid&&row.node!==ground&&row.node!==transform);
+ tree.replaceChildren();select.replaceChildren(new Option('Selecione o grupo de destino',''));
+ for(const row of rows){
+  const option=new Option('　'.repeat(Math.min(row.depth,8))+(row.node.isMesh?'▰ ':'▣ ')+row.name,row.id);if(!row.node.isMesh)select.add(option);
+  const line=document.createElement('div');line.style.paddingLeft=(row.depth*12)+'px';line.textContent=(row.node.isMesh?'▰ ':'▣ ')+row.name;line.style.cursor='pointer';line.style.paddingTop='3px';line.style.paddingBottom='3px';line.title='Selecionar '+row.name;line.onclick=()=>selectSceneNode(row.node);tree.append(line);
+ }
+ if([...select.options].some(o=>o.value===previous))select.value=previous;
+}
+function selectSceneNode(node){
+ if(!node)return;
+ hierarchySelection.node=node;
+ if(node.userData?.bbUuid){
+  const rec=bbmodelState?.records?.find(r=>r.mesh===node);
+  selectedMesh=node;selectedObject=rec?.pivot||node;selectedKind='bbmodel';selected=node.name;
+  setVoxelMode('select',false);transform.attach(selectedObject);syncEditor();
+ }else if(node.isMesh&&node.userData?.isVoxel)selectVoxel(node);
+ else if(node.isMesh||node.userData?.customShape)selectCustom(node);
+ else{
+  setVoxelMode('select',false);selectedObject=node;selectedMesh=null;selectedKind='group';selected=node.name;
+  transform.attach(node);syncEditor();
+ }
+ refreshHierarchy();
+}
+function hierarchyCommand(child,parent,label){
+ const previous=child.parent,previousIndex=previous.children.indexOf(child);
+ scene.updateMatrixWorld(true);
+ const beforeWorld=child.matrixWorld.clone();
+ const before=worldPositionLocal(previous,beforeWorld);
+ const apply=(target,index,state)=>{
+  const currentParent=child.parent;
+  if(currentParent){
+   const currentIndex=currentParent.children.indexOf(child);
+   if(currentIndex>=0)currentParent.children.splice(currentIndex,1);
+  }
+  child.parent=target;
+  target.children.splice(Math.max(0,Math.min(index,target.children.length)),0,child);
+  applyLocalTransform(child,state);refreshHierarchy();
+ };
+ NyraCharacterScene.reparent(child,parent,{preserveWorld:true});
+ const after={position:child.position.toArray(),quaternion:child.quaternion.toArray(),scale:child.scale.toArray()};
+ recordCommand(label,
+  ()=>apply(previous,previousIndex,before),
+  ()=>apply(parent,parent.children.length,after)
+ );
+}
+document.querySelector('#associateSelected').onclick=()=>{
+ const child=selectedObject;if(!child){document.querySelector('#status').textContent='Selecione primeiro a peça que será associada.';return;}
+ const targetId=document.querySelector('#parentTarget').value;
+ const row=NyraCharacterScene.hierarchy(scene).find(x=>x.id===targetId),parent=row?.node;
+ if(!parent){document.querySelector('#status').textContent='Selecione um grupo de destino.';return;}
+ const check=NyraCharacterScene.canReparent(child,parent);if(!check.ok){document.querySelector('#status').textContent=check.reason;return;}
+ try{
+  hierarchyCommand(child,parent,'associar '+(child.name||'peça'));
+  document.querySelector('#status').textContent=(child.name||'Peça')+' associada a '+parent.name+' sem alterar sua posição visual.';
+ }catch(error){document.querySelector('#status').textContent='Não foi possível associar: '+error.message;}
+ refreshHierarchy();
+};
+document.querySelector('#detachSelected').onclick=()=>{
+ const child=selectedObject;
+ if(!child?.parent){document.querySelector('#status').textContent='Selecione uma peça que possua um grupo pai.';return;}
+ const oldParent=child.parent;
+ if(oldParent===scene){document.querySelector('#status').textContent='A peça já está na raiz da cena.';return;}
+ try{
+  hierarchyCommand(child,scene,'remover associação de '+(child.name||'peça'));
+  document.querySelector('#status').textContent='Associação removida sem deslocar a peça.';
+ }catch(error){document.querySelector('#status').textContent='Não foi possível remover a associação: '+error.message;}
+ refreshHierarchy();
+};
+function applyLocalTransform(object,state){
+ object.position.fromArray(state.position);object.quaternion.fromArray(state.quaternion);object.scale.fromArray(state.scale);
+ object.rotation.setFromQuaternion(object.quaternion,object.rotation.order);object.updateMatrix();object.updateMatrixWorld(true);
+}
+function worldPositionLocal(parent,world){
+ scene.updateMatrixWorld(true);parent.updateWorldMatrix(true,false);
+ const m=parent.matrixWorld.clone().invert().multiply(world);
+ const p=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();m.decompose(p,q,sc);
+ const reconstructed=new THREE.Matrix4().compose(p,q,sc),a=m.elements,b=reconstructed.elements;
+ const error=Math.max(...a.map((v,i)=>Math.abs(v-b[i])));
+ if(!Number.isFinite(error)||error>1e-4)throw new Error('A transformação não pode ser representada sem perda (possível cisalhamento).');
+ return {position:p.toArray(),quaternion:q.toArray(),scale:sc.toArray()};
+}
+document.querySelector('#restorePart').onclick=()=>{try{if(!undoCommand())document.querySelector('#status').textContent='Não há ações para desfazer.';}catch(error){document.querySelector('#status').textContent='Falha ao desfazer: '+error.message;}refreshHierarchy();};
+document.querySelector('#redoPart').onclick=()=>{try{if(!redoCommand())document.querySelector('#status').textContent='Não há ações para refazer.';}catch(error){document.querySelector('#status').textContent='Falha ao refazer: '+error.message;}refreshHierarchy();};
+window.addEventListener('keydown',e=>{
+ if(!(e.ctrlKey||e.metaKey))return;
+ if(e.key.toLowerCase()==='z'){e.preventDefault();try{if(!undoCommand())document.querySelector('#status').textContent='Não há ações para desfazer.';}catch(error){document.querySelector('#status').textContent='Falha ao desfazer: '+error.message;}refreshHierarchy();}
+ if(e.key.toLowerCase()==='y'){e.preventDefault();try{if(!redoCommand())document.querySelector('#status').textContent='Não há ações para refazer.';}catch(error){document.querySelector('#status').textContent='Falha ao refazer: '+error.message;}refreshHierarchy();}
+});
 function labelFor(k){return ({head:'Cabeça',torso:'Tronco',armL:'Braço esquerdo',armR:'Braço direito',legL:'Perna esquerda',legR:'Perna direita'})[k]||k}
-function selectPart(k,mesh=null){const part=groups[k];let node=part,connected=false;while(node){if(node===character){connected=true;break;}node=node.parent;}if(!character.userData.activeModel||!connected){document.querySelector('#status').textContent='Essa parte não existe no projeto atual. Importe um modelo ou adicione objetos.';return;}setVoxelMode('select',false);selected=k;selectedObject=part;selectedMesh=mesh&&mesh.isMesh?mesh:null;selectedKind='part';node=part;while(node&&node!==character){node.visible=true;node=node.parent;}transform.attach(selectedObject);syncEditor();}
-function selectCustom(o){setVoxelMode('select',false);selectedMesh=o?.isMesh?o:null;selectedObject=o;selectedKind=o.userData?.isBBModel?'bbmodel':(o.userData?.isVoxel?'voxel':'shape');selected=o.name;transform.attach(o);syncEditor()}
-function selectVoxel(o){selectCustom(o);document.querySelector('#status').textContent='Voxel selecionado. Você pode mover, girar, redimensionar ou alterar a cor.'}
-function syncEditor(){if(!selectedObject)return;let color;if(selectedKind==='part')color='#'+material(selected).color.getHexString();else {const mat=Array.isArray(selectedObject.material)?selectedObject.material.find(m=>m?.color):selectedObject.material;color='#'+(mat?.color||new THREE.Color('#d5e2ed')).getHexString();}document.querySelector('#partColor').value=color;document.querySelector('#selectedLabel').textContent=selectedKind==='part'?labelFor(selected):selectedObject.name;const sc=selectedObject.scale,po=selectedObject.position;for(const [id,val] of [['dimX',sc.x],['dimY',sc.y],['dimZ',sc.z],['posX',po.x],['posY',po.y],['posZ',po.z]])document.querySelector('#'+id).value=Number(val.toFixed(3));const c=new THREE.Color(color);const hsl={};c.getHSL(hsl);document.querySelector('#hue').value=Math.round(hsl.h*360);document.querySelector('#sat').value=Math.round(hsl.s*100);document.querySelector('#lum').value=Math.round(hsl.l*100)}
+function activateSelection(object,kind,mesh=null){
+ if(!NyraCharacterScene.isEditable(object))return false;
+ selectedObject=object;selectedKind=kind;selectedMesh=mesh||geometryNodeForSelection(object);selected=object.name||kind;
+ hierarchySelection.node=object;
+ setVoxelMode('select',false);transform.attach(object);syncEditor();refreshHierarchy();return true;
+}
+function geometryNodeForSelection(object){
+ const kind=NyraCharacterScene.objectKind(object);
+ if(kind==='pivot')return NyraCharacterScene.geometryNode(object);
+ if(kind==='group')return object;
+ return object?.isMesh?object:null;
+}
+function selectPart(k,mesh=null){
+ const part=groups[k];let node=part,connected=false;
+ while(node){if(node===character){connected=true;break;}node=node.parent;}
+ if(!character.userData.activeModel||!connected){document.querySelector('#status').textContent='Essa parte não existe no projeto atual. Importe um modelo ou adicione objetos.';return;}
+ selected=k;activateSelection(part,'part',mesh&&mesh.isMesh?mesh:null);
+ node=part;while(node&&node!==character){node.visible=true;node=node.parent;}
+}
+function selectCustom(object){
+ const kind=NyraCharacterScene.objectKind(object);
+ if(kind==='root'||!NyraCharacterScene.isEditable(object))return;
+ activateSelection(object,kind==='bbmodel'?'bbmodel':kind==='voxel'?'voxel':kind==='shape'?'shape':kind);
+}
+function selectVoxel(object){
+ selectCustom(object);
+ document.querySelector('#status').textContent='Voxel selecionado. Você pode mover, girar, redimensionar ou alterar a cor.';
+}
+function syncEditor(){
+ if(!selectedObject)return;
+ const geometry=selectedMesh||NyraCharacterScene.geometryNode(selectedObject);
+ let color;
+ if(selectedKind==='part')color='#'+material(selected).color.getHexString();
+ else{
+  const mat=Array.isArray(geometry?.material)?geometry.material.find(m=>m?.color):geometry?.material;
+  color='#'+(mat?.color||new THREE.Color('#d5e2ed')).getHexString();
+ }
+ document.querySelector('#partColor').value=color;
+ document.querySelector('#selectedLabel').textContent=selectedKind==='part'?labelFor(selected):(selectedObject.name||'Objeto');
+ const sc=selectedObject.scale,po=selectedObject.position;
+ for(const [id,val] of [['dimX',sc.x],['dimY',sc.y],['dimZ',sc.z],['posX',po.x],['posY',po.y],['posZ',po.z]])document.querySelector('#'+id).value=Number(val.toFixed(3));
+ const c=new THREE.Color(color),hsl={};c.getHSL(hsl);
+ document.querySelector('#hue').value=Math.round(hsl.h*360);
+ document.querySelector('#sat').value=Math.round(hsl.s*100);
+ document.querySelector('#lum').value=Math.round(hsl.l*100);
+}
 function forEachEditableMaterial(object,callback){const list=Array.isArray(object?.material)?object.material:(object?.material?[object.material]:[]);list.forEach(callback);}
 function paintMaterials(root,color,deep=true){
  if(!root)return;
  const paint=node=>{if(node.isMesh)forEachEditableMaterial(node,mat=>{if(mat.color)mat.color.set(color)});};
  if(root.isMesh){paint(root);return;}
  if(deep){
-  // Traverse only descendants, never siblings or the parent's other branches.
+  // Traverse only the selected subtree. A non-mesh group is a container;
+  // its meshes are descendants and must be painted explicitly.
   root.traverse(paint);
  }else{
-  // A selected group is not itself a mesh; "piece" must mean the exact selected
-  // node's own geometry, not all immediate children (which are often peer meshes).
+  // A group is not a drawable piece. In piece scope, do not fall through
+  // to descendants because that would accidentally paint sibling geometry.
   forEachEditableMaterial(root,mat=>{if(mat.color)mat.color.set(color)});
  }
 }
@@ -47,39 +264,29 @@ function paintWholeProject(color){
 }
 function setSelectedColor(color){
  const scope=document.querySelector('#paintScope')?.value||'piece';
- if(selectedKind==='part'){
-  const part=groups[selected];if(!part)return;
-  if(scope==='model')paintWholeProject(color);
-  else if(scope==='group')paintMaterials(part,color,true);
-  else {
-   // Built-in body parts are groups containing several independent meshes.
-   // "Piece" means the precise mesh selected by raycast, when available.
-   const target=selectedMesh&&part.getObjectById(selectedMesh.id)===selectedMesh?selectedMesh:part;
-   paintMaterials(target,color,false);
-  }
- }else if((selectedKind==='shape'||selectedKind==='voxel'||selectedKind==='bbmodel')&&selectedObject){
-  let root=selectedObject;
-  if(scope==='model')paintWholeProject(color);
-  else if(scope==='group'){
+ if(scope==='model'){paintWholeProject(color);}
+ else{
+  const target=selectedMesh||NyraCharacterScene.geometryNode(selectedObject);
+  if(!target?.isMesh){document.querySelector('#status').textContent='Selecione uma peça com geometria para pintar.';return;}
+  if(scope==='group'){
+   let root=selectedObject;
    if(selectedKind==='bbmodel'){
-    let parent=selectedObject;
+    let parent=selectedMesh||selectedObject;
     while(parent&&parent!==bbmodelState?.rootGroup&&!parent.userData?.bbGroupUuid)parent=parent.parent;
     root=parent&&parent!==bbmodelState?.rootGroup?parent:selectedObject;
-   }else{
-    // Do not promote a single mesh to its parent blindly: that parent can be
-    // a scene/root container shared by unrelated objects.
-    root=selectedObject.parent&&selectedObject.parent!==voxelGroup?selectedObject.parent:selectedObject;
-   }
-  }
-  if(scope!=='model')paintMaterials(root,color,scope==='group');
-  const rec=customObjects.find(x=>x.mesh===selectedObject);if(rec)rec.color=color;
- }else return;
+   }else if(selectedKind==='part')root=groups[selected]||selectedObject;
+   else root=selectedObject;
+   paintMaterials(root,color,scope==='group');
+  }else paintMaterials(target,color,false);
+  const rec=customObjects.find(x=>x.mesh===selectedObject||x.mesh===target);if(rec)rec.color=color;
+ }
  document.querySelector('#partColor').value=color;
  const c=new THREE.Color(color),hsl={};c.getHSL(hsl);
  document.querySelector('#hue').value=Math.round(hsl.h*360);
  document.querySelector('#sat').value=Math.round(hsl.s*100);
  document.querySelector('#lum').value=Math.round(hsl.l*100);
 }
+
 document.querySelector('#partColor').addEventListener('input',e=>setSelectedColor(e.target.value));function hslUpdate(){const c=new THREE.Color().setHSL(+document.querySelector('#hue').value/360,+document.querySelector('#sat').value/100,+document.querySelector('#lum').value/100);setSelectedColor('#'+c.getHexString())}['hue','sat','lum'].forEach(id=>document.querySelector('#'+id).addEventListener('input',hslUpdate));
 document.querySelector('#moveTool').onclick=()=>{transform.setMode('translate');setToolActive('moveTool')};document.querySelector('#rotateTool').onclick=()=>{transform.setMode('rotate');setToolActive('rotateTool')};document.querySelector('#scaleTool').onclick=()=>{transform.setMode('scale');setToolActive('scaleTool')};function setToolActive(id){for(const k of ['moveTool','rotateTool','scaleTool'])document.querySelector('#'+k).classList.toggle('primary',k===id)}
 for(const id of ['dimX','dimY','dimZ','posX','posY','posZ'])document.querySelector('#'+id).addEventListener('change',()=>{if(!selectedObject)return;const o=selectedObject,before={position:o.position.toArray(),rotation:[o.rotation.x,o.rotation.y,o.rotation.z],scale:o.scale.toArray()};const v=Math.max(id.startsWith('dim') ? 0.05 : -100, Math.min(id.startsWith('dim') ? 10 : 100, Number(document.querySelector('#'+id).value)||0));document.querySelector('#'+id).value=v;const axis=id.slice(-1).toLowerCase();if(id.startsWith('dim'))o.scale[axis]=v;else o.position[axis]=v;pushUndo('ajuste de '+id,()=>{o.position.fromArray(before.position);o.rotation.set(...before.rotation);o.scale.fromArray(before.scale);if(selectedObject===o)syncEditor()});});
@@ -360,7 +567,7 @@ document.querySelector('#deleteSelected').onclick=()=>{
   pushUndo('apagar '+(o.name||'objeto'),()=>{if(kind==='bbmodel'&&pivot&&pivotParent){pivotParent.add(pivot);const st=window.__nyraBBModelState;if(st?.meshByUuid)st.meshByUuid.set(o.userData.bbUuid,o);if(st?.records&&record&&!st.records.includes(record))st.records.push(record);}else if(parent)parent.add(o);if(record&&!customObjects.includes(record))customObjects.splice(Math.min(recIndex,customObjects.length),0,record);if(kind==='voxel'&&!voxelRecords.some(v=>Math.abs(v.x-o.position.x)<.001&&Math.abs(v.y-o.position.y)<.001&&Math.abs(v.z-o.position.z)<.001))voxelRecords.push({x:o.position.x,y:o.position.y,z:o.position.z,color:'#'+o.material.color.getHexString()});selectCustom(o);});
   document.querySelector('#status').textContent='Objeto apagado. Use Desfazer para recuperá-lo.';
 };
-document.querySelector('#restorePart').onclick=undoLast;window.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undoLast()}});
+// O histórico unificado já registrou os handlers de undo/redo.
 
 let pointerStart=null;
 renderer.domElement.addEventListener('pointerdown',e=>{
@@ -689,7 +896,7 @@ window.addEventListener('message',event=>{
  }
 });
 window.parent.postMessage({type:'NYRA_CHARACTER_IMPORT_READY'},'*');
-function resize(){const w=Math.max(1,root.clientWidth),h=Math.max(1,root.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}if('ResizeObserver' in window)new ResizeObserver(resize).observe(root);else window.addEventListener('resize',resize);resize();requestAnimationFrame(()=>{resize();renderer.render(scene,camera)});function loop(){requestAnimationFrame(loop);controls.update();renderer.render(scene,camera)}loop();
+function resize(){const w=Math.max(1,root.clientWidth),h=Math.max(1,root.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}if('ResizeObserver' in window)new ResizeObserver(resize).observe(root);else window.addEventListener('resize',resize);resize();requestAnimationFrame(()=>{resize();renderer.render(scene,camera);refreshHierarchy();syncHistoryButtons()});function loop(){requestAnimationFrame(loop);controls.update();renderer.render(scene,camera)}loop();
 } catch(err) {
   console.error('Nyra 3D Studio: falha ao iniciar o editor',err);
   const root=document.querySelector('#view');
