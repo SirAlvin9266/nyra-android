@@ -16,7 +16,7 @@ const required = [
   ['associação direta', 'id="associateSelected"'],
   ['remoção de associação', 'id="detachSelected"'],
   ['redo compartilhado', 'function redoCommand()'],
-  ['histórico antigo unificado', 'function pushUndo(label,undo){recordCommand(label,undo,()=>{});}'],
+  ['histórico antigo unificado', 'function pushUndo(label,undo){recordCommand(label,undo,null);}'],
   ['handlers antigos não sobrescrevem undo/redo', 'O histórico unificado já registrou os handlers de undo/redo.'],
   ['redo das transformações do gizmo', "pushUndo('transformação',()=>{o.position.fromArray(snap.position)"],
   ['importador Blockbench preservado', 'async function importBBModelFile'],
