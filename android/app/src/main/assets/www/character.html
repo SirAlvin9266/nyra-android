@@ -31,6 +31,21 @@ const NyraCharacterScene = (() => {
  const ids=new WeakMap();let nextId=1;
  const idOf=o=>{if(!o||typeof o!=='object')return null;if(!ids.has(o))ids.set(o,'cc-node-'+nextId++);return ids.get(o)};
  const isAncestor=(ancestor,node)=>{for(let p=node;p;p=p.parent)if(p===ancestor)return true;return false};
+ const roots=()=>[character,voxelGroup,bbmodelState?.rootGroup].filter(Boolean);
+ const objectKind=node=>{
+  if(!node)return 'none';
+  if(roots().includes(node))return 'root';
+  if(node.userData?.bbGroupUuid)return 'group';
+  if(node.userData?.bbPivot)return 'pivot';
+  if(node.userData?.isVoxel)return 'voxel';
+  if(node.userData?.customShape)return 'shape';
+  if(node.userData?.isBBModel||node.userData?.bbUuid)return 'bbmodel';
+  return node.isMesh?'mesh':'group';
+ };
+ const isEditable=(node)=>!!node&&!roots().includes(node)&&node!==scene&&!node.isLight&&!node.isCamera&&!node.isGridHelper;
+ const geometryNode=node=>node?.isMesh?node:(node?.userData?.bbPivot?node.children.find(c=>c.isMesh):null);
+ const canPaint=(node)=>!!geometryNode(node);
+
  function canReparent(child,parent){
   if(!child||!parent||child===parent)return {ok:false,reason:'Escolha duas peças diferentes.'};
   if(isAncestor(child,parent))return {ok:false,reason:'Essa associação criaria um ciclo na hierarquia.'};
@@ -75,7 +90,7 @@ const NyraCharacterScene = (() => {
   };
   visit(root,0,null);return result;
  }
- return {idOf,isAncestor,canReparent,reparent,hierarchy};
+ return {idOf,isAncestor,canReparent,reparent,hierarchy,objectKind,isEditable,geometryNode,canPaint};
 })();
 
 const undoStack=[],redoStack=[];
