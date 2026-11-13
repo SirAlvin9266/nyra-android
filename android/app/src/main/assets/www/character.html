@@ -238,11 +238,12 @@ function paintMaterials(root,color,deep=true){
  const paint=node=>{if(node.isMesh)forEachEditableMaterial(node,mat=>{if(mat.color)mat.color.set(color)});};
  if(root.isMesh){paint(root);return;}
  if(deep){
-  // Traverse only descendants, never siblings or the parent's other branches.
+  // Traverse only the selected subtree. A non-mesh group is a container;
+  // its meshes are descendants and must be painted explicitly.
   root.traverse(paint);
  }else{
-  // A selected group is not itself a mesh; "piece" must mean the exact selected
-  // node's own geometry, not all immediate children (which are often peer meshes).
+  // A group is not a drawable piece. In piece scope, do not fall through
+  // to descendants because that would accidentally paint sibling geometry.
   forEachEditableMaterial(root,mat=>{if(mat.color)mat.color.set(color)});
  }
 }
