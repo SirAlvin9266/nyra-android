@@ -70,10 +70,11 @@ assert(history.undoCommand() && state.value === 0, 'Undo de comando reversível 
 assert(history.redoCommand() && state.value === 1, 'Redo de comando reversível falhou.');
 history.pushUndo('ação antiga', () => { state.value = 2; });
 assert(history.undoCommand() && state.value === 2, 'Ação antiga deve continuar desfazível.');
+assert(history.redoStack.length === 0, 'Ação antiga sem callback redo não deve entrar na pilha de refazer.');
 assert(!history.redoCommand(), 'Ação antiga sem callback redo não deve fingir que pode ser refeita.');
 history.recordCommand('nova operação', () => {}, () => {});
 assert(history.redoStack.length === 0, 'Nova operação deve limpar a pilha redo.');
-assert(script.includes('function pushUndo(label,undo){recordCommand(label,undo,()=>{});}'), 'Ações antigas não usam o histórico unificado.');
+assert(script.includes('function pushUndo(label,undo){recordCommand(label,undo,null);}'), 'Ações antigas devem entrar no histórico sem callback redo fictício.');
 assert(!script.includes("document.querySelector('#restorePart').onclick=undoLast"), 'Handler legado ainda sobrescreve o botão.');
 assert(script.includes('O histórico unificado já registrou os handlers de undo/redo.'), 'Marcador de não sobrescrita ausente.');
 
