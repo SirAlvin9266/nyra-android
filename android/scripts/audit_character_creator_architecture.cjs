@@ -5,8 +5,6 @@ const path = process.argv[2] || 'android/app/src/main/assets/www/character.html'
 const html = fs.readFileSync(path, 'utf8');
 const match = html.match(/<script type="module">([\s\S]*?)<\/script>/);
 if (!match) throw new Error('Criador de Personagens: script principal ausente');
-
-// Parse only. This does not pretend to validate browser/WebGL behavior.
 new vm.Script(match[1], { filename: path });
 
 const required = [
@@ -17,14 +15,16 @@ const required = [
   ['painel hierárquico', 'id="hierarchyTree"'],
   ['associação direta', 'id="associateSelected"'],
   ['remoção de associação', 'id="detachSelected"'],
-  ['refazer associação', 'function redoCommand()'],
+  ['redo compartilhado', 'function redoCommand()'],
+  ['histórico antigo unificado', 'function pushUndo(label,undo){recordCommand(label,undo,()=>{});}'],
+  ['handlers antigos não sobrescrevem undo/redo', 'O histórico unificado já registrou os handlers de undo/redo.'],
+  ['redo das transformações do gizmo', "pushUndo('transformação',()=>{o.position.fromArray(snap.position)"],
   ['importador Blockbench preservado', 'async function importBBModelFile'],
   ['exportador Blockbench preservado', 'function buildBBModelExportData'],
-  ['ponte já existente para RoboTV preservada', 'NYRA_SCENE_TRANSFER_SUBMIT'],
+  ['ponte existente preservada', 'NYRA_SCENE_TRANSFER_SUBMIT'],
   ['seleção centralizada', 'function activateSelection(object,kind,mesh=null)'],
-  ['inspeção da geometria pelo núcleo', 'NyraCharacterScene.geometryNode(selectedObject)'],
-  ['pintura por escopo e nó selecionado', "function setSelectedColor(color)"],
-  ['histórico de hierarquia separado do legado', 'const undoStack=[],redoStack=[]']
+  ['inspeção de geometria centralizada', 'NyraCharacterScene.geometryNode(selectedObject)'],
+  ['escopo de pintura', 'function setSelectedColor(color)']
 ];
 const missing = required.filter(([, marker]) => !html.includes(marker));
 if (missing.length) {
