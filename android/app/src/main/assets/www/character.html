@@ -58,6 +58,7 @@ const NyraCharacterScene = (() => {
   const validation=canReparent(child,parent);if(!validation.ok)throw new Error(validation.reason);
   scene.updateMatrixWorld(true);
   const world=child.matrixWorld.clone(),oldParent=child.parent,oldIndex=oldParent?.children.indexOf(child)??-1;
+  const oldLocal={position:child.position.clone(),quaternion:child.quaternion.clone(),rotation:child.rotation.clone(),scale:child.scale.clone()};
   try{
    parent.add(child);
    if(preserveWorld){
@@ -77,7 +78,10 @@ const NyraCharacterScene = (() => {
    return validation;
   }catch(error){
    if(oldParent){oldParent.add(child);const at=oldParent.children.indexOf(child);oldParent.children.splice(at,1);oldParent.children.splice(Math.max(0,Math.min(oldIndex,oldParent.children.length)),0,child);}
-   child.matrixWorld.copy(world);throw error;
+   else parent.remove(child);
+   child.position.copy(oldLocal.position);child.quaternion.copy(oldLocal.quaternion);child.rotation.copy(oldLocal.rotation);child.scale.copy(oldLocal.scale);
+   child.updateMatrix();child.updateMatrixWorld(true);
+   throw error;
   }
  }
  function hierarchy(root=scene){
