@@ -42,16 +42,28 @@ const NyraCharacterScene = (() => {
  function reparent(child,parent,{preserveWorld=true}={}){
   const validation=canReparent(child,parent);if(!validation.ok)throw new Error(validation.reason);
   scene.updateMatrixWorld(true);
-  const world=child.matrixWorld.clone();
-  parent.add(child);
-  if(preserveWorld){
-   parent.updateWorldMatrix(true,false);
-   const local=parent.matrixWorld.clone().invert().multiply(world);
-   local.decompose(child.position,child.quaternion,child.scale);
-   child.rotation.setFromQuaternion(child.quaternion,child.rotation.order);
+  const world=child.matrixWorld.clone(),oldParent=child.parent,oldIndex=oldParent?.children.indexOf(child)??-1;
+  try{
+   parent.add(child);
+   if(preserveWorld){
+    parent.updateWorldMatrix(true,false);
+    const local=parent.matrixWorld.clone().invert().multiply(world);
+    const p=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();
+    local.decompose(p,q,sc);
+    child.position.copy(p);child.quaternion.copy(q);child.scale.copy(sc);
+    child.rotation.setFromQuaternion(q,child.rotation.order);
+    child.updateMatrix();
+    child.updateMatrixWorld(true);
+    const check=child.matrixWorld.clone();
+    const e1=world.elements,e2=check.elements;
+    const error=Math.max(...e1.map((v,i)=>Math.abs(v-e2[i])));
+    if(!Number.isFinite(error)||error>1e-4)throw new Error('A transformação não pode ser preservada exatamente neste tipo de hierarquia (possível cisalhamento).');
+   }
+   return validation;
+  }catch(error){
+   if(oldParent){oldParent.add(child);const at=oldParent.children.indexOf(child);oldParent.children.splice(at,1);oldParent.children.splice(Math.max(0,Math.min(oldIndex,oldParent.children.length)),0,child);}
+   child.matrixWorld.copy(world);throw error;
   }
-  child.updateMatrix();child.updateMatrixWorld(true);
-  return validation;
  }
  function hierarchy(root=scene){
   const result=[];
