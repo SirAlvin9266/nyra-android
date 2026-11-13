@@ -3,11 +3,15 @@ const vm = require('node:vm');
 const html = fs.readFileSync('android/app/src/main/assets/www/character.html', 'utf8');
 const script = html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
 if (!script) throw new Error('Script do Criador não encontrado.');
+
 const start = script.indexOf('const NyraCharacterScene = (() => {');
 const end = script.indexOf('})();', start) + 4;
 if (start < 0 || end < 4) throw new Error('Núcleo NyraCharacterScene não encontrado.');
 const core = script.slice(start, end);
 
+function assert(condition, message) {
+  if (!condition) throw new Error(message);
+}
 function makeNode(name, isMesh = false) {
   return {
     name, isMesh, children: [], parent: null,
@@ -22,6 +26,7 @@ function makeNode(name, isMesh = false) {
     }
   };
 }
+
 const scene = makeNode('scene');
 const character = makeNode('character');
 const voxelGroup = makeNode('voxels');
@@ -38,9 +43,6 @@ const c = makeNode('C');
 const mesh = makeNode('mesh', true);
 root.add(a); a.add(b); root.add(c); root.add(mesh);
 
-function assert(condition, message) {
-  if (!condition) throw new Error(message);
-}
 assert(api.canReparent(c, a).ok, 'Associação válida deveria ser aceita.');
 assert(!api.canReparent(a, c).ok, 'Ciclo deveria ser bloqueado.');
 assert(!api.canReparent(a, a).ok, 'Auto-parenting deveria ser bloqueado.');
@@ -53,15 +55,26 @@ const flat = api.hierarchy(root);
 assert(flat.length === 2 && flat[0].node === a && flat[1].node === b, 'Listagem hierárquica incorreta.');
 assert(flat[1].parentId === flat[0].id, 'Vínculo pai-filho não foi descrito corretamente.');
 
-// Verify that an association change can be replayed without changing the
-// local transform snapshot stored by the command closures.
-const before = { position: [1, 2, 3], quaternion: [0, 0, 0, 1], scale: [1, 1, 1] };
-const after = { position: [4, 5, 6], quaternion: [0, 0, 0, 1], scale: [1, 1, 1] };
-const recorded = { undo: () => state = before, redo: () => state = after };
-let state = after;
-recorded.undo();
-assert(state === before, 'Undo deve restaurar o snapshot anterior.');
-recorded.redo();
-assert(state === after, 'Redo deve restaurar o snapshot posterior.');
+const historyStart = script.indexOf('const undoStack=[],redoStack=[];');
+const historyEnd = script.indexOf('function refreshHierarchy()', historyStart);
+if (historyStart < 0 || historyEnd < 0) throw new Error('Histórico unificado não encontrado.');
+const historyScript = script.slice(historyStart, historyEnd);
+const historyContext = {
+  document: { querySelector: () => ({ textContent: '', disabled: false }) }
+};
+vm.runInNewContext(historyScript + '\nthis.history={recordCommand,pushUndo,undoCommand,redoCommand,undoStack,redoStack};', historyContext);
+const history = historyContext.history;
+const state = { value: 1 };
+history.recordCommand('transformação', () => { state.value = 0; }, () => { state.value = 1; });
+assert(history.undoCommand() && state.value === 0, 'Undo de comando reversível falhou.');
+assert(history.redoCommand() && state.value === 1, 'Redo de comando reversível falhou.');
+history.pushUndo('ação antiga', () => { state.value = 2; });
+assert(history.undoCommand() && state.value === 2, 'Ação antiga deve continuar desfazível.');
+assert(!history.redoCommand(), 'Ação antiga sem callback redo não deve fingir que pode ser refeita.');
+history.recordCommand('nova operação', () => {}, () => {});
+assert(history.redoStack.length === 0, 'Nova operação deve limpar a pilha redo.');
+assert(script.includes('function pushUndo(label,undo){recordCommand(label,undo,()=>{});}'), 'Ações antigas não usam o histórico unificado.');
+assert(!script.includes("document.querySelector('#restorePart').onclick=undoLast"), 'Handler legado ainda sobrescreve o botão.');
+assert(script.includes('O histórico unificado já registrou os handlers de undo/redo.'), 'Marcador de não sobrescrita ausente.');
 
-console.log('Testes do núcleo hierárquico passaram: 11 invariantes.');
+console.log('Testes do núcleo hierárquico passaram: 16 invariantes de cena e histórico.');
