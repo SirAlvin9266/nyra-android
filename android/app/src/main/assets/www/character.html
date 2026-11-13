@@ -688,6 +688,7 @@ window.addEventListener('message',event=>{
   document.querySelector('#status').textContent=event.data.success?'RoboTV recebeu '+(event.data.projectName||'o projeto')+'.':'Falha no RoboTV: '+(event.data.error||'erro desconhecido');
  }
 });
+window.parent.postMessage({type:'NYRA_CHARACTER_IMPORT_READY'},'*');
 function resize(){const w=Math.max(1,root.clientWidth),h=Math.max(1,root.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}if('ResizeObserver' in window)new ResizeObserver(resize).observe(root);else window.addEventListener('resize',resize);resize();requestAnimationFrame(()=>{resize();renderer.render(scene,camera)});function loop(){requestAnimationFrame(loop);controls.update();renderer.render(scene,camera)}loop();
 } catch(err) {
   console.error('Nyra 3D Studio: falha ao iniciar o editor',err);
