@@ -67,6 +67,8 @@ const pages = {items: "PCFkb2N0eXBlIGh0bWw+PGh0bWwgbGFuZz0icHQtQlIiPjxoZWFkPjxtZ
 const host=document.getElementById('editorHost');
 const message=document.getElementById('message');
 const editorFrames={};
+let characterImportReady=false;
+const pendingCharacterImports=[];
 const names={items:'Oficina de Itens',character:'Criador de Personagens',animation:'RoboTV / Animação'};
 
 
@@ -352,6 +354,33 @@ function nyraInstallEditorDiagnostics(frame,key){
    }catch(e){report('falha ao observar o documento',e.message);}
  },{once:true});
 }
+function nyraRelayCharacterImport(payload,source){
+ const frame=editorFrames.character;
+ if(!frame?.contentWindow){source?.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',requestId:payload.requestId,success:false,error:'Criador de Personagens não pôde ser inicializado.'},'*');return;}
+ if(!characterImportReady){
+  const pending={payload,source,timer:null};
+  pending.timer=setTimeout(()=>{
+   const index=pendingCharacterImports.indexOf(pending);
+   if(index<0)return;
+   pendingCharacterImports.splice(index,1);
+   source?.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',requestId:payload.requestId,success:false,error:'O Criador de Personagens não confirmou a inicialização do importador em 15 segundos. Abra o Criador, aguarde ficar pronto e tente novamente.'},'*');
+  },15000);
+  pendingCharacterImports.push(pending);
+  message.textContent='Aguardando o importador do Criador de Personagens inicializar…';
+  return;
+ }
+ frame.contentWindow.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT_BBMODEL',requestId:payload.requestId,file:payload.file,name:payload.name},'*');
+}
+function nyraFlushCharacterImports(){
+ characterImportReady=true;
+ while(pendingCharacterImports.length){
+  const pending=pendingCharacterImports.shift();
+  clearTimeout(pending.timer);
+  const frame=editorFrames.character;
+  if(frame?.contentWindow)frame.contentWindow.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT_BBMODEL',requestId:pending.payload.requestId,file:pending.payload.file,name:pending.payload.name},'*');
+  else pending.source?.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',requestId:pending.payload.requestId,success:false,error:'Criador de Personagens ficou indisponível durante a importação.'},'*');
+ }
+}
 function openEditor(key){
  if(!pages[key])return;
  const frame=editorFrames[key]||ensureEditor(key);
@@ -372,17 +401,16 @@ window.addEventListener('message',event=>{
   try{const doc=event.data.transfer;if(!doc||doc.schema!=='nyra.scene-transfer'||doc.schemaVersion!==1||!Array.isArray(doc.scene?.nodes)||!Array.isArray(doc.animations?.clips))throw new Error('Documento de transferência inválido.');const target=editorFrames.animation?.contentWindow;if(!target)throw new Error('RoboTV não foi carregado.');target.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT',requestId:event.data.requestId,transfer:doc,glb:event.data.glb||null},'*',event.data.glb instanceof ArrayBuffer?[event.data.glb]:[]);message.textContent='Projeto enviado ao RoboTV para validação.';}
   catch(error){event.source.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',success:false,error:error?.message||String(error)},'*');}
  }
+ if(event.data?.type==='NYRA_CHARACTER_IMPORT_READY'&&sourceKey==='character'){
+  nyraFlushCharacterImports();
+ }
  if(event.data?.type==='NYRA_SCENE_TRANSFER_IMPORT_BBMODEL'&&sourceKey==='animation'){
-  const frame=editorFrames.character;
-  const fail=error=>event.source.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',requestId:event.data.requestId,success:false,error},'*');
-  if(!frame){fail('Criador de Personagens não está disponível.');}
-  else{
-   const relay=()=>{
-    if(!frame.contentWindow){fail('Criador de Personagens ainda não está disponível.');return;}
-    frame.contentWindow.postMessage({type:'NYRA_SCENE_TRANSFER_IMPORT_BBMODEL',requestId:event.data.requestId,file:event.data.file,name:event.data.name},'*');
-   };
-   try{if(frame.contentDocument?.readyState==='complete')relay();else frame.addEventListener('load',relay,{once:true});}
-   catch(error){fail(error?.message||String(error));}
+  try{
+   const frame=editorFrames.character||ensureEditor('character');
+   if(document.querySelector('[data-app].active')?.dataset.app!=='character')frame.style.display='none';
+   nyraRelayCharacterImport(event.data,event.source);
+  }catch(error){
+   event.source.postMessage({type:'NYRA_SCENE_TRANSFER_RESULT',requestId:event.data.requestId,success:false,error:error?.message||String(error)},'*');
   }
  }
  if(event.data?.type==='NYRA_ROBOTV_EXPORT_PROJECT_JSON'&&sourceKey==='animation'){
