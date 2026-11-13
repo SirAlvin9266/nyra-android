@@ -96,3 +96,14 @@ Correção:
 - O teste de histórico verifica que uma ação antiga continua desfazível, mas não entra na pilha de redo e não pode anunciar sucesso ao refazer.
 
 A sincronização entre `character.html` e a entrada Base64 em `index.html` será refeita e conferida byte a byte antes de gerar/aceitar novo APK.
+
+
+## Correção adicional — rollback de reparenting (13/11/2026)
+
+A revisão também identificou que uma tentativa de associação rejeitada após a decomposição de matriz podia restaurar o pai anterior, mas deixar posição/rotação/escala locais parcialmente alteradas.
+
+Correção:
+- Captura explícita de posição, quaternion, Euler e escala locais antes da tentativa.
+- Em caso de falha, restaura o pai e o índice originais, ou remove do destino quando o nó não tinha pai.
+- Restaura todos os componentes TRS e atualiza a matriz após o rollback.
+- Auditoria e teste estrutural verificam a presença do snapshot e da restauração.
