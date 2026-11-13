@@ -12,6 +12,7 @@ const required = [
   ['identidade estável de nós', 'const ids=new WeakMap()'],
   ['regra anti-ciclo', 'Essa associação criaria um ciclo'],
   ['validação de matriz mundial', 'possível cisalhamento'],
+  ['rollback restaura transformação local', 'child.position.copy(oldLocal.position);child.quaternion.copy(oldLocal.quaternion);child.rotation.copy(oldLocal.rotation);child.scale.copy(oldLocal.scale);'],
   ['painel hierárquico', 'id="hierarchyTree"'],
   ['associação direta', 'id="associateSelected"'],
   ['remoção de associação', 'id="detachSelected"'],
