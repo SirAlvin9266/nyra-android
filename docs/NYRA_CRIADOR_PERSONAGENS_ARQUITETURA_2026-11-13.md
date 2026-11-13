@@ -84,3 +84,15 @@ Testes adicionados/fortalecidos: sequência de undo/redo reversível, ação leg
 Sincronização Android pendente nesta entrega: a fonte character.html está atualizada, mas a entrada Base64 character de index.html ainda corresponde a uma cópia anterior. A atualização foi deliberadamente bloqueada porque não foi possível calcular e conferir a conversão Base64 neste ambiente. O CI de APK não deve ser considerado prova da nova versão até a sincronização ser concluída.
 
 Limite funcional: o undo das ações legadas foi unificado, mas essas ações ainda não possuem redo individual. O redo real está implementado para os comandos que já fornecem callback de reaplicação (hierarquia e transformação por gizmo).
+
+## Correção adicional — sem redo fictício (13/11/2026)
+
+Na revisão do histórico unificado foi detectado que ações legadas sem callback de reaplicação estavam sendo registradas com uma função vazia de redo. Isso fazia o comando aparecer como refezível mesmo sem restaurar seu efeito.
+
+Correção:
+- Ações legadas são registradas com `redo: null`.
+- Undo só envia para a pilha de redo comandos que possuem callback real de reaplicação.
+- Redo rejeita comandos sem callback executável.
+- O teste de histórico verifica que uma ação antiga continua desfazível, mas não entra na pilha de redo e não pode anunciar sucesso ao refazer.
+
+A sincronização entre `character.html` e a entrada Base64 em `index.html` será refeita e conferida byte a byte antes de gerar/aceitar novo APK.
